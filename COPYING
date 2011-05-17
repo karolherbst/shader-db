@@ -36,9 +36,9 @@ tests/glslparsertest/glsl2/norsetto-*
  * GNU General Public License for more details.
  */
 
-tests/glslparsertest/glsl2/xreal-*
-tests/glslparsertest/glsl2/xonotic-*
-tests/shaders/glsl-gnome-shell-dim-window.shader_test
+shaders/nexuiz/
+shaders/xreal-*
+shaders/xonotic-*
 /* Full text of the GPL v2 is included in licenses/GPL-2 */
 /*
 ===========================================================================
