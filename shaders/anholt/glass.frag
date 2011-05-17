@@ -1,0 +1,113 @@
+#version 120
+
+#define I965_HACK 1
+
+varying vec3 light_surf;
+varying vec3 eye_surf;
+varying vec3 tangent_surf;
+varying vec4 shadow_coords;
+varying vec2 texcoord;
+uniform sampler2D normal_sampler;
+uniform sampler2D heightmap_sampler;
+uniform sampler2DShadow shadow_sampler;
+uniform float F0, ni, ward_mm_inv, ward_mn_inv, ward_nn_inv;
+
+float schlick_fresnel(float n_dot_l)
+{
+	return F0 + (1 - F0) * pow(1 - n_dot_l, 5);
+}
+
+void main()
+{
+	float shadow = shadow2DProj(shadow_sampler, shadow_coords).x;
+	const vec4 material_color = vec4(0.7, 0.5, 0.3, 0.0);
+	vec4 color;
+	float s = .7;
+	float d = 1 - s;
+	float Ii = 0.9; /*intensity of incoming light */
+	float Iia = .1 * Ii; /*intensity of ambient light */
+
+	float Rs = 0;
+	float D;
+
+	float Rd = (1 - F0) * 2;
+
+	/* Calculate ambient lighting. */
+
+	/* Ambient occlusion factor -- sample the height map we
+	 * used to generate the normal map, and reduce intensity in
+	 * the valleys.
+	 */
+	float heightmap = texture2D(heightmap_sampler, texcoord).x;
+	float Ra = Rd * (.8 + .2 * heightmap);
+	color = material_color * Iia * Ra;
+
+	/* Calculate specular and diffuse lighting */
+#if !I965_HACK
+	if (shadow > 0) {
+#endif
+		vec3 l = normalize(light_surf);
+		vec3 v = normalize(eye_surf);
+		vec3 h = normalize(l + v);
+		vec3 t = normalize(tangent_surf);
+		vec3 n = texture2D(normal_sampler, texcoord).xyz * 2 - 1;
+		/* Hack: Reduce the significance of our normal map, which
+		 * otherwise looks incongruous with the straight edges.
+		 */
+		n = normalize(n + vec3(0,0,1));
+
+		float n_dot_l = dot(n, l);
+		float n_dot_v = dot(n, v);
+		float n_dot_h = dot(n, h);
+		float v_dot_h = dot(v, h);
+		float cos2_alpha = n_dot_h * n_dot_h;
+		float tan2_alpha = (1 - cos2_alpha) / cos2_alpha;
+
+		/* Aniso BRDF from Ward's "Measuring and Modeling
+		 * Anisotropic Reflection".
+		 */
+
+		/* Make phi be the angle between the projections of
+		 * the tangent and half-angle vectors onto the
+		 * surface plane (z=0).  Doing it right would involve
+		 * projecting onto the plane defined by n.
+		 */
+		float cos_phi = dot(normalize(t.xy), normalize(h.xy));
+
+		float cos2_phi_over_m2 = (cos_phi * cos_phi) * ward_mm_inv;
+		float sin2_phi_over_n2 = (1 - cos_phi * cos_phi) * ward_nn_inv;
+		D = exp(-tan2_alpha * (cos2_phi_over_m2 + sin2_phi_over_n2));
+		Rs = 2 * schlick_fresnel(n_dot_l) * D *
+			inversesqrt(n_dot_l * n_dot_v) * ward_mn_inv;
+		Rs *= s;
+
+		color += max(0, n_dot_l) * step(0, n_dot_v) *
+			vec4(material_color.xyz *
+			     ((Rd * d + Rs) * Ii * shadow),
+			     material_color.w);
+#if !I965_HACK
+	}
+#endif
+
+	gl_FragColor = color;
+
+	/* Debugging scalars -- Map [0,1] to [0.5,1] to catch negative
+	 * values.  Multiply by the step function to catch when
+	 * the scalar won't come into play because Rs == 0.
+	 */
+#if 0
+	/* Constant visualization */
+	gl_FragColor = vec4(vec3(F0 / 2 + .5), 1);
+#endif
+#if 0
+	/* Normal visualization */
+	gl_FragColor = vec4((normal.x + 1) / 2,
+			    (normal.y + 1) / 2,
+			    (normal.z + 1) / 2,
+			    0);
+#endif
+#if 0
+	/* Sampler visualization */
+	gl_FragColor = texture2D(normal_sampler, texcoord);
+#endif
+}
