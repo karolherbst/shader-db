@@ -1,3 +1,4 @@
+shaders/0ad/*:
 shaders/gst-gl-*:
 /*
  * GStreamer
