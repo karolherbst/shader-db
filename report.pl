@@ -57,7 +57,7 @@ while (my ($prog, $before_count) = each(%before)) {
     }
 
     if ($after_count > $before_count) {
-	$hurt_programs{$prog} = 1;
+	$hurt_programs{$prog} = $after_count / $before_count;
     }
 
     printf("%s: %4d -> %4d\n",
@@ -98,8 +98,12 @@ my $header = 0;
 
 if (keys(%hurt_programs) != 0) {
     printf("hurt programs:\n");
+    my @names = keys %hurt_programs;
+    my @sorted = sort {
+	$hurt_programs{$a} <=> $hurt_programs{$b}
+    } @names;
 
-    while (my ($prog, $junk) = each(%hurt_programs)) {
-	printf("%s\n", $prog);
+    foreach (@sorted) {
+	printf("%s: %.02f%%\n", $_, $hurt_programs{$_} * 100 - 100);
     }
 }
