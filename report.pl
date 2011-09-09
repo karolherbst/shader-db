@@ -56,7 +56,7 @@ while (my ($prog, $before_count) = each(%before)) {
 	next;
     }
 
-    if ($after_count > $before_count) {
+    if ($after_count > $before_count && $before_count != 0) {
 	$hurt_programs{$prog} = $after_count / $before_count;
     }
 
