@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-$env = "env INTEL_DEBUG=wm,vs";
+$env = "env shader_precompile=true INTEL_DEBUG=wm,vs";
 $glslparsertest = "/home/anholt/src/piglit/bin/glslparsertest";
 
 my $total = 0;
