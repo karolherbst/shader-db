@@ -4,6 +4,8 @@ from getopt import getopt, GetoptError
 import re
 import sys, os
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import cpu_count
 
 def usage():
     USAGE = """\
@@ -34,8 +36,7 @@ def run_test(filename):
             stderr=subprocess.PIPE,
             env=env)
     except:
-        print(filename + " FAIL")
-        return
+        return filename + " FAIL"
 
     try:
         (stdout, stderr) = p.communicate()
@@ -43,8 +44,7 @@ def run_test(filename):
     except KeyboardInterrupt:
         exit(1)
     except:
-        print(filename + " FAIL ")
-        return
+        return filename + " FAIL"
 
     with open(filename + '.out', 'w') as file:
         file.write(results)
@@ -70,10 +70,11 @@ def run_test(filename):
         elif (re.search(re_align, line)):
             counts[current_type] = counts[current_type] + 1
 
+    out = ''
     for t in counts:
         if counts[t] != 0:
-            print(filename + " " + t + ": " + str(counts[t]))
-            sys.stdout.flush()
+            out += "".join([filename, " ", t, ": ", str(counts[t]), "\n"])
+    return out
 
 def main():
     try:
@@ -91,8 +92,9 @@ def main():
     if len(args) < 1:
         usage()
 
-    for filename in args:
-        run_test(filename)
+    executor = ThreadPoolExecutor(cpu_count())
+    for t in executor.map(run_test, args):
+        sys.stdout.write(t)
 
 if __name__ == "__main__":
 	main()
