@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from getopt import getopt, GetoptError
 import re
@@ -12,7 +12,7 @@ Usage: %(progName)s [shader.frag] [shader.vert]
 Options:
   -h, --help                Show this message
 """
-    print USAGE % {'progName': sys.argv[0]}
+    print(USAGE % {'progName': sys.argv[0]})
     sys.exit(1)
 
 def run_test(filename):
@@ -34,16 +34,16 @@ def run_test(filename):
             stderr=subprocess.PIPE,
             env=env)
     except:
-        print filename + " FAIL"
+        print(filename + " FAIL")
         return
 
     try:
         (stdout, stderr) = p.communicate()
-        results = stdout + stderr
+        results = (stdout + stderr).decode("utf-8")
     except KeyboardInterrupt:
         exit(1)
     except:
-        print filename + " FAIL "
+        print(filename + " FAIL ")
         return
 
     with open(filename + '.out', 'w') as file:
@@ -72,7 +72,7 @@ def run_test(filename):
 
     for t in counts:
         if counts[t] != 0:
-            print filename + " " + t + ": " + str(counts[t])
+            print(filename + " " + t + ": " + str(counts[t]))
             sys.stdout.flush()
 
 def main():
