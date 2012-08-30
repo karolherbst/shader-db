@@ -12,7 +12,7 @@ Usage: %(progName)s <before> <after>
 Options:
   -h, --help                Show this message
 """
-    print USAGE % {'progName': sys.argv[0]}
+    print(USAGE % {'progName': sys.argv[0]})
     sys.exit(1)
 
 def get_results(filename):
@@ -107,38 +107,31 @@ def main():
 
     helped.sort()
     for r in helped:
-        print "helped: " + r
+        print("helped: " + r)
     if len(helped) > 0:
-        print ""
+        print("")
 
-    def hurt_sort(k1, k2):
-        if (float(after[k1] - before[k1]) / before[k1] >
-            float(after[k2] - before[k2]) / before[k2]):
-            return 1
-        else:
-            return -1
-
-    hurt.sort(cmp=hurt_sort)
+    hurt.sort(key=lambda k: float(after[k] - before[k]) / before[k])
     for p in hurt:
         namestr = p[0] + " " + p[1]
-        print "HURT:   " + get_result_string(namestr, before[p], after[p])
+        print("HURT:   " + get_result_string(namestr, before[p], after[p]))
     if len(hurt) > 0:
-        print ""
+        print("")
 
     lost.sort()
     for p in lost:
-        print "LOST:   " + p
+        print("LOST:   " + p)
     if len(lost) > 0:
-        print ""
+        print("")
 
     gained.sort()
     for p in gained:
-        print "GAINED: " + p
+        print("GAINED: " + p)
     if len(gained) > 0:
-        print ""
+        print("")
 
-    print "total instructions in shared programs: " + change(total_before, total_after)
-    print "instructions in affected programs:     " + change(affected_before, affected_after)
+    print("total instructions in shared programs: " + change(total_before, total_after))
+    print("instructions in affected programs:     " + change(affected_before, affected_after))
 
 if __name__ == "__main__":
 	main()
