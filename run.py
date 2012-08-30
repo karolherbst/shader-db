@@ -68,15 +68,15 @@ def run_test(filename):
     counts["fs8 "] = 0
     counts["fs16"] = 0
     for line in lines:
-        if (re.search(re_builtin_shader, line)):
+        if (re_builtin_shader.search(line)):
             current_type = "ignore"
-        elif (re.search(re_vs, line)):
+        elif (re_vs.search(line)):
             current_type = "vs  "
-        elif (re.search(re_fs_8, line)):
+        elif (re_fs_8.search(line)):
             current_type = "fs8 "
-        elif (re.search(re_fs_16, line)):
+        elif (re_fs_16.search(line)):
             current_type = "fs16"
-        elif (re.search(re_align, line)):
+        elif (re_align.search(line)):
             counts[current_type] = counts[current_type] + 1
     del counts["ignore"]
 
