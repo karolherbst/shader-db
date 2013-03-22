@@ -22,19 +22,11 @@ def run_test(filename):
                filename,
                'pass']
 
-    env_add = {}
-    env_add["shader_precompile"] = "true"
-    env_add["INTEL_DEBUG"] = "vs,wm"
-
-    env = os.environ.copy()
-    env.update(env_add)
-
     try:
         p = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=env)
+            stderr=subprocess.PIPE)
     except:
         return filename + " FAIL"
 
@@ -84,6 +76,12 @@ def main():
         options, args = getopt(sys.argv[1:], "h", option_list)
     except GetoptError:
         usage()
+
+    env_add = {}
+    env_add["shader_precompile"] = "true"
+    env_add["INTEL_DEBUG"] = "vs,wm"
+
+    os.environ.update(env_add)
 
     for name, value in options:
         if name in ('-h', '--help'):
