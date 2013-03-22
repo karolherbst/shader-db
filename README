@@ -12,10 +12,12 @@ split-to-files.pl appname log
 $EDITOR shaders/appname/*
 
 === Running shaders ===
-# set your location to hacked glslparsertest that links shaders.
-$EDITOR run.pl
+# We rely on piglit binaries to actually execute the shader code.
+# Replace this path with wherever you actually built piglit.
+ln -s $HOME/src/piglit/bin ./
+
 # this relies on i965 driver debug output, hack it up for anything else.
-./run.pl shaders/**/*.frag
+./run.py shaders/**/*.frag
 
 === Analysis ===
 diff old-run new-run

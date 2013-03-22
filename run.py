@@ -18,7 +18,7 @@ Options:
     sys.exit(1)
 
 def run_test(filename):
-    command = ['/home/anholt/src/piglit/bin/glslparsertest',
+    command = ['./bin/glslparsertest',
                filename,
                'pass']
 
@@ -91,6 +91,12 @@ def main():
 
     if len(args) < 1:
         usage()
+
+    try:
+        os.stat("bin/glslparsertest")
+    except:
+        print("./bin must be a symlink to a built piglit bin directory")
+        sys.exit(1)
 
     executor = ThreadPoolExecutor(cpu_count())
     for t in executor.map(run_test, args):
