@@ -18,9 +18,15 @@ Options:
     sys.exit(1)
 
 def run_test(filename):
-    command = ['./bin/glslparsertest',
-               filename,
-               'pass']
+    if ".shader_test" in filename:
+        command = ['./bin/shader_runner',
+                   filename,
+                   '-auto',
+                   '-fbo']
+    else:
+        command = ['./bin/glslparsertest',
+                   filename,
+                   'pass']
 
     try:
         p = subprocess.Popen(
