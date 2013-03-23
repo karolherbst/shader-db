@@ -1,0 +1,16 @@
+[require]
+GLSL >= 1.10
+
+[fragment shader]
+void main()
+{
+}
+
+[vertex shader]
+uniform mat4 mvp, mv;
+
+void main()
+{
+	gl_Position = mvp * gl_Vertex;
+}
+

@@ -1,0 +1,23 @@
+[require]
+GLSL >= 1.10
+
+[fragment shader]
+uniform sampler2D shadow_sampler;
+varying vec2 texcoord;
+
+void main()
+{
+	gl_FragColor = texture2D(shadow_sampler, texcoord);
+}
+
+[vertex shader]
+#version 120
+
+varying vec2 texcoord;
+
+void main()
+{
+	gl_Position = gl_Vertex;
+	texcoord = (gl_Vertex.xy + vec2(1, 1)) / 2.0;
+}
+

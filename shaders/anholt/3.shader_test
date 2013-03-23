@@ -1,3 +1,7 @@
+[require]
+GLSL >= 1.10
+
+[fragment shader]
 #version 120
 
 #define I965_HACK 1
@@ -111,3 +115,37 @@ void main()
 	gl_FragColor = texture2D(normal_sampler, texcoord);
 #endif
 }
+
+[vertex shader]
+#version 120
+
+uniform vec3 light_eye;
+varying vec2 texcoord;
+varying vec3 light_surf;
+varying vec3 eye_surf;
+varying vec3 tangent_surf;
+varying vec4 shadow_coords;
+uniform mat4 mvp, mv, light_mvp;
+
+void main()
+{
+	mat3 mv3 = mat3(mv);
+	vec3 t = (mv3 * gl_MultiTexCoord1.xyz);
+	vec3 n = (mv3 * gl_Normal);
+
+	gl_Position = mvp * gl_Vertex;
+
+	mat3 tbn = mat3(t,
+			cross(n, t),
+			n
+			);
+
+	vec3 vertex_eye = vec3(mv * gl_Vertex);
+	shadow_coords = light_mvp * gl_Vertex;
+
+	texcoord = gl_MultiTexCoord0.xy;
+	light_surf = normalize((light_eye - vertex_eye) * tbn);
+	eye_surf = normalize((-vertex_eye) * tbn);
+	tangent_surf = gl_MultiTexCoord1.xyz * tbn;
+}
+
