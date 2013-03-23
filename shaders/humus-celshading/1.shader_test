@@ -1,0 +1,59 @@
+[require]
+GLSL >= 1.10
+
+[fragment shader]
+#define saturate(x) clamp(x,0.0,1.0)
+#define lerp mix
+#line 14
+
+
+uniform sampler1D CelShade;
+
+varying vec3 lVec;
+varying vec3 norm;
+
+void main(){
+	vec3 lightVec = normalize(lVec);
+	float diffuse = dot(lightVec, norm);
+
+	gl_FragColor = texture1D(CelShade, diffuse);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[vertex shader]
+#define saturate(x) clamp(x,0.0,1.0)
+#define lerp mix
+#line 0
+
+
+uniform vec3 lightPos;
+
+varying vec3 lVec;
+varying vec3 norm;
+
+void main(){
+	gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+
+	lVec = lightPos - gl_Vertex.xyz;
+	norm = gl_Normal;
+}
+
+

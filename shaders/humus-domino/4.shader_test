@@ -1,0 +1,88 @@
+[require]
+GLSL >= 1.10
+
+[fragment shader]
+#version 130
+#define saturate(x) clamp(x,0.0,1.0)
+#define lerp mix
+#define BATCH_INSTANCES 64
+#line 45
+uniform sampler3D Noise;
+
+uniform float fade;
+
+varying vec3 texCoord;
+varying vec3 normal;
+varying vec3 lVec;
+
+void main(){
+	vec3 lightVec = normalize(lVec);
+	vec3 viewVec = lightVec;
+
+	float atten = saturate(1.0 / (1.0 + dot(lVec, lVec)) - 0.1);
+
+	vec4 darkWood = vec4(0.09, 0.04, 0.01, 1.0);
+	vec4 liteWood = vec4(0.92, 0.51, 0.13, 1.0);
+
+	float rings = fract(texture3D(Noise, texCoord * 0.15, 1.0).x * 4.0);
+	rings *= 4.0 * (1.0 - rings);
+	rings *= rings;
+
+	float n = texture3D(Noise, texCoord).x;
+
+	vec4 base = lerp(darkWood, liteWood, rings + n);
+
+	float diffuse = saturate(dot(lightVec, normal));
+	float specular = pow(diffuse, 64.0);
+
+	gl_FragColor = fade * atten * ((diffuse * 0.8 + 0.2) * base + 0.4 * specular);
+}
+
+[vertex shader]
+#version 130
+#define saturate(x) clamp(x,0.0,1.0)
+#define lerp mix
+#define BATCH_INSTANCES 64
+#line 2
+uniform vec3 camPos;
+
+void rotate(const vec2 sc, inout vec2 pos){
+	pos.xy = vec2(dot(pos, sc), dot(pos, vec2(-sc.y, sc.x)));
+}
+
+varying vec3 texCoord;
+varying vec3 normal;
+varying vec3 lVec;
+
+uniform vec4 attribs[BATCH_INSTANCES];
+uniform float time;
+
+uniform float fallAngle;
+
+void main(){
+	vec4 attrib = attribs[int(gl_MultiTexCoord0.x)];
+
+	float a = saturate(time - attrib.w);
+	a = fallAngle * pow(a, 0.8);
+
+	vec2 scA = vec2(cos(a), sin(a));
+	vec2 scB = vec2(cos(-attrib.z), sin(-attrib.z));
+
+	vec4 position = gl_Vertex;
+	normal = gl_Normal;
+	rotate(scA, position.xy);
+	rotate(scA, normal.xy);
+	rotate(scB, position.xz);
+	rotate(scB, normal.xz);
+
+	position.xz += attrib.xy;
+
+	gl_Position = gl_ModelViewProjectionMatrix * position;
+
+	texCoord = gl_Vertex.xyz * 0.283 + attrib.w * vec3(7.243, 2.6783, 9.4921);
+
+	lVec = 0.005 * (camPos - position.xyz);
+}
+
+
+

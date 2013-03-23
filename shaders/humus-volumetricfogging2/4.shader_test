@@ -1,0 +1,25 @@
+[require]
+GLSL >= 1.10
+
+[fragment shader]
+#version 130
+#define saturate(x) clamp(x,0.0,1.0)
+#define lerp mix
+#line 11
+void main(){
+	gl_FragColor = vec4(0.0);
+}
+
+[vertex shader]
+#version 130
+#define saturate(x) clamp(x,0.0,1.0)
+#define lerp mix
+#line 2
+uniform mat4 mvp;
+
+void main(){
+	gl_Position = mvp * gl_Vertex;
+}
+
+
+

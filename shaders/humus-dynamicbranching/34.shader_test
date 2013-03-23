@@ -1,0 +1,35 @@
+[require]
+GLSL >= 1.10
+
+[fragment shader]
+#version 130
+#define saturate(x) clamp(x,0.0,1.0)
+#define lerp mix
+#line 18
+varying vec3 lightVec;
+
+void main(){
+	gl_FragColor = vec4(length(lightVec) + 0.005);
+}
+
+
+[vertex shader]
+#version 130
+#define saturate(x) clamp(x,0.0,1.0)
+#define lerp mix
+#line 2
+uniform mat4 mvp;
+
+uniform vec3 lightPos;
+uniform float invRadius;
+
+varying vec3 lightVec;
+
+void main(){
+	gl_Position = mvp * gl_Vertex;
+
+	lightVec = invRadius * (lightPos - gl_Vertex.xyz);
+}
+
+
+
