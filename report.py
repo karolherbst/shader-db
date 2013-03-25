@@ -28,7 +28,6 @@ def get_results(filename):
             continue
 
         groups = match.groups()
-        print(groups)
         count = int(groups[2])
         if count != 0:
             results[(groups[0], groups[1])] = count
