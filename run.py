@@ -31,6 +31,8 @@ def run_test(filename):
                    filename,
                    'pass']
 
+    timebefore = time.time()
+
     try:
         p = subprocess.Popen(
             command,
@@ -38,6 +40,8 @@ def run_test(filename):
             stderr=subprocess.PIPE)
     except:
         return filename + " FAIL"
+
+    timeafter = time.time()
 
     try:
         (stdout, stderr) = p.communicate()
@@ -76,10 +80,12 @@ def run_test(filename):
             counts[current_type] = counts[current_type] + 1
     del counts["ignore"]
 
+    timestr = "    {:.4} secs".format(timeafter - timebefore)
     out = ''
     for t in counts:
         if counts[t] != 0:
-            out += "".join([filename, " ", t, ": ", str(counts[t]), "\n"])
+            out += "{0} {1} : {2:6}{3}\n".format(filename, t, counts[t], timestr)
+            timestr = ""
     return out
 
 def main():
