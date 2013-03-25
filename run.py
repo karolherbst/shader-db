@@ -2,7 +2,7 @@
 
 from getopt import getopt, GetoptError
 import re
-import sys, os
+import sys, os, time
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
@@ -111,9 +111,14 @@ def main():
         print("./bin must be a symlink to a built piglit bin directory")
         sys.exit(1)
 
+    runtimebefore = time.time()
+
     executor = ThreadPoolExecutor(cpu_count())
     for t in executor.map(run_test, args):
         sys.stdout.write(t)
+
+    runtimeafter = time.time()
+    print("shader-db run completed in {:.1} secs".format(runtimeafter - runtimebefore))
 
 if __name__ == "__main__":
 	main()
