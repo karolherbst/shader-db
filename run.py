@@ -80,11 +80,11 @@ def run_test(filename):
             counts[current_type] = counts[current_type] + 1
     del counts["ignore"]
 
-    timestr = "    {:.4} secs".format(timeafter - timebefore)
+    timestr = "    {:.3f} secs".format(timeafter - timebefore)
     out = ''
     for t in counts:
         if counts[t] != 0:
-            out += "{0} {1} : {2:6}{3}\n".format(filename, t, counts[t], timestr)
+            out += "{0:40} {1} : {2:6}{3}\n".format(filename, t, counts[t], timestr)
             timestr = ""
     return out
 
@@ -124,7 +124,7 @@ def main():
         sys.stdout.write(t)
 
     runtimeafter = time.time()
-    print("shader-db run completed in {:.1} secs".format(runtimeafter - runtimebefore))
+    print("shader-db run completed in {:.1f} secs".format(runtimeafter - runtimebefore))
 
 if __name__ == "__main__":
 	main()
