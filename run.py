@@ -118,7 +118,7 @@ def main():
             usage()
 
     if len(args) < 1:
-        usage()
+        args.append("shaders")
 
     try:
         os.stat("bin/glslparsertest")
