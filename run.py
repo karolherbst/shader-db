@@ -9,13 +9,22 @@ from multiprocessing import cpu_count
 
 def usage():
     USAGE = """\
-Usage: %(progName)s [shader.frag] [shader.vert]
+Usage: %(progName)s <dir | shader.shader_test | shader.frag | shader.vert>...
 
 Options:
   -h, --help                Show this message
 """
     print(USAGE % {'progName': sys.argv[0]})
     sys.exit(1)
+
+def process_directories(dirpath):
+    filenames = set()
+    if os.path.isdir(dirpath):
+        for filename in os.listdir(dirpath):
+            filenames.update(process_directories(os.path.join(dirpath, filename)))
+    else:
+        filenames.add(dirpath)
+    return filenames
 
 def run_test(filename):
     if ".out" in filename:
@@ -119,8 +128,12 @@ def main():
 
     runtimebefore = time.time()
 
+    filenames = set()
+    for i in args:
+        filenames.update(process_directories(i))
+
     executor = ThreadPoolExecutor(cpu_count())
-    for t in executor.map(run_test, args):
+    for t in executor.map(run_test, filenames):
         sys.stdout.write(t)
 
     runtimeafter = time.time()
