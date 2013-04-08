@@ -58,7 +58,7 @@ def run_test(filename):
     except KeyboardInterrupt:
         exit(1)
     except:
-        return filename + " FAIL"
+        return filename + " FAIL\n"
 
     with open(filename + '.out', 'w') as file:
         file.write(results)
