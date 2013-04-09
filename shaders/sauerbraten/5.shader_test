@@ -1,0 +1,16 @@
+[require]
+GLSL >= 1.10
+
+[fragment shader]
+void main(void)
+    {
+        gl_FragColor = gl_Color;
+    }
+
+[vertex shader]
+void main(void)
+    {
+        gl_Position = ftransform();
+        gl_FrontColor = gl_Color;
+    }
+

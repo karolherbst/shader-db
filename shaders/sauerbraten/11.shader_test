@@ -1,0 +1,16 @@
+[require]
+GLSL >= 1.10
+
+[fragment shader]
+void main() {}
+
+init: world
+init: sound
+init: cfg
+init: mainloop
+read map packages/base/mpsp9a.ogz (0.4 seconds)
+Private Stan Sauer: Run & Gun Part I by MitaMAN
+game mode is SP
+[vertex shader]
+void main() { gl_Position = ftransform(); } 
+

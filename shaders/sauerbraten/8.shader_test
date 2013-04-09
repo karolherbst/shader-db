@@ -1,0 +1,23 @@
+[require]
+GLSL >= 1.10
+
+[fragment shader]
+void main(void)
+    {
+        gl_FragColor = gl_Color;
+    
+#define FOG_COLOR gl_Fog.color
+gl_FragColor.rgb = mix((FOG_COLOR).rgb, gl_FragColor.rgb, clamp((gl_Fog.end - gl_FogFragCoord) * gl_Fog.scale, 0.0, 1.0));
+}
+
+[vertex shader]
+#pragma CUBE2_fog
+    void main(void)
+    {
+        gl_Position = ftransform();
+        gl_FrontColor = gl_Color;
+    
+#define FOG_COORD gl_Vertex
+gl_FogFragCoord = -dot((FOG_COORD), gl_ModelViewMatrixTranspose[2]);
+}
+
