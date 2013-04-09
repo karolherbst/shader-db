@@ -1,6 +1,7 @@
 shaders/0ad/*:
 shaders/gst-gl-*:
 shaders/supertuxkart/*:
+shaders/warzone2100/*:
 /*
  * GStreamer
  * Copyright (C) 2007 David A. Schleef <ds@schleef.org>
