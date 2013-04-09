@@ -1,5 +1,6 @@
 shaders/0ad/*:
 shaders/gst-gl-*:
+shaders/supertuxkart/*:
 /*
  * GStreamer
  * Copyright (C) 2007 David A. Schleef <ds@schleef.org>
