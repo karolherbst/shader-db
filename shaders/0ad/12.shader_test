@@ -1,0 +1,360 @@
+[require]
+GLSL >= 1.10
+
+[fragment shader]
+#version 110
+
+uniform vec3 ambient;
+uniform vec3 sunDir;
+uniform vec3 sunColor;
+uniform vec3 cameraPos;
+uniform sampler2D losMap;
+uniform float shininess;		
+uniform float specularStrength;	
+uniform float waviness;			
+uniform vec3 tint;				
+uniform float murkiness;		
+uniform vec3 reflectionTint;	
+uniform float reflectionTintStrength;	
+uniform vec3 color;				
+
+uniform vec3 fogColor;
+uniform vec2 fogParams;
+
+uniform vec2 screenSize;
+uniform float time;
+
+varying vec3 worldPos;
+varying float waterDepth;
+
+uniform sampler2D normalMap;
+uniform sampler2D normalMap2;
+
+
+	uniform sampler2D reflectionMap;
+
+
+	uniform sampler2D refractionMap;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+vec3 get_fog(vec3 color)
+{
+	float density = fogParams.x;
+	float maxFog = fogParams.y;
+	
+	const float LOG2 = 1.442695;
+	float z = gl_FragCoord.z / gl_FragCoord.w;
+	float fogFactor = exp2(-density * density * z * z * LOG2);
+	
+	fogFactor = fogFactor * (1.0 - maxFog) + maxFog;
+	
+	fogFactor = clamp(fogFactor, 0.0, 1.0);
+	
+	return mix(fogColor, color, fogFactor);
+}
+
+void main()
+{
+	
+
+
+
+
+	
+  	vec3 n, l, h, v;		
+	float ndotl, ndoth, ndotv;
+	float fresnel;
+	float t;				
+	vec2 reflCoords, refrCoords;
+	vec3 reflColor, refrColor, specular;
+	float losMod;
+	
+	float wavyFactor = waviness * 0.125;
+
+	
+	vec3 ww = texture2D(normalMap, (gl_TexCoord[0].st) * mix(2.0,0.8,waviness/10.0) +gl_TexCoord[0].zw).xzy;
+
+	
+		vec3 ww2 = texture2D(normalMap2, (gl_TexCoord[0].st) * mix(2.0,0.8,waviness/10.0) +gl_TexCoord[0].zw).xzy;
+		ww = mix(ww, ww2, mod(time * 60.0, 8.0) / 8.0);
+	
+		
+
+
+
+
+			n = normalize(ww - vec3(0.5, 0.5, 0.5));
+		
+		n = mix(vec3(0.0,1.0,0.0),n,wavyFactor);
+	
+
+
+	
+	l = -sunDir;
+	v = normalize(cameraPos - worldPos);
+	h = normalize(l + v);
+	
+	ndotl = (dot(n, l) + 1.0)/2.0;
+	ndoth = dot(n, h);
+	ndotv = dot(n, v);
+	
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		float distoFactor = clamp((waterDepth/v.y)/4.0,0.0,7.0);
+	
+  	
+	fresnel = pow(1.05 - ndotv, 1.3333); 
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		
+	
+		
+
+
+
+
+
+
+			refrCoords = clamp( (0.5*gl_TexCoord[2].xy - n.xz * distoFactor) / gl_TexCoord[2].w + 0.5,0.0,1.0);	
+			
+			float perceivedDepth = waterDepth / v.y;
+			vec3 refColor = texture2D(refractionMap, refrCoords).rgb;
+			float luminance = (1.0 - clamp((perceivedDepth/mix(300.0,1.0, pow(murkiness,0.2) )), 0.0, 1.0));
+			float colorExtinction = clamp(perceivedDepth*murkiness/5.0,0.0,1.0);
+			refrColor = (0.5 + 0.5*ndotl) * mix(color,mix(refColor,refColor*tint,colorExtinction),luminance*luminance);
+		
+	
+
+
+
+
+
+
+
+
+
+
+	
+	
+
+
+
+	
+	
+		reflCoords = clamp( (0.5*gl_TexCoord[1].xy + 10.0*n.xz) / gl_TexCoord[1].w + 0.5,0.0,1.0);	
+		reflColor = mix(texture2D(reflectionMap, reflCoords).rgb, sunColor * reflectionTint, reflectionTintStrength);
+	
+
+
+
+	
+	specular = pow(ndoth, shininess) * sunColor * specularStrength;
+	
+	losMod = texture2D(losMap, gl_TexCoord[3].st).a;
+	losMod = losMod < 0.03 ? 0.0 : losMod;
+	
+	vec3 colour;
+	
+
+
+
+
+
+
+
+
+		
+
+
+			colour = mix(refrColor + fresnel*specular, reflColor + fresnel*specular, fresnel);
+		
+	
+	
+	
+		
+
+
+			colour = mix(texture2D(refractionMap, (0.5*gl_TexCoord[2].xy) / gl_TexCoord[2].w + 0.5).rgb ,colour, clamp(perceivedDepth,0.0,1.0));
+		
+	
+	
+	gl_FragColor.rgb = get_fog(colour) * losMod;
+
+	
+
+
+
+
+
+
+
+
+
+		
+		
+		t = 30.0 * max(0.0, 0.9 - v.y);
+		float alpha = clamp(0.15 * waterDepth * (1.2 + t + fresnel),0.0,1.0);
+		
+
+
+			gl_FragColor.a = alpha;
+		
+	
+}
+
+TIMER| common/setup.xml: 791.83 us
+TIMER| common/styles.xml: 53.064 us
+TIMER| common/sprite1.xml: 2.03779 ms
+TIMER| common/icon_sprites.xml: 122.018 us
+TIMER| common/common_sprites.xml: 1.89583 ms
+TIMER| common/common_styles.xml: 205.949 us
+TIMER| session/sprites.xml: 2.32971 ms
+TIMER| session/setup.xml: 82.104 us
+TIMER| session/styles.xml: 207.038 us
+TIMER| session/session.xml: 69.6939 ms
+TIMER| common/global.xml: 1.1758 ms
+GAME STARTED, ALL INIT COMPLETE
+Using Xcursor to sys_cursor_create 32 x 32 cursor
+
+[vertex shader]
+#version 110
+
+uniform mat4 reflectionMatrix;
+uniform mat4 refractionMatrix;
+uniform mat4 losMatrix;
+uniform mat4 shadowTransform;
+uniform float repeatScale;
+uniform vec2 translation;
+uniform float waviness;			
+
+
+
+
+
+uniform float time;
+uniform float mapSize;
+
+varying vec3 worldPos;
+varying float waterDepth;
+
+
+
+attribute vec3 a_vertex;
+attribute vec4 a_encodedDepth;
+
+void main()
+{
+	worldPos = a_vertex;
+	waterDepth = dot(a_encodedDepth.xyz, vec3(255.0, -255.0, 1.0));
+	
+	gl_TexCoord[0] = vec4(a_vertex.xz*repeatScale,translation);
+	gl_TexCoord[1] = reflectionMatrix * vec4(a_vertex, 1.0);		
+	gl_TexCoord[2] = refractionMatrix * vec4(a_vertex, 1.0);
+	gl_TexCoord[3] = losMatrix * vec4(a_vertex, 1.0);
+
+	gl_TexCoord[3].zw = vec2(a_vertex.xz)/mapSize;
+	
+	
+
+
+
+
+
+	
+	gl_Position = gl_ModelViewProjectionMatrix * vec4(a_vertex, 1.0);
+}
+

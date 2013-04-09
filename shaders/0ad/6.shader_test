@@ -1,0 +1,21 @@
+[require]
+GLSL >= 1.10
+
+[fragment shader]
+#version 130
+uniform ivec4 color;
+out ivec4 out_color;
+
+void main()
+{
+   out_color = color;
+}
+
+[vertex shader]
+#version 130
+in vec4 position;
+void main()
+{
+   gl_Position = position;
+}
+
