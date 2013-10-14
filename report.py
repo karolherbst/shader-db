@@ -132,6 +132,7 @@ def main():
 
     print("total instructions in shared programs: " + change(total_before, total_after))
     print("instructions in affected programs:     " + change(affected_before, affected_after))
-
+    print("GAINED:                                {0}".format(len(gained)))
+    print("LOST:                                  {0}".format(len(lost)))
 if __name__ == "__main__":
 	main()
