@@ -72,10 +72,12 @@ def run_test(filename):
     re_fs_16 = re.compile("^Native code for fragment.*16-wide")
     re_vs = re.compile("^Native code for vertex")
     re_align = re.compile("{ align")
+    re_2q = re.compile("\(8\).* 2Q };")
     counts["ignore"] = 0
     counts["vs  "] = 0
     counts["fs8 "] = 0
     counts["fs16"] = 0
+    last_was_paired8 = False
     for line in lines:
         if (re_builtin_shader.search(line)):
             current_type = "ignore"
@@ -86,7 +88,11 @@ def run_test(filename):
         elif (re_fs_16.search(line)):
             current_type = "fs16"
         elif (re_align.search(line)):
-            counts[current_type] = counts[current_type] + 1
+            # Skip the 2Q (second half) SIMD8 instructions, since the
+            # 1Q+2Q pair should be the same cost as a single 1H
+            # (SIMD16) instruction, other than icache pressure.
+            if current_type != "fs16" or not re_2q.search(line):
+                counts[current_type] = counts[current_type] + 1
     del counts["ignore"]
 
     timestr = "    {:.3f} secs".format(timeafter - timebefore)
