@@ -70,11 +70,13 @@ def run_test(filename):
     re_builtin_shader = re.compile("shader 0")
     re_fs_8 = re.compile("^Native code for fragment.*(8-wide|SIMD8)")
     re_fs_16 = re.compile("^Native code for fragment.*(16-wide|SIMD16)")
+    re_gs = re.compile("^Native code for geometry")
     re_vs = re.compile("^Native code for vertex")
     re_align = re.compile("{ align")
     re_2q = re.compile("\(8\).* 2Q };")
     counts["ignore"] = 0
     counts["vs  "] = 0
+    counts["gs  "] = 0
     counts["fs8 "] = 0
     counts["fs16"] = 0
     last_was_paired8 = False
@@ -83,6 +85,8 @@ def run_test(filename):
             current_type = "ignore"
         elif (re_vs.search(line)):
             current_type = "vs  "
+        elif (re_gs.search(line)):
+            current_type = "gs  "
         elif (re_fs_8.search(line)):
             current_type = "fs8 "
         elif (re_fs_16.search(line)):
@@ -115,7 +119,7 @@ def main():
     env_add = {}
     env_add["shader_precompile"] = "true"
     env_add["force_glsl_extensions_warn"] = "true"
-    env_add["INTEL_DEBUG"] = "vs,wm"
+    env_add["INTEL_DEBUG"] = "vs,wm,gs"
 
     os.environ.update(env_add)
 
