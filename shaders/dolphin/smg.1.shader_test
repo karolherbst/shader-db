@@ -1,3 +1,4 @@
+// added layout for both ocol0 + ocol1 to force use of GL_ARB_blend_func_extended
 [require]
 GLSL >= 1.30
 
@@ -49,8 +50,8 @@ float4 cfog[3] ;
 float4 cPLights[40] ;
 float4 cPmtrl[4] ;
 };
-out vec4 ocol0;
-out vec4 ocol1;
+layout(location = 0, index = 0) out vec4 ocol0;
+layout(location = 0, index = 1) out vec4 ocol1;
 VARYIN float4 colors_02;
 VARYIN float4 colors_12;
 VARYIN float3 uv0_2;
