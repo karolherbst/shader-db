@@ -6,7 +6,7 @@ compiler for analysis of regressions in compiler behavior.
 
 === Capturing shaders ===
 env MESA_GLSL=dump appname |& tee log
-split-to-files.pl appname log
+./split-to-files.py appname log
 # clean up resulting files, as the parsing is just an assist, not actually
 # complete.
 $EDITOR shaders/appname/*
@@ -17,7 +17,7 @@ $EDITOR shaders/appname/*
 ln -s $HOME/src/piglit/bin ./
 
 # this relies on i965 driver debug output, hack it up for anything else.
-./run.py shaders/**/*.frag
+./run.py shaders/*/* |& tee new-run
 
 === Analysis ===
-diff old-run new-run
+./result.py old-run new-run
