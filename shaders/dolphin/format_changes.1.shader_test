@@ -1,0 +1,60 @@
+[require]
+GLSL >= 1.30
+
+[vertex shader]
+#version 130
+#extension GL_ARB_uniform_buffer_object : enable
+
+#extension GL_ARB_shading_language_420pack : enable
+
+
+#define ATTRIN in
+#define ATTROUT out
+#define VARYIN centroid in
+#define VARYOUT centroid out
+#define float2 vec2
+#define float3 vec3
+#define float4 vec4
+#define int2 ivec2
+#define int3 ivec3
+#define int4 ivec4
+#define frac fract
+#define lerp mix
+
+void main(void) {
+	vec2 rawpos = vec2(gl_VertexID&1, gl_VertexID&2);
+	gl_Position = vec4(rawpos*2.0-1.0, 0.0, 1.0);
+}
+
+[fragment shader]
+#version 130
+#extension GL_ARB_uniform_buffer_object : enable
+
+#extension GL_ARB_shading_language_420pack : enable
+
+
+#define ATTRIN in
+#define ATTROUT out
+#define VARYIN centroid in
+#define VARYOUT centroid out
+#define float2 vec2
+#define float3 vec3
+#define float4 vec4
+#define int2 ivec2
+#define int3 ivec3
+#define int4 ivec4
+#define frac fract
+#define lerp mix
+
+uniform sampler2D samp9;
+out vec4 ocol0;
+void main()
+{
+	ivec4 src6 = ivec4(round(texelFetch(samp9, ivec2(gl_FragCoord.xy), 0) * 63.f));
+	ivec4 dst8;
+	dst8.r = (src6.r << 2) | (src6.g >> 4);
+	dst8.g = ((src6.g & 0xF) << 4) | (src6.b >> 2);
+	dst8.b = ((src6.b & 0x3) << 6) | src6.a;
+	dst8.a = 255;
+	ocol0 = float4(dst8) / 255.f;
+}

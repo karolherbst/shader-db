@@ -39,6 +39,7 @@ tests/glslparsertest/glsl2/norsetto-*
  * GNU General Public License for more details.
  */
 
+shaders/dolphin/*
 shaders/nexuiz/
 shaders/xreal-*
 shaders/xonotic-*

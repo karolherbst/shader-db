@@ -1,0 +1,67 @@
+[require]
+GLSL >= 1.30
+
+[vertex shader]
+#version 130
+#extension GL_ARB_uniform_buffer_object : enable
+
+#extension GL_ARB_shading_language_420pack : enable
+
+
+#define ATTRIN in
+#define ATTROUT out
+#define VARYIN centroid in
+#define VARYOUT centroid out
+#define float2 vec2
+#define float3 vec3
+#define float4 vec4
+#define int2 ivec2
+#define int3 ivec3
+#define int4 ivec4
+#define frac fract
+#define lerp mix
+
+void main()
+{
+	vec2 rawpos = vec2(gl_VertexID&1, gl_VertexID&2);
+	gl_Position = vec4(rawpos*2.0-1.0, 0.0, 1.0);
+}
+
+[fragment shader]
+#version 130
+#extension GL_ARB_uniform_buffer_object : enable
+
+#extension GL_ARB_shading_language_420pack : enable
+
+
+#define ATTRIN in
+#define ATTROUT out
+#define VARYIN centroid in
+#define VARYOUT centroid out
+#define float2 vec2
+#define float3 vec3
+#define float4 vec4
+#define int2 ivec2
+#define int3 ivec3
+#define int4 ivec4
+#define frac fract
+#define lerp mix
+
+uniform sampler2D samp9;
+VARYIN vec2 uv0;
+out vec4 ocol0;
+void main()
+{
+	ivec2 uv = ivec2(gl_FragCoord.xy);
+	ivec2 ts = textureSize(samp9, 0);
+	vec4 c0 = texelFetch(samp9, ivec2(uv.x/2, ts.y-uv.y-1), 0);
+	float y = mix(c0.b, c0.r, (uv.x & 1) == 1);
+	float yComp = 1.164 * (y - 0.0625);
+	float uComp = c0.g - 0.5;
+	float vComp = c0.a - 0.5;
+	ocol0 = vec4(yComp + (1.596 * vComp),
+		yComp - (0.813 * vComp) - (0.391 * uComp),
+		yComp + (2.018 * uComp),
+		1.0);
+}
+

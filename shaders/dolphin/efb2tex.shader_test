@@ -1,0 +1,64 @@
+[require]
+GLSL >= 1.30
+
+[vertex shader]
+#version 130
+#extension GL_ARB_uniform_buffer_object : enable
+
+#extension GL_ARB_shading_language_420pack : enable
+
+
+#define ATTRIN in
+#define ATTROUT out
+#define VARYIN centroid in
+#define VARYOUT centroid out
+#define float2 vec2
+#define float3 vec3
+#define float4 vec4
+#define int2 ivec2
+#define int3 ivec3
+#define int4 ivec4
+#define frac fract
+#define lerp mix
+
+VARYOUT vec2 uv0;
+uniform sampler2D samp9;
+uniform vec4 copy_position;
+void main()
+{
+	vec2 rawpos = vec2(gl_VertexID&1, gl_VertexID&2);
+	uv0 = mix(copy_position.xy, copy_position.zw, rawpos) / vec2(textureSize(samp9, 0));
+	gl_Position = vec4(rawpos*2.0-1.0, 0.0, 1.0);
+}
+
+[fragment shader]
+#version 130
+#extension GL_ARB_uniform_buffer_object : enable
+
+#extension GL_ARB_shading_language_420pack : enable
+
+
+#define ATTRIN in
+#define ATTROUT out
+#define VARYIN centroid in
+#define VARYOUT centroid out
+#define float2 vec2
+#define float3 vec3
+#define float4 vec4
+#define int2 ivec2
+#define int3 ivec3
+#define int4 ivec4
+#define frac fract
+#define lerp mix
+
+uniform sampler2D samp9;
+uniform vec4 colmat[7];
+VARYIN vec2 uv0;
+out vec4 ocol0;
+
+void main(){
+	vec4 texcol = texture(samp9, uv0);
+	texcol = round(texcol * colmat[5]) * colmat[6];
+	ocol0 = texcol * mat4(colmat[0], colmat[1], colmat[2], colmat[3]) + colmat[4];
+}
+

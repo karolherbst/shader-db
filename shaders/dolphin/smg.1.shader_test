@@ -1,0 +1,173 @@
+[require]
+GLSL >= 1.30
+
+[fragment shader]
+#version 130
+#extension GL_ARB_uniform_buffer_object : enable
+
+#extension GL_ARB_shading_language_420pack : enable
+
+
+#define ATTRIN in
+#define ATTROUT out
+#define VARYIN centroid in
+#define VARYOUT centroid out
+#define float2 vec2
+#define float3 vec3
+#define float4 vec4
+#define int2 ivec2
+#define int3 ivec3
+#define int4 ivec4
+#define frac fract
+#define lerp mix
+
+//Pixel Shader for TEV stages
+//1 TEV stages, 1 texgens, 0 IND stages
+float fmod( float x, float y )
+{
+	float z = fract( abs( x / y) ) * abs( y );
+	return (x < 0.0) ? -z : z;
+}
+uniform sampler2D samp0;
+uniform sampler2D samp1;
+uniform sampler2D samp2;
+uniform sampler2D samp3;
+uniform sampler2D samp4;
+uniform sampler2D samp5;
+uniform sampler2D samp6;
+uniform sampler2D samp7;
+
+layout(std140, binding = 1) uniform PSBlock {
+float4 color[4] ;
+float4 k[4] ;
+float4 alphaRef[1] ;
+float4 texdim[8] ;
+float4 czbias[2] ;
+float4 cindscale[2] ;
+float4 cindmtx[6] ;
+float4 cfog[3] ;
+float4 cPLights[40] ;
+float4 cPmtrl[4] ;
+};
+out vec4 ocol0;
+out vec4 ocol1;
+VARYIN float4 colors_02;
+VARYIN float4 colors_12;
+VARYIN float3 uv0_2;
+VARYIN float4 clipPos_2;
+void main()
+{
+  float4 c0 = color[1], c1 = color[2], c2 = color[3], prev = float4(0.0, 0.0, 0.0, 0.0), textemp = float4(0.0, 0.0, 0.0, 0.0), rastemp = float4(0.0, 0.0, 0.0, 0.0), konsttemp = float4(0.0, 0.0, 0.0, 0.0);
+  float3 comp16 = float3(1.0, 255.0, 0.0), comp24 = float3(1.0, 255.0, 255.0*255.0);
+  float alphabump=0.0;
+  float3 tevcoord=float3(0.0, 0.0, 0.0);
+  float2 wrappedcoord=float2(0.0,0.0), tempcoord=float2(0.0,0.0);
+  float4 cc0=float4(0.0,0.0,0.0,0.0), cc1=float4(0.0,0.0,0.0,0.0);
+  float4 cc2=float4(0.0,0.0,0.0,0.0), cprev=float4(0.0,0.0,0.0,0.0);
+  float4 crastemp=float4(0.0,0.0,0.0,0.0),ckonsttemp=float4(0.0,0.0,0.0,0.0);
+
+float4 rawpos = gl_FragCoord;
+float4 colors_0 = colors_02;
+float4 colors_1 = colors_12;
+float3 uv0 = uv0_2;
+float4 clipPos = clipPos_2;
+	clipPos = float4(rawpos.x, rawpos.y, clipPos.z, clipPos.w);
+uv0.xy = uv0.xy * texdim[0].zw;
+// TEV stage 0
+rastemp = colors_0.rgba;
+crastemp = frac(rastemp * (255.0/256.0)) * (256.0/255.0);
+tevcoord.xy = uv0.xy;
+textemp = texture(samp0,tevcoord.xy * texdim[0].xy).rgba;
+// color combine
+prev.rgb = clamp((c0.rgb)+(textemp.rgb)*(crastemp.rgb)-0.5, 0.0, 1.0);
+// alpha combine
+prev.a = clamp(textemp.a*crastemp.a, 0.0, 1.0);
+
+// TEV done
+float zCoord = rawpos.z;
+	ocol0 = prev;
+	ocol1 = prev;
+	ocol0.a = alphaRef[0].a;
+}
+
+[vertex shader]
+#version 130
+#extension GL_ARB_uniform_buffer_object : enable
+
+#extension GL_ARB_shading_language_420pack : enable
+
+
+#define ATTRIN in
+#define ATTROUT out
+#define VARYIN centroid in
+#define VARYOUT centroid out
+#define float2 vec2
+#define float3 vec3
+#define float4 vec4
+#define int2 ivec2
+#define int3 ivec3
+#define int4 ivec4
+#define frac fract
+#define lerp mix
+
+layout(std140, binding = 2) uniform VSBlock {
+float4 cpnmtx[6] ;
+float4 cproj[4] ;
+float4 cmtrl[4] ;
+float4 clights[40] ;
+float4 ctexmtx[24] ;
+float4 ctrmtx[64] ;
+float4 cnmtx[32] ;
+float4 cpostmtx[64] ;
+float4 cDepth ;
+};
+struct VS_OUTPUT {
+  float4 pos;
+  float4 colors_0;
+  float4 colors_1;
+  float3 tex0;
+  float4 clipPos;
+};
+ATTRIN float4 rawpos; // ATTR0,
+ATTRIN float3 rawnorm0; // ATTR2,
+ATTRIN float4 color0; // ATTR5,
+ATTRIN float2 tex0; // ATTR8,
+VARYOUT  float3 uv0_2;
+VARYOUT   float4 clipPos_2;
+VARYOUT   float4 colors_02;
+VARYOUT   float4 colors_12;
+void main()
+{
+VS_OUTPUT o;
+float4 pos = float4(dot(cpnmtx[0], rawpos), dot(cpnmtx[1], rawpos), dot(cpnmtx[2], rawpos), 1.0);
+float3 _norm0 = normalize(float3(dot(cpnmtx[3].xyz, rawnorm0), dot(cpnmtx[4].xyz, rawnorm0), dot(cpnmtx[5].xyz, rawnorm0)));
+o.pos = float4(dot(cproj[0], pos), dot(cproj[1], pos), dot(cproj[2], pos), dot(cproj[3], pos));
+float4 mat, lacc;
+float3 ldir, h;
+float dist, dist2, attn;
+{
+mat = color0;
+lacc = float4(1.0, 1.0, 1.0, 1.0);
+lacc.w = 1.0;
+o.colors_0 = mat * clamp(lacc, 0.0, 1.0);
+}
+o.colors_1 = o.colors_0;
+float4 coord = float4(0.0, 0.0, 1.0, 1.0);
+{
+coord = float4(0.0, 0.0, 1.0, 1.0);
+coord = float4(tex0.x, tex0.y, 1.0, 1.0);
+o.tex0.xyz = float3(dot(coord, ctexmtx[0]), dot(coord, ctexmtx[1]), 1);
+float4 P0 = cpostmtx[61];
+float4 P1 = cpostmtx[62];
+float4 P2 = cpostmtx[63];
+o.tex0.xyz = float3(dot(P0.xyz, o.tex0.xyz) + P0.w, dot(P1.xyz, o.tex0.xyz) + P1.w, dot(P2.xyz, o.tex0.xyz) + P2.w);
+}
+o.clipPos = float4(pos.x,pos.y,o.pos.z,o.pos.w);
+o.pos.z = o.pos.w + o.pos.z * 2.0;
+ uv0_2.xyz =  o.tex0;
+  clipPos_2 = o.clipPos;
+colors_02 = o.colors_0;
+colors_12 = o.colors_1;
+gl_Position = o.pos;
+}
+

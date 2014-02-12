@@ -1,0 +1,100 @@
+[require]
+GLSL >= 1.30
+
+[vertex shader]
+#version 130
+#extension GL_ARB_uniform_buffer_object : enable
+
+#extension GL_ARB_shading_language_420pack : enable
+
+
+#define ATTRIN in
+#define ATTROUT out
+#define VARYIN centroid in
+#define VARYOUT centroid out
+#define float2 vec2
+#define float3 vec3
+#define float4 vec4
+#define int2 ivec2
+#define int3 ivec3
+#define int4 ivec4
+#define frac fract
+#define lerp mix
+
+void main()
+{
+	vec2 rawpos = vec2(gl_VertexID&1, gl_VertexID&2);
+	gl_Position = vec4(rawpos*2.0-1.0, 0.0, 1.0);
+}
+
+[fragment shader]
+#version 130
+#extension GL_ARB_uniform_buffer_object : enable
+
+#extension GL_ARB_shading_language_420pack : enable
+
+
+#define ATTRIN in
+#define ATTROUT out
+#define VARYIN centroid in
+#define VARYOUT centroid out
+#define float2 vec2
+#define float3 vec3
+#define float4 vec4
+#define int2 ivec2
+#define int3 ivec3
+#define int4 ivec4
+#define frac fract
+#define lerp mix
+
+uniform int4 position;
+#define samp0 samp9
+uniform sampler2D samp0;
+  out vec4 ocol0;
+void main()
+{
+  int2 sampleUv;
+  int2 uv1 = int2(gl_FragCoord.xy);
+  float2 uv0 = float2(0.0, 0.0);
+  uv1.x = uv1.x * 1;
+  int yl = uv1.y / 4;
+  int yb = yl * 4;
+  int yoff = uv1.y - yb;
+  int xp = uv1.x + yoff * position.z;
+  int xel = xp / 2;
+  int xb = xel / 4;
+  int xoff = xel - xb * 4;
+  int xl =  uv1.x * 2 / 4;
+  int xib = uv1.x * 2 - xl * 4;
+  int halfxb = xb / 2;
+  sampleUv.x = xib + halfxb * 4;
+  sampleUv.y = yb + xoff;
+  bool first = xb == (halfxb * 2);
+  float4 texSample;
+  float4 color0;
+  float4 color1;
+uv0 = float2(sampleUv + int2(0, 0));
+uv0 += float2(0.5, 0.5);
+uv0 *= float(position.w);
+uv0 += float2(position.xy);
+uv0 /= float2(640, 528);
+uv0.y = 1.0-uv0.y;
+texSample = texture(samp0, uv0).rgba;
+  color0.b = texSample.a;
+  color0.g = texSample.r;
+  color1.b = texSample.g;
+  color1.g = texSample.b;
+uv0 = float2(sampleUv + int2(1, 0));
+uv0 += float2(0.5, 0.5);
+uv0 *= float(position.w);
+uv0 += float2(position.xy);
+uv0 /= float2(640, 528);
+uv0.y = 1.0-uv0.y;
+texSample = texture(samp0, uv0).rgba;
+  color0.r = texSample.a;
+  color0.a = texSample.r;
+  color1.r = texSample.g;
+  color1.a = texSample.b;
+  ocol0 = first ? color0 : color1;
+}
+
