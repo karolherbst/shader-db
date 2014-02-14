@@ -47,18 +47,14 @@ def run_test(filename):
             command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)
-    except:
-        return filename + " FAIL"
-
-    timeafter = time.time()
-
-    try:
         (stdout, stderr) = p.communicate()
         results = (stdout + stderr).decode("utf-8")
     except KeyboardInterrupt:
         exit(1)
     except:
         return filename + " FAIL\n"
+
+    timeafter = time.time()
 
     with open(filename + '.out', 'w') as file:
         file.write(results)
