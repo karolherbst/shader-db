@@ -17,7 +17,10 @@ $EDITOR shaders/appname/*
 ln -s $HOME/src/piglit/bin ./
 
 # this relies on i965 driver debug output, hack it up for anything else.
-./run.py shaders/*/* |& tee new-run
+./run.py |& tee new-run
+
+# To run just a subset:
+./run.py shaders/supertuxkart |& tee new-run
 
 === Analysis ===
 ./result.py old-run new-run
