@@ -64,10 +64,10 @@ def run_test(filename):
     lines = list(results.split('\n'))
 
     re_builtin_shader = re.compile("shader 0")
-    re_fs_8 = re.compile("^Native code for fragment.*(8-wide|SIMD8)")
-    re_fs_16 = re.compile("^Native code for fragment.*(16-wide|SIMD16)")
-    re_gs = re.compile("^Native code for geometry")
-    re_vs = re.compile("^Native code for vertex")
+    re_fs_8 = re.compile("^Native code for .*fragment.*(8-wide|SIMD8)")
+    re_fs_16 = re.compile("^Native code for .*fragment.*(16-wide|SIMD16)")
+    re_gs = re.compile("^Native code for .*geometry")
+    re_vs = re.compile("^Native code for .*vertex")
     re_align = re.compile("{ align")
     re_2q = re.compile("\(8\).* 2Q };")
     counts["ignore"] = 0
