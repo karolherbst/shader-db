@@ -1,19 +1,7 @@
 #!/usr/bin/env python
 
-from getopt import getopt, GetoptError
 import re
-import sys
-
-
-def usage():
-    USAGE = """\
-Usage: %(progName)s <before> <after>
-
-Options:
-  -h, --help                Show this message
-"""
-    print(USAGE % {'progName': sys.argv[0]})
-    sys.exit(1)
+import argparse
 
 
 def get_results(filename):
@@ -56,23 +44,10 @@ def get_result_string(p, b, a):
 
 
 def main():
-    try:
-        option_list = [
-            "help",
-            ]
-        options, args = getopt(sys.argv[1:], "h", option_list)
-    except GetoptError:
-        usage()
-
-    for name, value in options:
-        if name in ('-h', '--help'):
-            usage()
-
-    if len(args) != 2:
-        usage()
-
-    before = get_results(args[0])
-    after = get_results(args[1])
+    parser = argparse.ArgumentParser()
+    parser.add_argument("before", help="the output of the original code")
+    parser.add_argument("after", help="the output of the new code")
+    args = parser.parse_args()
 
     total_before = 0
     total_after = 0
@@ -83,13 +58,13 @@ def main():
     hurt = []
     lost = []
     gained = []
-    for p in before:
+    for p in args.before:
         (name, type) = p
         namestr = name + " " + type
-        before_count = before[p]
+        before_count = args.before[p]
 
-        if after.get(p) != None:
-            after_count = after[p]
+        if args.after.get(p) != None:
+            after_count = args.after[p]
 
             total_before += before_count
             total_after += after_count
@@ -106,8 +81,8 @@ def main():
         else:
             lost.append(namestr)
 
-    for p in after:
-        if (before.get(p) == None):
+    for p in args.after:
+        if (args.before.get(p) == None):
             gained.append(p[0] + " " + p[1])
 
     helped.sort()
@@ -116,10 +91,10 @@ def main():
     if len(helped) > 0:
         print("")
 
-    hurt.sort(key=lambda k: float(after[k] - before[k]) / before[k])
+    hurt.sort(key=lambda k: float(args.after[k] - args.before[k]) / args.before[k])
     for p in hurt:
         namestr = p[0] + " " + p[1]
-        print("HURT:   " + get_result_string(namestr, before[p], after[p]))
+        print("HURT:   " + get_result_string(namestr, args.before[p], args.after[p]))
     if len(hurt) > 0:
         print("")
 
