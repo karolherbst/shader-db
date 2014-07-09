@@ -55,38 +55,26 @@ def run_test(filename):
     with open(filename + '.out', 'w') as file:
         file.write(results)
 
-    current_type = 'UNKNOWN'
     counts = {}
-    lines = list(results.split('\n'))
 
-    re_builtin_shader = re.compile(r"shader 0")
-    re_fs_8 = re.compile(r"^Native code for .*fragment.*(8-wide|SIMD8)")
-    re_fs_16 = re.compile(r"^Native code for .*fragment.*(16-wide|SIMD16)")
-    re_gs = re.compile(r"^Native code for .*geometry")
-    re_vs = re.compile(r"^Native code for .*vertex")
-    re_align = re.compile(r"{ align")
-    re_2q = re.compile(r"\(8\).* 2Q };")
-    counts["vs  "] = 0
-    counts["gs  "] = 0
-    counts["fs8 "] = 0
-    counts["fs16"] = 0
+    lines = (line for line in results.splitlines())
+    re_number = re.compile(
+        r'Native code for unnamed (fragment|vertex|geometry) shader (?P<number>\d+)')
     for line in lines:
-        if (re_builtin_shader.search(line)):
-            continue
-        elif (re_vs.search(line)):
-            current_type = "vs  "
-        elif (re_gs.search(line)):
-            current_type = "gs  "
-        elif (re_fs_8.search(line)):
-            current_type = "fs8 "
-        elif (re_fs_16.search(line)):
-            current_type = "fs16"
-        elif (re_align.search(line)):
-            # Skip the 2Q (second half) SIMD8 instructions, since the
-            # 1Q+2Q pair should be the same cost as a single 1H
-            # (SIMD16) instruction, other than icache pressure.
-            if current_type != "fs16" or not re_2q.search(line):
-                counts[current_type] = counts[current_type] + 1
+        shader = re_number.match(line)
+        if shader and int(shader.group('number')) > 0:
+            break
+    else:
+        raise Exception('Only shader 0 found. {}'.format(filename))
+
+    re_search = re.compile(
+        r'(?P<stage>[A-Za-z0-9]+) shader\: (?P<count>\d+) instructions.')
+    for line in lines:
+        match = re_search.match(line)
+        if match is not None:
+            counts[match.group('stage')] = int(match.group('count'))
+
+    assert counts, 'File: {} does not have any shaders'.format(filename)
 
     timestr = "    {:.3f} secs".format(timeafter - timebefore)
     out = ''
