@@ -1,20 +1,8 @@
 #!/usr/bin/env python3
 
-from getopt import getopt, GetoptError
 import re
-import sys
 import os
-
-
-def usage():
-    USAGE = """\
-Usage: %(progName)s <appname> <mesadebug.log>
-
-Options:
-  -h, --help                Show this message
-"""
-    print(USAGE % {'progName': sys.argv[0]})
-    sys.exit(1)
+import argparse
 
 
 def parse_input(input):
@@ -78,26 +66,16 @@ def write_files(dir, shaders):
 
 
 def main():
-    try:
-        option_list = [
-            "help",
-            ]
-        options, args = getopt(sys.argv[1:], "h", option_list)
-    except GetoptError:
-        usage()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('appname', help='Output directory (application name)')
+    parser.add_argument('mesadebug', help='MESA_GLSL=dump output file')
+    args = parser.parse_args()
 
-    for name, value in options:
-        if name in ('-h', '--help'):
-            usage()
-
-    if len(args) != 2:
-        usage()
-
-    dirname = "shaders/{0}".format(args[0])
+    dirname = "shaders/{0}".format(args.appname)
     if not os.path.isdir(dirname):
         os.mkdir(dirname)
 
-    input = open(args[1], 'r')
+    input = open(args.mesadebug, 'r')
 
     write_files(dirname, parse_input(input.read()))
 
