@@ -2,10 +2,8 @@
 
 from getopt import getopt, GetoptError
 import re
-import sys, os
-import subprocess
-from concurrent.futures import ThreadPoolExecutor
-from multiprocessing import cpu_count
+import sys
+import os
 
 def usage():
     USAGE = """\

@@ -2,7 +2,9 @@
 
 from getopt import getopt, GetoptError
 import re
-import sys, os, time
+import sys
+import os
+import time
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count

@@ -2,8 +2,7 @@
 
 from getopt import getopt, GetoptError
 import re
-import sys, os
-import subprocess
+import sys
 
 def usage():
     USAGE = """\
