@@ -66,14 +66,13 @@ def run_test(filename):
     re_vs = re.compile(r"^Native code for .*vertex")
     re_align = re.compile(r"{ align")
     re_2q = re.compile(r"\(8\).* 2Q };")
-    counts["ignore"] = 0
     counts["vs  "] = 0
     counts["gs  "] = 0
     counts["fs8 "] = 0
     counts["fs16"] = 0
     for line in lines:
         if (re_builtin_shader.search(line)):
-            current_type = "ignore"
+            continue
         elif (re_vs.search(line)):
             current_type = "vs  "
         elif (re_gs.search(line)):
@@ -88,7 +87,6 @@ def run_test(filename):
             # (SIMD16) instruction, other than icache pressure.
             if current_type != "fs16" or not re_2q.search(line):
                 counts[current_type] = counts[current_type] + 1
-    del counts["ignore"]
 
     timestr = "    {:.3f} secs".format(timeafter - timebefore)
     out = ''
