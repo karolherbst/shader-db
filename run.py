@@ -10,15 +10,16 @@ from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 
 
-def process_directories(dirpath):
-    filenames = set()
-    if os.path.isdir(dirpath):
-        for filename in os.listdir(dirpath):
-            filenames.update(process_directories(
-                os.path.join(dirpath, filename)))
-    else:
-        filenames.add(dirpath)
-    return filenames
+def process_directories(items):
+    for item in items:
+        if os.path.isfile(item):
+            yield item
+        else:
+            for dirpath, _, filenames in os.walk(item):
+                for fname in filenames:
+                    ext = os.path.splitext(fname)[1]
+                    if ext in ['.frag', '.vert', '.shader_test']:
+                        yield os.path.join(dirpath, fname)
 
 
 def run_test(filename):
@@ -123,15 +124,13 @@ def main():
 
     runtimebefore = time.time()
 
-    filenames = set()
-    for i in args.shader:
-        filenames.update(process_directories(i))
+    filenames = process_directories(args.shader)
 
     executor = ThreadPoolExecutor(cpu_count())
     for t in executor.map(run_test, filenames):
         sys.stdout.write(t)
 
-    runtime = runtimebefore - time.time()
+    runtime = time.time() - runtimebefore
     print("shader-db run completed in {:.1f} secs".format(runtime))
 
 
