@@ -99,4 +99,4 @@ def main():
     write_files(dirname, parse_input(input.read()))
 
 if __name__ == "__main__":
-	main()
+        main()

@@ -135,4 +135,4 @@ def main():
     print("GAINED:                                {0}".format(len(gained)))
     print("LOST:                                  {0}".format(len(lost)))
 if __name__ == "__main__":
-	main()
+        main()
