@@ -14,7 +14,8 @@ def process_directories(dirpath):
     filenames = set()
     if os.path.isdir(dirpath):
         for filename in os.listdir(dirpath):
-            filenames.update(process_directories(os.path.join(dirpath, filename)))
+            filenames.update(process_directories(
+                os.path.join(dirpath, filename)))
     else:
         filenames.add(dirpath)
     return filenames
@@ -57,19 +58,18 @@ def run_test(filename):
     counts = {}
     lines = list(results.split('\n'))
 
-    re_builtin_shader = re.compile("shader 0")
-    re_fs_8 = re.compile("^Native code for .*fragment.*(8-wide|SIMD8)")
-    re_fs_16 = re.compile("^Native code for .*fragment.*(16-wide|SIMD16)")
-    re_gs = re.compile("^Native code for .*geometry")
-    re_vs = re.compile("^Native code for .*vertex")
-    re_align = re.compile("{ align")
-    re_2q = re.compile("\(8\).* 2Q };")
+    re_builtin_shader = re.compile(r"shader 0")
+    re_fs_8 = re.compile(r"^Native code for .*fragment.*(8-wide|SIMD8)")
+    re_fs_16 = re.compile(r"^Native code for .*fragment.*(16-wide|SIMD16)")
+    re_gs = re.compile(r"^Native code for .*geometry")
+    re_vs = re.compile(r"^Native code for .*vertex")
+    re_align = re.compile(r"{ align")
+    re_2q = re.compile(r"\(8\).* 2Q };")
     counts["ignore"] = 0
     counts["vs  "] = 0
     counts["gs  "] = 0
     counts["fs8 "] = 0
     counts["fs16"] = 0
-    last_was_paired8 = False
     for line in lines:
         if (re_builtin_shader.search(line)):
             current_type = "ignore"
@@ -91,9 +91,9 @@ def run_test(filename):
 
     timestr = "    {:.3f} secs".format(timeafter - timebefore)
     out = ''
-    for t in counts:
-        if counts[t] != 0:
-            out += "{0:40} {1} : {2:6}{3}\n".format(filename, t, counts[t], timestr)
+    for k, v in counts.items():
+        if v != 0:
+            out += "{0:40} {1} : {2:6}{3}\n".format(filename, k, v, timestr)
             timestr = ""
     return out
 
@@ -117,7 +117,7 @@ def main():
 
     try:
         os.stat("bin/glslparsertest")
-    except:
+    except OSError:
         print("./bin must be a symlink to a built piglit bin directory")
         sys.exit(1)
 
@@ -131,9 +131,9 @@ def main():
     for t in executor.map(run_test, filenames):
         sys.stdout.write(t)
 
-    runtimeafter = time.time()
-    print("shader-db run completed in {:.1f} secs".format(runtimeafter - runtimebefore))
+    runtime = runtimebefore - time.time()
+    print("shader-db run completed in {:.1f} secs".format(runtime))
 
 
 if __name__ == "__main__":
-        main()
+    main()
