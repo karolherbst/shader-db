@@ -1,24 +1,13 @@
 #!/usr/bin/env python3
 
-from getopt import getopt, GetoptError
 import re
 import sys
 import os
 import time
+import argparse
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
-
-
-def usage():
-    USAGE = """\
-Usage: %(progName)s <dir | shader.shader_test | shader.frag | shader.vert>...
-
-Options:
-  -h, --help                Show this message
-"""
-    print(USAGE % {'progName': sys.argv[0]})
-    sys.exit(1)
 
 
 def process_directories(dirpath):
@@ -110,13 +99,14 @@ def run_test(filename):
 
 
 def main():
-    try:
-        option_list = [
-            "help",
-            ]
-        options, args = getopt(sys.argv[1:], "h", option_list)
-    except GetoptError:
-        usage()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("shader",
+                        nargs='*',
+                        default=['shaders'],
+                        metavar="<shader_file | shader dir>",
+                        help="A shader file or directory containing shader "
+                             "files. Defaults to 'shaders/'")
+    args = parser.parse_args()
 
     env_add = {}
     env_add["shader_precompile"] = "true"
@@ -124,13 +114,6 @@ def main():
     env_add["INTEL_DEBUG"] = "vs,wm,gs"
 
     os.environ.update(env_add)
-
-    for name, value in options:
-        if name in ('-h', '--help'):
-            usage()
-
-    if len(args) < 1:
-        args.append("shaders")
 
     try:
         os.stat("bin/glslparsertest")
@@ -141,7 +124,7 @@ def main():
     runtimebefore = time.time()
 
     filenames = set()
-    for i in args:
+    for i in args.shader:
         filenames.update(process_directories(i))
 
     executor = ThreadPoolExecutor(cpu_count())
