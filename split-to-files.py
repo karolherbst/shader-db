@@ -5,6 +5,7 @@ import re
 import sys
 import os
 
+
 def usage():
     USAGE = """\
 Usage: %(progName)s <appname> <mesadebug.log>
@@ -14,6 +15,7 @@ Options:
 """
     print(USAGE % {'progName': sys.argv[0]})
     sys.exit(1)
+
 
 def parse_input(input):
     shaders = dict()
@@ -50,6 +52,7 @@ def parse_input(input):
 
     return shaders
 
+
 def write_shader_test(filename, shaders):
     print("Writing {0}".format(filename))
     out = open(filename, 'w')
@@ -68,9 +71,11 @@ def write_shader_test(filename, shaders):
 
     out.close()
 
+
 def write_files(dir, shaders):
     for prog in shaders:
         write_shader_test("{0}/{1}.shader_test".format(dir, prog), shaders[prog])
+
 
 def main():
     try:
@@ -95,6 +100,7 @@ def main():
     input = open(args[1], 'r')
 
     write_files(dirname, parse_input(input.read()))
+
 
 if __name__ == "__main__":
         main()

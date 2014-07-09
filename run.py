@@ -9,6 +9,7 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 
+
 def usage():
     USAGE = """\
 Usage: %(progName)s <dir | shader.shader_test | shader.frag | shader.vert>...
@@ -19,6 +20,7 @@ Options:
     print(USAGE % {'progName': sys.argv[0]})
     sys.exit(1)
 
+
 def process_directories(dirpath):
     filenames = set()
     if os.path.isdir(dirpath):
@@ -27,6 +29,7 @@ def process_directories(dirpath):
     else:
         filenames.add(dirpath)
     return filenames
+
 
 def run_test(filename):
     if ".out" in filename:
@@ -105,6 +108,7 @@ def run_test(filename):
             timestr = ""
     return out
 
+
 def main():
     try:
         option_list = [
@@ -146,6 +150,7 @@ def main():
 
     runtimeafter = time.time()
     print("shader-db run completed in {:.1f} secs".format(runtimeafter - runtimebefore))
+
 
 if __name__ == "__main__":
         main()

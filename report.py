@@ -4,6 +4,7 @@ from getopt import getopt, GetoptError
 import re
 import sys
 
+
 def usage():
     USAGE = """\
 Usage: %(progName)s <before> <after>
@@ -13,6 +14,7 @@ Options:
 """
     print(USAGE % {'progName': sys.argv[0]})
     sys.exit(1)
+
 
 def get_results(filename):
     file = open(filename, "r")
@@ -33,6 +35,7 @@ def get_results(filename):
 
     return results
 
+
 def get_delta(b, a):
     if b != 0 and a != 0:
         frac = float(a) / float(b) - 1.0
@@ -40,14 +43,17 @@ def get_delta(b, a):
     else:
         return ''
 
+
 def change(b, a):
     return str(b) + " -> " + str(a) + get_delta(b, a)
+
 
 def get_result_string(p, b, a):
     p = p + ": "
     while len(p) < 50:
         p = p + ' '
     return p + change(b, a)
+
 
 def main():
     try:
@@ -133,5 +139,7 @@ def main():
     print("instructions in affected programs:     " + change(affected_before, affected_after))
     print("GAINED:                                {0}".format(len(gained)))
     print("LOST:                                  {0}".format(len(lost)))
+
+
 if __name__ == "__main__":
         main()
