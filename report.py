@@ -10,10 +10,10 @@ def get_results(filename):
 
     results = {}
 
-    re_match = re.compile("(\S*)\s*(\S*)\s*:\s*(\S*)")
+    re_match = re.compile(r"(\S*)\s*(\S*)\s*:\s*(\S*)")
     for line in lines:
         match = re.search(re_match, line)
-        if match == None:
+        if match is None:
             continue
 
         groups = match.groups()
@@ -63,7 +63,7 @@ def main():
         namestr = name + " " + type
         before_count = args.before[p]
 
-        if args.after.get(p) != None:
+        if args.after.get(p) is not None:
             after_count = args.after[p]
 
             total_before += before_count
@@ -82,7 +82,7 @@ def main():
             lost.append(namestr)
 
     for p in args.after:
-        if (args.before.get(p) == None):
+        if args.before.get(p) is None:
             gained.append(p[0] + " " + p[1])
 
     helped.sort()
@@ -91,10 +91,12 @@ def main():
     if len(helped) > 0:
         print("")
 
-    hurt.sort(key=lambda k: float(args.after[k] - args.before[k]) / args.before[k])
+    hurt.sort(
+        key=lambda k: float(args.after[k] - args.before[k]) / args.before[k])
     for p in hurt:
         namestr = p[0] + " " + p[1]
-        print("HURT:   " + get_result_string(namestr, args.before[p], args.after[p]))
+        print("HURT:   " + get_result_string(
+            namestr, args.before[p], args.after[p]))
     if len(hurt) > 0:
         print("")
 
@@ -110,11 +112,15 @@ def main():
     if len(gained) > 0:
         print("")
 
-    print("total instructions in shared programs: " + change(total_before, total_after))
-    print("instructions in affected programs:     " + change(affected_before, affected_after))
-    print("GAINED:                                {0}".format(len(gained)))
-    print("LOST:                                  {0}".format(len(lost)))
+    print("total instructions in shared programs: {0}\n"
+          "instructions in affected programs:     {1}\n"
+          "GAINED:                                {2}\n"
+          "LOST:                                  {3}".format(
+              change(total_before, total_after),
+              change(affected_before, affected_after),
+              len(gained),
+              len(lost)))
 
 
 if __name__ == "__main__":
-        main()
+    main()
