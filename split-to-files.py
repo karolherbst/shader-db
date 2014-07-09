@@ -5,14 +5,15 @@ import os
 import argparse
 
 
-def parse_input(input):
+def parse_input(infile):
     shaders = dict()
     shadertuple = ("bad", 0)
     prognum = ""
     reading = False
 
-    for line in input.splitlines():
-        declmatch = re.match("GLSL (.*) shader (.*) source for linked program (.*):", line)
+    for line in infile.splitlines():
+        declmatch = re.match(
+            r"GLSL (.*) shader (.*) source for linked program (.*):", line)
         if declmatch:
             shadertype = declmatch.group(1)
             shadernum = declmatch.group(2)
@@ -23,17 +24,18 @@ def parse_input(input):
             if prognum == "0":
                 continue
 
-            if not prognum in shaders:
+            if prognum not in shaders:
                 shaders[prognum] = dict()
             if shadertuple in shaders[prognum]:
                 print("dupe!")
                 exit(1)
             shaders[prognum][shadertuple] = ''
             reading = True
-            print("Reading program {0} {1} shader {2}".format(prognum, shadertype, shadernum))
-        elif re.match("GLSL IR for ", line):
+            print("Reading program {0} {1} shader {2}".format(
+                prognum, shadertype, shadernum))
+        elif re.match(r"GLSL IR for ", line):
             reading = False
-        elif re.match("GLSL source for ", line):
+        elif re.match(r"GLSL source for ", line):
             reading = False
         elif reading:
             shaders[prognum][shadertuple] += line + '\n'
@@ -49,20 +51,21 @@ def write_shader_test(filename, shaders):
     out.write("GLSL >= 1.10\n")
     out.write("\n")
 
-    for (type, num) in shaders:
-        if type == "vertex":
+    for stage, num in shaders:
+        if stage == "vertex":
             out.write("[vertex shader]\n")
-            out.write(shaders[(type, num)])
-        if type == "fragment":
+            out.write(shaders[(stage, num)])
+        if stage == "fragment":
             out.write("[fragment shader]\n")
-            out.write(shaders[(type, num)])
+            out.write(shaders[(stage, num)])
 
     out.close()
 
 
-def write_files(dir, shaders):
+def write_files(directory, shaders):
     for prog in shaders:
-        write_shader_test("{0}/{1}.shader_test".format(dir, prog), shaders[prog])
+        write_shader_test("{0}/{1}.shader_test".format(directory, prog),
+                          shaders[prog])
 
 
 def main():
@@ -75,10 +78,10 @@ def main():
     if not os.path.isdir(dirname):
         os.mkdir(dirname)
 
-    input = open(args.mesadebug, 'r')
+    infile = open(args.mesadebug, 'r')
 
-    write_files(dirname, parse_input(input.read()))
+    write_files(dirname, parse_input(infile.read()))
 
 
 if __name__ == "__main__":
-        main()
+    main()
