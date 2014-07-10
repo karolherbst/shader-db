@@ -1535,11 +1535,6 @@ void main(void)
 #endif
 
 	// reflection must come last because it already contains exactly the correct fog (the reflection render preserves ca[1;31m[BOT]Deadline was gunned by [BOT]Newbie[m
-[1;31m[BOT]Death was gunned by [BOT]Roadkill[m
-[1;31m[BOT]Darkness was blasted by NexPlayer[m
-[1;31mNexPlayer has 3 frags in a row[m
-NexPlayer made a [1;31mTRIPLE FRAG[m
-mera distance from the plane, it only flips the side) and ContrastBoost/SceneBrightness
 #ifdef USEREFLECTION
 	vec4 ScreenScaleRefractReflectIW = ScreenScaleRefractReflect * (1.0 / ModelViewProjectionPosition.w);
 	//vec4 ScreenTexCoord = (ModelViewProjectionPosition.xyxy + normalize(cast_myhalf3(offsetMappedTexture2D(Texture_Normal)) - cast_myhalf3(0.5)).xyxy * DistortScaleRefractReflect * 100) * ScreenScaleRefractReflectIW + ScreenCenterRefractReflect;
