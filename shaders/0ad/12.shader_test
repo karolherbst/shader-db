@@ -296,20 +296,6 @@ void main()
 	
 }
 
-TIMER| common/setup.xml: 791.83 us
-TIMER| common/styles.xml: 53.064 us
-TIMER| common/sprite1.xml: 2.03779 ms
-TIMER| common/icon_sprites.xml: 122.018 us
-TIMER| common/common_sprites.xml: 1.89583 ms
-TIMER| common/common_styles.xml: 205.949 us
-TIMER| session/sprites.xml: 2.32971 ms
-TIMER| session/setup.xml: 82.104 us
-TIMER| session/styles.xml: 207.038 us
-TIMER| session/session.xml: 69.6939 ms
-TIMER| common/global.xml: 1.1758 ms
-GAME STARTED, ALL INIT COMPLETE
-Using Xcursor to sys_cursor_create 32 x 32 cursor
-
 [vertex shader]
 #version 110
 
