@@ -17,8 +17,7 @@ def process_directories(items):
         else:
             for dirpath, _, filenames in os.walk(item):
                 for fname in filenames:
-                    ext = os.path.splitext(fname)[1]
-                    if ext in ['.frag', '.vert', '.shader_test']:
+                    if os.path.splitext(fname)[1] == '.shader_test':
                         yield os.path.join(dirpath, fname)
 
 
@@ -26,21 +25,11 @@ def run_test(filename):
     if ".out" in filename:
         return ""
 
-    if ".shader_test" in filename:
-        command = ['./bin/shader_runner',
-                   filename,
-                   '-auto',
-                   '-fbo']
-    else:
-        command = ['./bin/glslparsertest',
-                   filename,
-                   'pass']
-
     timebefore = time.time()
 
     try:
         p = subprocess.Popen(
-            command,
+            ['./bin/shader_runner', filename, '-auto', '-fbo'],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)
         (stdout, stderr) = p.communicate()
