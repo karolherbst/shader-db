@@ -18,7 +18,3 @@ void main()
 {
    gl_Position = position;
 }
-
-event = 0x0001
-event = 0x0001
-300 frames in 5.40 secs: 55.6 fps
