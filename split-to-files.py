@@ -27,8 +27,8 @@ def parse_input(infile):
             if prognum not in shaders:
                 shaders[prognum] = dict()
             if shadertuple in shaders[prognum]:
-                print("dupe!")
-                exit(1)
+                print("Warning: duplicate", shadertype, " shader ", shadernum,
+                      "in program", prognum, "...tossing old shader.")
             shaders[prognum][shadertuple] = ''
             reading = True
             print("Reading program {0} {1} shader {2}".format(
