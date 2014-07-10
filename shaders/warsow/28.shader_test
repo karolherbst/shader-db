@@ -1,0 +1,1031 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+#version 130
+#extension GL_ARB_draw_instanced : enable
+#define QF_GLSL_VERSION 130
+#define VERTEX_SHADER
+#if !defined(myhalf)
+//#if !defined(__GLSL_CG_DATA_TYPES)
+#define myhalf float
+#define myhalf2 vec2
+#define myhalf3 vec3
+#define myhalf4 vec4
+//#else
+//#define myhalf half
+//#define myhalf2 half2
+//#define myhalf3 half3
+//#define myhalf4 half4
+//#endif
+#endif
+
+#if QF_GLSL_VERSION >= 130
+  precision highp float;
+
+# ifdef VERTEX_SHADER
+   out myhalf4 qf_FrontColor;
+#  define qf_varying out
+#  define qf_attribute in
+# endif
+# ifdef FRAGMENT_SHADER
+   in myhalf4 qf_FrontColor;
+   out myhalf4	qf_FragColor;
+#  define qf_varying in
+#  define qf_attribute in
+# endif
+
+# define qf_texture texture
+# define qf_textureCube texture
+# define qf_textureLod textureLod
+# define qf_textureOffset(a,b,c,d) textureOffset(a,b,ivec2(c,d))
+# define qf_shadow texture
+#else
+# ifdef VERTEX_SHADER
+#  define qf_FrontColor gl_FrontColor
+#  define qf_varying varying
+#  define qf_attribute attribute
+# endif
+
+# ifdef FRAGMENT_SHADER
+#  define qf_FrontColor gl_Color
+#  define qf_FragColor gl_FragColor
+#  define qf_varying varying
+#  define qf_attribute attribute
+# endif
+# define qf_texture texture2D
+# define qf_textureLod texture2DLod
+# define qf_textureCube textureCube
+# define qf_textureOffset(a,b,c,d) texture2DOffset(a,b,ivec2(c,d))
+# define qf_shadow shadow2D
+#endif
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#ifndef M_TWOPI
+#define M_TWOPI 6.28318530717958647692
+#endif
+
+#ifndef MAX_UNIFORM_BONES
+#define MAX_UNIFORM_BONES 100
+#endif
+
+#ifndef MAX_UNIFORM_INSTANCES
+#define MAX_UNIFORM_INSTANCES 40
+#endif
+uniform vec3 u_QF_ViewOrigin;
+uniform mat3 u_QF_ViewAxis;
+uniform float u_QF_MirrorSide;
+uniform vec3 u_QF_EntityOrigin;
+uniform float u_QF_ShaderTime;
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#ifndef M_TWOPI
+#define M_TWOPI 6.28318530717958647692
+#endif
+
+#ifndef WAVE_SIN
+float QF_WaveFunc_Sin(float x)
+{
+x -= floor(x);
+return sin(x * M_TWOPI);
+}
+float QF_WaveFunc_Triangle(float x)
+{
+x -= floor(x);
+return step(x, 0.25) * x * 4.0 + (2.0 - 4.0 * step(0.25, x) * step(x, 0.75) * x) + ((step(0.75, x) * x - 0.75) * 4.0 - 1.0);
+}
+float QF_WaveFunc_Square(float x)
+{
+x -= floor(x);
+return step(x, 0.5) * 2.0 - 1.0;
+}
+float QF_WaveFunc_Sawtooth(float x)
+{
+x -= floor(x);
+return x;
+}
+float QF_QF_WaveFunc_InverseSawtooth(float x)
+{
+x -= floor(x);
+return 1.0 - x;
+}
+
+#define WAVE_SIN(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Sin((phase)+(time)*(freq))))
+#define WAVE_TRIANGLE(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Triangle((phase)+(time)*(freq))))
+#define WAVE_SQUARE(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Square((phase)+(time)*(freq))))
+#define WAVE_SAWTOOTH(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Sawtooth((phase)+(time)*(freq))))
+#define WAVE_INVERSESAWTOOTH(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_QF_WaveFunc_InverseSawtooth((phase)+(time)*(freq))))
+#endif
+
+#ifdef VERTEX_SHADER
+attribute vec4 a_BonesIndices;
+attribute vec4 a_BonesWeights;
+
+uniform vec4 u_QF_DualQuats[MAX_UNIFORM_BONES*2];
+
+#if defined(DUAL_QUAT_TRANSFORM_NORMALS)
+#if defined(DUAL_QUAT_TRANSFORM_TANGENT)
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal, inout vec3 Tangent)
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal)
+#endif
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position)
+#endif
+{
+int index;
+vec4 Indices = a_BonesIndices;
+vec4 Weights = a_BonesWeights;
+vec4 Indices_2 = Indices * 2.0;
+vec4 DQReal, DQDual;
+
+index = int(Indices_2.x);
+DQReal = u_QF_DualQuats[index+0];
+DQDual = u_QF_DualQuats[index+1];
+
+if (numWeights > 1)
+{
+DQReal *= Weights.x;
+DQDual *= Weights.x;
+
+vec4 DQReal1, DQDual1;
+float scale;
+
+index = int(Indices_2.y);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.y;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 2)
+{
+index = int(Indices_2.z);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.z;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 3)
+{
+index = int(Indices_2.w);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.w;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+}
+}
+}
+
+float len = length(DQReal);
+DQReal /= len;
+DQDual /= len;
+
+Position.xyz = (cross(DQReal.xyz, cross(DQReal.xyz, Position.xyz) + Position.xyz*DQReal.w + DQDual.xyz) + DQDual.xyz*DQReal.w - DQReal.xyz*DQDual.w)*2.0 + Position.xyz;
+
+#ifdef DUAL_QUAT_TRANSFORM_NORMALS
+Normal = cross(DQReal.xyz, cross(DQReal.xyz, Normal) + Normal*DQReal.w)*2.0 + Normal;
+#endif
+
+#ifdef DUAL_QUAT_TRANSFORM_TANGENT
+Tangent = cross(DQReal.xyz, cross(DQReal.xyz, Tangent) + Tangent*DQReal.w)*2.0 + Tangent;
+#endif
+}
+
+// use defines to overload the transform function
+
+#define DUAL_QUAT_TRANSFORM_NORMALS
+#if defined(DUAL_QUAT_TRANSFORM_NORMALS)
+#if defined(DUAL_QUAT_TRANSFORM_TANGENT)
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal, inout vec3 Tangent)
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal)
+#endif
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position)
+#endif
+{
+int index;
+vec4 Indices = a_BonesIndices;
+vec4 Weights = a_BonesWeights;
+vec4 Indices_2 = Indices * 2.0;
+vec4 DQReal, DQDual;
+
+index = int(Indices_2.x);
+DQReal = u_QF_DualQuats[index+0];
+DQDual = u_QF_DualQuats[index+1];
+
+if (numWeights > 1)
+{
+DQReal *= Weights.x;
+DQDual *= Weights.x;
+
+vec4 DQReal1, DQDual1;
+float scale;
+
+index = int(Indices_2.y);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.y;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 2)
+{
+index = int(Indices_2.z);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.z;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 3)
+{
+index = int(Indices_2.w);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.w;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+}
+}
+}
+
+float len = length(DQReal);
+DQReal /= len;
+DQDual /= len;
+
+Position.xyz = (cross(DQReal.xyz, cross(DQReal.xyz, Position.xyz) + Position.xyz*DQReal.w + DQDual.xyz) + DQDual.xyz*DQReal.w - DQReal.xyz*DQDual.w)*2.0 + Position.xyz;
+
+#ifdef DUAL_QUAT_TRANSFORM_NORMALS
+Normal = cross(DQReal.xyz, cross(DQReal.xyz, Normal) + Normal*DQReal.w)*2.0 + Normal;
+#endif
+
+#ifdef DUAL_QUAT_TRANSFORM_TANGENT
+Tangent = cross(DQReal.xyz, cross(DQReal.xyz, Tangent) + Tangent*DQReal.w)*2.0 + Tangent;
+#endif
+}
+
+#define DUAL_QUAT_TRANSFORM_TANGENT
+#if defined(DUAL_QUAT_TRANSFORM_NORMALS)
+#if defined(DUAL_QUAT_TRANSFORM_TANGENT)
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal, inout vec3 Tangent)
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal)
+#endif
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position)
+#endif
+{
+int index;
+vec4 Indices = a_BonesIndices;
+vec4 Weights = a_BonesWeights;
+vec4 Indices_2 = Indices * 2.0;
+vec4 DQReal, DQDual;
+
+index = int(Indices_2.x);
+DQReal = u_QF_DualQuats[index+0];
+DQDual = u_QF_DualQuats[index+1];
+
+if (numWeights > 1)
+{
+DQReal *= Weights.x;
+DQDual *= Weights.x;
+
+vec4 DQReal1, DQDual1;
+float scale;
+
+index = int(Indices_2.y);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.y;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 2)
+{
+index = int(Indices_2.z);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.z;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 3)
+{
+index = int(Indices_2.w);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.w;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+}
+}
+}
+
+float len = length(DQReal);
+DQReal /= len;
+DQDual /= len;
+
+Position.xyz = (cross(DQReal.xyz, cross(DQReal.xyz, Position.xyz) + Position.xyz*DQReal.w + DQDual.xyz) + DQDual.xyz*DQReal.w - DQReal.xyz*DQDual.w)*2.0 + Position.xyz;
+
+#ifdef DUAL_QUAT_TRANSFORM_NORMALS
+Normal = cross(DQReal.xyz, cross(DQReal.xyz, Normal) + Normal*DQReal.w)*2.0 + Normal;
+#endif
+
+#ifdef DUAL_QUAT_TRANSFORM_TANGENT
+Tangent = cross(DQReal.xyz, cross(DQReal.xyz, Tangent) + Tangent*DQReal.w)*2.0 + Tangent;
+#endif
+}
+
+#endif
+#ifdef VERTEX_SHADER
+#ifdef APPLY_INSTANCED_ATTRIB_TRASNFORMS
+attribute vec4 a_InstanceQuat;
+attribute vec4 a_InstancePosAndScale;
+#elif defined(GL_ARB_draw_instanced)
+
+uniform vec4 u_QF_InstancePoints[MAX_UNIFORM_INSTANCES*2];
+
+#define a_InstanceQuat u_QF_InstancePoints[gl_InstanceID*2]
+#define a_InstancePosAndScale u_QF_InstancePoints[gl_InstanceID*2+1]
+#else
+uniform vec4 u_QF_InstancePoints[2];
+#define a_InstanceQuat u_QF_InstancePoints[0]
+#define a_InstancePosAndScale u_QF_InstancePoints[1]
+#endif
+
+void QF_InstancedTransform(inout vec4 Position, inout vec3 Normal)
+{
+Position.xyz = (cross(a_InstanceQuat.xyz, cross(a_InstanceQuat.xyz, Position.xyz) + Position.xyz*a_InstanceQuat.w)*2.0 + Position.xyz) *
+ a_InstancePosAndScale.w + a_InstancePosAndScale.xyz;
+Normal = cross(a_InstanceQuat.xyz, cross(a_InstanceQuat.xyz, Normal) + Normal*a_InstanceQuat.w)*2.0 + Normal;
+}
+
+#endif
+#define QF_LatLong2Norm(ll) vec3(cos((ll).y) * sin((ll).x), sin((ll).y) * sin((ll).x), cos((ll).x))
+
+
+#define DRAWFLAT_NORMAL_STEP	0.5		// floor or ceiling if < abs(normal.z)
+uniform mat4 u_ModelViewMatrix;
+uniform mat4 u_ModelViewProjectionMatrix;
+
+uniform float u_ShaderTime;
+
+uniform vec3 u_ViewOrigin;
+uniform mat3 u_ViewAxis;
+
+uniform vec3 u_EntityDist;
+uniform vec3 u_EntityOrigin;
+uniform myhalf4 u_EntityColor;
+
+uniform myhalf4 u_ConstColor;
+uniform myhalf4 u_RGBGenFuncArgs, u_AlphaGenFuncArgs;
+uniform myhalf3 u_LightstyleColor[4]; // lightstyle colors
+
+uniform myhalf3 u_LightAmbient;
+uniform myhalf3 u_LightDiffuse;
+uniform vec3 u_LightDir;
+
+uniform myhalf2 u_BlendMix;
+
+uniform vec2 u_TextureMatrix[3];
+#define TextureMatrix2x3Mul(m2x3,tc) vec2(dot((m2x3)[0],(tc)) + (m2x3)[2][0], dot((m2x3)[1],(tc)) + (m2x3)[2][1])
+
+uniform float u_MirrorSide;
+
+uniform float u_ZNear, u_ZFar;
+
+uniform ivec4 u_Viewport; // x, y, width, height
+
+uniform vec4 u_TextureParams;
+
+uniform myhalf u_SoftParticlesScale;
+myhalf3 YUV2RGB(vec3 yuv)
+{
+	// Standard definition TV color matrix
+	const mat3 yuv2rgb = mat3(
+		1.0, 1.0, 1.0, 
+		0.0, -0.343, -0.711,
+		1.400, -0.711, 0.0
+	);
+	const vec3 yuv_sub = vec3(
+		0.0, 0.5, 0.5
+	);
+
+	return clamp( (yuv2rgb * (yuv - yuv_sub)).xyz, 0.0, 1.0 );
+}
+
+myhalf3 YUV2RGB_HDTV(vec3 yuv)
+{
+	// High Definition TV color matrix
+	const mat3 yuv2rgb = mat3(
+		1.164, 1.164, 1.164, 
+		0.0, -0.213, 2.212,
+		1.793, -0.533, 0.0
+	);
+	const vec3 yuv_sub = vec3(
+		0.0625, 0.5, 0.5
+	);
+
+	return clamp( (yuv2rgb * (yuv - yuv_sub)).xyz, 0.0, 1.0 );
+}
+
+
+qf_varying vec2 v_TexCoord;
+
+#ifdef VERTEX_SHADER
+#ifdef VERTEX_SHADER
+qf_attribute vec4 a_Position;
+qf_attribute vec4 a_SVector;
+qf_attribute vec4 a_Normal;
+qf_attribute vec4 a_Color;
+qf_attribute vec2 a_TexCoord;
+qf_attribute vec2 a_LightmapCoord0, a_LightmapCoord1, a_LightmapCoord2, a_LightmapCoord3;
+#endif
+void TransformVerts(inout vec4 Position, inout vec3 Normal, inout vec2 TexCoord)
+{
+#ifdef NUM_BONE_INFLUENCES
+	QF_VertexDualQuatsTransform(NUM_BONE_INFLUENCES, Position, Normal);
+#endif
+
+#ifdef APPLY_DEFORMVERTS
+	QF_DeformVerts(Position, Normal, TexCoord);
+#endif
+
+#ifdef APPLY_INSTANCED_TRANSFORMS
+	QF_InstancedTransform(Position, Normal);
+#endif
+}
+
+void TransformVerts(inout vec4 Position, inout vec3 Normal, inout vec3 Tangent, inout vec2 TexCoord)
+{
+#ifdef NUM_BONE_INFLUENCES
+	QF_VertexDualQuatsTransform(NUM_BONE_INFLUENCES, Position, Normal, Tangent);
+#endif
+
+#ifdef APPLY_DEFORMVERTS
+	QF_DeformVerts(Position, Normal, TexCoord);
+#endif
+
+#ifdef APPLY_INSTANCED_TRANSFORMS
+	QF_InstancedTransform(Position, Normal);
+#endif
+}
+
+
+void main(void)
+{
+	gl_Position = u_ModelViewProjectionMatrix * a_Position;
+	v_TexCoord = a_TexCoord;
+}
+
+#endif // VERTEX_SHADER
+
+#ifdef FRAGMENT_SHADER
+// Fragment shader
+
+uniform sampler2D u_YUVTextureY;
+uniform sampler2D u_YUVTextureU;
+uniform sampler2D u_YUVTextureV;
+
+void main(void)
+{
+	qf_FragColor = vec4(YUV2RGB_HDTV(vec3(
+		qf_texture(u_YUVTextureY, v_TexCoord).r,
+		qf_texture(u_YUVTextureU, v_TexCoord).r, 
+		qf_texture(u_YUVTextureV, v_TexCoord).r
+	)), 1.0);
+}
+
+#endif // FRAGMENT_SHADER
+
+[fragment shader]
+#version 130
+
+#define QF_GLSL_VERSION 130
+#define FRAGMENT_SHADER
+#if !defined(myhalf)
+//#if !defined(__GLSL_CG_DATA_TYPES)
+#define myhalf float
+#define myhalf2 vec2
+#define myhalf3 vec3
+#define myhalf4 vec4
+//#else
+//#define myhalf half
+//#define myhalf2 half2
+//#define myhalf3 half3
+//#define myhalf4 half4
+//#endif
+#endif
+
+#if QF_GLSL_VERSION >= 130
+  precision highp float;
+
+# ifdef VERTEX_SHADER
+   out myhalf4 qf_FrontColor;
+#  define qf_varying out
+#  define qf_attribute in
+# endif
+# ifdef FRAGMENT_SHADER
+   in myhalf4 qf_FrontColor;
+   out myhalf4	qf_FragColor;
+#  define qf_varying in
+#  define qf_attribute in
+# endif
+
+# define qf_texture texture
+# define qf_textureCube texture
+# define qf_textureLod textureLod
+# define qf_textureOffset(a,b,c,d) textureOffset(a,b,ivec2(c,d))
+# define qf_shadow texture
+#else
+# ifdef VERTEX_SHADER
+#  define qf_FrontColor gl_FrontColor
+#  define qf_varying varying
+#  define qf_attribute attribute
+# endif
+
+# ifdef FRAGMENT_SHADER
+#  define qf_FrontColor gl_Color
+#  define qf_FragColor gl_FragColor
+#  define qf_varying varying
+#  define qf_attribute attribute
+# endif
+# define qf_texture texture2D
+# define qf_textureLod texture2DLod
+# define qf_textureCube textureCube
+# define qf_textureOffset(a,b,c,d) texture2DOffset(a,b,ivec2(c,d))
+# define qf_shadow shadow2D
+#endif
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#ifndef M_TWOPI
+#define M_TWOPI 6.28318530717958647692
+#endif
+
+#ifndef MAX_UNIFORM_BONES
+#define MAX_UNIFORM_BONES 100
+#endif
+
+#ifndef MAX_UNIFORM_INSTANCES
+#define MAX_UNIFORM_INSTANCES 40
+#endif
+uniform vec3 u_QF_ViewOrigin;
+uniform mat3 u_QF_ViewAxis;
+uniform float u_QF_MirrorSide;
+uniform vec3 u_QF_EntityOrigin;
+uniform float u_QF_ShaderTime;
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#ifndef M_TWOPI
+#define M_TWOPI 6.28318530717958647692
+#endif
+
+#ifndef WAVE_SIN
+float QF_WaveFunc_Sin(float x)
+{
+x -= floor(x);
+return sin(x * M_TWOPI);
+}
+float QF_WaveFunc_Triangle(float x)
+{
+x -= floor(x);
+return step(x, 0.25) * x * 4.0 + (2.0 - 4.0 * step(0.25, x) * step(x, 0.75) * x) + ((step(0.75, x) * x - 0.75) * 4.0 - 1.0);
+}
+float QF_WaveFunc_Square(float x)
+{
+x -= floor(x);
+return step(x, 0.5) * 2.0 - 1.0;
+}
+float QF_WaveFunc_Sawtooth(float x)
+{
+x -= floor(x);
+return x;
+}
+float QF_QF_WaveFunc_InverseSawtooth(float x)
+{
+x -= floor(x);
+return 1.0 - x;
+}
+
+#define WAVE_SIN(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Sin((phase)+(time)*(freq))))
+#define WAVE_TRIANGLE(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Triangle((phase)+(time)*(freq))))
+#define WAVE_SQUARE(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Square((phase)+(time)*(freq))))
+#define WAVE_SAWTOOTH(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Sawtooth((phase)+(time)*(freq))))
+#define WAVE_INVERSESAWTOOTH(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_QF_WaveFunc_InverseSawtooth((phase)+(time)*(freq))))
+#endif
+
+#ifdef VERTEX_SHADER
+attribute vec4 a_BonesIndices;
+attribute vec4 a_BonesWeights;
+
+uniform vec4 u_QF_DualQuats[MAX_UNIFORM_BONES*2];
+
+#if defined(DUAL_QUAT_TRANSFORM_NORMALS)
+#if defined(DUAL_QUAT_TRANSFORM_TANGENT)
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal, inout vec3 Tangent)
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal)
+#endif
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position)
+#endif
+{
+int index;
+vec4 Indices = a_BonesIndices;
+vec4 Weights = a_BonesWeights;
+vec4 Indices_2 = Indices * 2.0;
+vec4 DQReal, DQDual;
+
+index = int(Indices_2.x);
+DQReal = u_QF_DualQuats[index+0];
+DQDual = u_QF_DualQuats[index+1];
+
+if (numWeights > 1)
+{
+DQReal *= Weights.x;
+DQDual *= Weights.x;
+
+vec4 DQReal1, DQDual1;
+float scale;
+
+index = int(Indices_2.y);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.y;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 2)
+{
+index = int(Indices_2.z);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.z;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 3)
+{
+index = int(Indices_2.w);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.w;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+}
+}
+}
+
+float len = length(DQReal);
+DQReal /= len;
+DQDual /= len;
+
+Position.xyz = (cross(DQReal.xyz, cross(DQReal.xyz, Position.xyz) + Position.xyz*DQReal.w + DQDual.xyz) + DQDual.xyz*DQReal.w - DQReal.xyz*DQDual.w)*2.0 + Position.xyz;
+
+#ifdef DUAL_QUAT_TRANSFORM_NORMALS
+Normal = cross(DQReal.xyz, cross(DQReal.xyz, Normal) + Normal*DQReal.w)*2.0 + Normal;
+#endif
+
+#ifdef DUAL_QUAT_TRANSFORM_TANGENT
+Tangent = cross(DQReal.xyz, cross(DQReal.xyz, Tangent) + Tangent*DQReal.w)*2.0 + Tangent;
+#endif
+}
+
+// use defines to overload the transform function
+
+#define DUAL_QUAT_TRANSFORM_NORMALS
+#if defined(DUAL_QUAT_TRANSFORM_NORMALS)
+#if defined(DUAL_QUAT_TRANSFORM_TANGENT)
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal, inout vec3 Tangent)
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal)
+#endif
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position)
+#endif
+{
+int index;
+vec4 Indices = a_BonesIndices;
+vec4 Weights = a_BonesWeights;
+vec4 Indices_2 = Indices * 2.0;
+vec4 DQReal, DQDual;
+
+index = int(Indices_2.x);
+DQReal = u_QF_DualQuats[index+0];
+DQDual = u_QF_DualQuats[index+1];
+
+if (numWeights > 1)
+{
+DQReal *= Weights.x;
+DQDual *= Weights.x;
+
+vec4 DQReal1, DQDual1;
+float scale;
+
+index = int(Indices_2.y);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.y;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 2)
+{
+index = int(Indices_2.z);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.z;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 3)
+{
+index = int(Indices_2.w);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.w;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+}
+}
+}
+
+float len = length(DQReal);
+DQReal /= len;
+DQDual /= len;
+
+Position.xyz = (cross(DQReal.xyz, cross(DQReal.xyz, Position.xyz) + Position.xyz*DQReal.w + DQDual.xyz) + DQDual.xyz*DQReal.w - DQReal.xyz*DQDual.w)*2.0 + Position.xyz;
+
+#ifdef DUAL_QUAT_TRANSFORM_NORMALS
+Normal = cross(DQReal.xyz, cross(DQReal.xyz, Normal) + Normal*DQReal.w)*2.0 + Normal;
+#endif
+
+#ifdef DUAL_QUAT_TRANSFORM_TANGENT
+Tangent = cross(DQReal.xyz, cross(DQReal.xyz, Tangent) + Tangent*DQReal.w)*2.0 + Tangent;
+#endif
+}
+
+#define DUAL_QUAT_TRANSFORM_TANGENT
+#if defined(DUAL_QUAT_TRANSFORM_NORMALS)
+#if defined(DUAL_QUAT_TRANSFORM_TANGENT)
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal, inout vec3 Tangent)
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal)
+#endif
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position)
+#endif
+{
+int index;
+vec4 Indices = a_BonesIndices;
+vec4 Weights = a_BonesWeights;
+vec4 Indices_2 = Indices * 2.0;
+vec4 DQReal, DQDual;
+
+index = int(Indices_2.x);
+DQReal = u_QF_DualQuats[index+0];
+DQDual = u_QF_DualQuats[index+1];
+
+if (numWeights > 1)
+{
+DQReal *= Weights.x;
+DQDual *= Weights.x;
+
+vec4 DQReal1, DQDual1;
+float scale;
+
+index = int(Indices_2.y);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.y;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 2)
+{
+index = int(Indices_2.z);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.z;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 3)
+{
+index = int(Indices_2.w);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.w;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+}
+}
+}
+
+float len = length(DQReal);
+DQReal /= len;
+DQDual /= len;
+
+Position.xyz = (cross(DQReal.xyz, cross(DQReal.xyz, Position.xyz) + Position.xyz*DQReal.w + DQDual.xyz) + DQDual.xyz*DQReal.w - DQReal.xyz*DQDual.w)*2.0 + Position.xyz;
+
+#ifdef DUAL_QUAT_TRANSFORM_NORMALS
+Normal = cross(DQReal.xyz, cross(DQReal.xyz, Normal) + Normal*DQReal.w)*2.0 + Normal;
+#endif
+
+#ifdef DUAL_QUAT_TRANSFORM_TANGENT
+Tangent = cross(DQReal.xyz, cross(DQReal.xyz, Tangent) + Tangent*DQReal.w)*2.0 + Tangent;
+#endif
+}
+
+#endif
+#ifdef VERTEX_SHADER
+#ifdef APPLY_INSTANCED_ATTRIB_TRASNFORMS
+attribute vec4 a_InstanceQuat;
+attribute vec4 a_InstancePosAndScale;
+#elif defined(GL_ARB_draw_instanced)
+
+uniform vec4 u_QF_InstancePoints[MAX_UNIFORM_INSTANCES*2];
+
+#define a_InstanceQuat u_QF_InstancePoints[gl_InstanceID*2]
+#define a_InstancePosAndScale u_QF_InstancePoints[gl_InstanceID*2+1]
+#else
+uniform vec4 u_QF_InstancePoints[2];
+#define a_InstanceQuat u_QF_InstancePoints[0]
+#define a_InstancePosAndScale u_QF_InstancePoints[1]
+#endif
+
+void QF_InstancedTransform(inout vec4 Position, inout vec3 Normal)
+{
+Position.xyz = (cross(a_InstanceQuat.xyz, cross(a_InstanceQuat.xyz, Position.xyz) + Position.xyz*a_InstanceQuat.w)*2.0 + Position.xyz) *
+ a_InstancePosAndScale.w + a_InstancePosAndScale.xyz;
+Normal = cross(a_InstanceQuat.xyz, cross(a_InstanceQuat.xyz, Normal) + Normal*a_InstanceQuat.w)*2.0 + Normal;
+}
+
+#endif
+#define QF_LatLong2Norm(ll) vec3(cos((ll).y) * sin((ll).x), sin((ll).y) * sin((ll).x), cos((ll).x))
+
+
+#define DRAWFLAT_NORMAL_STEP	0.5		// floor or ceiling if < abs(normal.z)
+uniform mat4 u_ModelViewMatrix;
+uniform mat4 u_ModelViewProjectionMatrix;
+
+uniform float u_ShaderTime;
+
+uniform vec3 u_ViewOrigin;
+uniform mat3 u_ViewAxis;
+
+uniform vec3 u_EntityDist;
+uniform vec3 u_EntityOrigin;
+uniform myhalf4 u_EntityColor;
+
+uniform myhalf4 u_ConstColor;
+uniform myhalf4 u_RGBGenFuncArgs, u_AlphaGenFuncArgs;
+uniform myhalf3 u_LightstyleColor[4]; // lightstyle colors
+
+uniform myhalf3 u_LightAmbient;
+uniform myhalf3 u_LightDiffuse;
+uniform vec3 u_LightDir;
+
+uniform myhalf2 u_BlendMix;
+
+uniform vec2 u_TextureMatrix[3];
+#define TextureMatrix2x3Mul(m2x3,tc) vec2(dot((m2x3)[0],(tc)) + (m2x3)[2][0], dot((m2x3)[1],(tc)) + (m2x3)[2][1])
+
+uniform float u_MirrorSide;
+
+uniform float u_ZNear, u_ZFar;
+
+uniform ivec4 u_Viewport; // x, y, width, height
+
+uniform vec4 u_TextureParams;
+
+uniform myhalf u_SoftParticlesScale;
+myhalf3 YUV2RGB(vec3 yuv)
+{
+	// Standard definition TV color matrix
+	const mat3 yuv2rgb = mat3(
+		1.0, 1.0, 1.0, 
+		0.0, -0.343, -0.711,
+		1.400, -0.711, 0.0
+	);
+	const vec3 yuv_sub = vec3(
+		0.0, 0.5, 0.5
+	);
+
+	return clamp( (yuv2rgb * (yuv - yuv_sub)).xyz, 0.0, 1.0 );
+}
+
+myhalf3 YUV2RGB_HDTV(vec3 yuv)
+{
+	// High Definition TV color matrix
+	const mat3 yuv2rgb = mat3(
+		1.164, 1.164, 1.164, 
+		0.0, -0.213, 2.212,
+		1.793, -0.533, 0.0
+	);
+	const vec3 yuv_sub = vec3(
+		0.0625, 0.5, 0.5
+	);
+
+	return clamp( (yuv2rgb * (yuv - yuv_sub)).xyz, 0.0, 1.0 );
+}
+
+
+qf_varying vec2 v_TexCoord;
+
+#ifdef VERTEX_SHADER
+#ifdef VERTEX_SHADER
+qf_attribute vec4 a_Position;
+qf_attribute vec4 a_SVector;
+qf_attribute vec4 a_Normal;
+qf_attribute vec4 a_Color;
+qf_attribute vec2 a_TexCoord;
+qf_attribute vec2 a_LightmapCoord0, a_LightmapCoord1, a_LightmapCoord2, a_LightmapCoord3;
+#endif
+void TransformVerts(inout vec4 Position, inout vec3 Normal, inout vec2 TexCoord)
+{
+#ifdef NUM_BONE_INFLUENCES
+	QF_VertexDualQuatsTransform(NUM_BONE_INFLUENCES, Position, Normal);
+#endif
+
+#ifdef APPLY_DEFORMVERTS
+	QF_DeformVerts(Position, Normal, TexCoord);
+#endif
+
+#ifdef APPLY_INSTANCED_TRANSFORMS
+	QF_InstancedTransform(Position, Normal);
+#endif
+}
+
+void TransformVerts(inout vec4 Position, inout vec3 Normal, inout vec3 Tangent, inout vec2 TexCoord)
+{
+#ifdef NUM_BONE_INFLUENCES
+	QF_VertexDualQuatsTransform(NUM_BONE_INFLUENCES, Position, Normal, Tangent);
+#endif
+
+#ifdef APPLY_DEFORMVERTS
+	QF_DeformVerts(Position, Normal, TexCoord);
+#endif
+
+#ifdef APPLY_INSTANCED_TRANSFORMS
+	QF_InstancedTransform(Position, Normal);
+#endif
+}
+
+
+void main(void)
+{
+	gl_Position = u_ModelViewProjectionMatrix * a_Position;
+	v_TexCoord = a_TexCoord;
+}
+
+#endif // VERTEX_SHADER
+
+#ifdef FRAGMENT_SHADER
+// Fragment shader
+
+uniform sampler2D u_YUVTextureY;
+uniform sampler2D u_YUVTextureU;
+uniform sampler2D u_YUVTextureV;
+
+void main(void)
+{
+	qf_FragColor = vec4(YUV2RGB_HDTV(vec3(
+		qf_texture(u_YUVTextureY, v_TexCoord).r,
+		qf_texture(u_YUVTextureU, v_TexCoord).r, 
+		qf_texture(u_YUVTextureV, v_TexCoord).r
+	)), 1.0);
+}
+
+#endif // FRAGMENT_SHADER
+

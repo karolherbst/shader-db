@@ -1,0 +1,1675 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+#version 130
+#extension GL_ARB_draw_instanced : enable
+#define QF_GLSL_VERSION 130
+#define VERTEX_SHADER
+#if !defined(myhalf)
+//#if !defined(__GLSL_CG_DATA_TYPES)
+#define myhalf float
+#define myhalf2 vec2
+#define myhalf3 vec3
+#define myhalf4 vec4
+//#else
+//#define myhalf half
+//#define myhalf2 half2
+//#define myhalf3 half3
+//#define myhalf4 half4
+//#endif
+#endif
+
+#if QF_GLSL_VERSION >= 130
+  precision highp float;
+
+# ifdef VERTEX_SHADER
+   out myhalf4 qf_FrontColor;
+#  define qf_varying out
+#  define qf_attribute in
+# endif
+# ifdef FRAGMENT_SHADER
+   in myhalf4 qf_FrontColor;
+   out myhalf4	qf_FragColor;
+#  define qf_varying in
+#  define qf_attribute in
+# endif
+
+# define qf_texture texture
+# define qf_textureCube texture
+# define qf_textureLod textureLod
+# define qf_textureOffset(a,b,c,d) textureOffset(a,b,ivec2(c,d))
+# define qf_shadow texture
+#else
+# ifdef VERTEX_SHADER
+#  define qf_FrontColor gl_FrontColor
+#  define qf_varying varying
+#  define qf_attribute attribute
+# endif
+
+# ifdef FRAGMENT_SHADER
+#  define qf_FrontColor gl_Color
+#  define qf_FragColor gl_FragColor
+#  define qf_varying varying
+#  define qf_attribute attribute
+# endif
+# define qf_texture texture2D
+# define qf_textureLod texture2DLod
+# define qf_textureCube textureCube
+# define qf_textureOffset(a,b,c,d) texture2DOffset(a,b,ivec2(c,d))
+# define qf_shadow shadow2D
+#endif
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#ifndef M_TWOPI
+#define M_TWOPI 6.28318530717958647692
+#endif
+
+#ifndef MAX_UNIFORM_BONES
+#define MAX_UNIFORM_BONES 100
+#endif
+
+#ifndef MAX_UNIFORM_INSTANCES
+#define MAX_UNIFORM_INSTANCES 40
+#endif
+uniform vec3 u_QF_ViewOrigin;
+uniform mat3 u_QF_ViewAxis;
+uniform float u_QF_MirrorSide;
+uniform vec3 u_QF_EntityOrigin;
+uniform float u_QF_ShaderTime;
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#ifndef M_TWOPI
+#define M_TWOPI 6.28318530717958647692
+#endif
+
+#ifndef WAVE_SIN
+float QF_WaveFunc_Sin(float x)
+{
+x -= floor(x);
+return sin(x * M_TWOPI);
+}
+float QF_WaveFunc_Triangle(float x)
+{
+x -= floor(x);
+return step(x, 0.25) * x * 4.0 + (2.0 - 4.0 * step(0.25, x) * step(x, 0.75) * x) + ((step(0.75, x) * x - 0.75) * 4.0 - 1.0);
+}
+float QF_WaveFunc_Square(float x)
+{
+x -= floor(x);
+return step(x, 0.5) * 2.0 - 1.0;
+}
+float QF_WaveFunc_Sawtooth(float x)
+{
+x -= floor(x);
+return x;
+}
+float QF_QF_WaveFunc_InverseSawtooth(float x)
+{
+x -= floor(x);
+return 1.0 - x;
+}
+
+#define WAVE_SIN(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Sin((phase)+(time)*(freq))))
+#define WAVE_TRIANGLE(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Triangle((phase)+(time)*(freq))))
+#define WAVE_SQUARE(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Square((phase)+(time)*(freq))))
+#define WAVE_SAWTOOTH(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Sawtooth((phase)+(time)*(freq))))
+#define WAVE_INVERSESAWTOOTH(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_QF_WaveFunc_InverseSawtooth((phase)+(time)*(freq))))
+#endif
+
+#ifdef VERTEX_SHADER
+attribute vec4 a_BonesIndices;
+attribute vec4 a_BonesWeights;
+
+uniform vec4 u_QF_DualQuats[MAX_UNIFORM_BONES*2];
+
+#if defined(DUAL_QUAT_TRANSFORM_NORMALS)
+#if defined(DUAL_QUAT_TRANSFORM_TANGENT)
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal, inout vec3 Tangent)
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal)
+#endif
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position)
+#endif
+{
+int index;
+vec4 Indices = a_BonesIndices;
+vec4 Weights = a_BonesWeights;
+vec4 Indices_2 = Indices * 2.0;
+vec4 DQReal, DQDual;
+
+index = int(Indices_2.x);
+DQReal = u_QF_DualQuats[index+0];
+DQDual = u_QF_DualQuats[index+1];
+
+if (numWeights > 1)
+{
+DQReal *= Weights.x;
+DQDual *= Weights.x;
+
+vec4 DQReal1, DQDual1;
+float scale;
+
+index = int(Indices_2.y);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.y;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 2)
+{
+index = int(Indices_2.z);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.z;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 3)
+{
+index = int(Indices_2.w);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.w;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+}
+}
+}
+
+float len = length(DQReal);
+DQReal /= len;
+DQDual /= len;
+
+Position.xyz = (cross(DQReal.xyz, cross(DQReal.xyz, Position.xyz) + Position.xyz*DQReal.w + DQDual.xyz) + DQDual.xyz*DQReal.w - DQReal.xyz*DQDual.w)*2.0 + Position.xyz;
+
+#ifdef DUAL_QUAT_TRANSFORM_NORMALS
+Normal = cross(DQReal.xyz, cross(DQReal.xyz, Normal) + Normal*DQReal.w)*2.0 + Normal;
+#endif
+
+#ifdef DUAL_QUAT_TRANSFORM_TANGENT
+Tangent = cross(DQReal.xyz, cross(DQReal.xyz, Tangent) + Tangent*DQReal.w)*2.0 + Tangent;
+#endif
+}
+
+// use defines to overload the transform function
+
+#define DUAL_QUAT_TRANSFORM_NORMALS
+#if defined(DUAL_QUAT_TRANSFORM_NORMALS)
+#if defined(DUAL_QUAT_TRANSFORM_TANGENT)
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal, inout vec3 Tangent)
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal)
+#endif
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position)
+#endif
+{
+int index;
+vec4 Indices = a_BonesIndices;
+vec4 Weights = a_BonesWeights;
+vec4 Indices_2 = Indices * 2.0;
+vec4 DQReal, DQDual;
+
+index = int(Indices_2.x);
+DQReal = u_QF_DualQuats[index+0];
+DQDual = u_QF_DualQuats[index+1];
+
+if (numWeights > 1)
+{
+DQReal *= Weights.x;
+DQDual *= Weights.x;
+
+vec4 DQReal1, DQDual1;
+float scale;
+
+index = int(Indices_2.y);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.y;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 2)
+{
+index = int(Indices_2.z);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.z;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 3)
+{
+index = int(Indices_2.w);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.w;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+}
+}
+}
+
+float len = length(DQReal);
+DQReal /= len;
+DQDual /= len;
+
+Position.xyz = (cross(DQReal.xyz, cross(DQReal.xyz, Position.xyz) + Position.xyz*DQReal.w + DQDual.xyz) + DQDual.xyz*DQReal.w - DQReal.xyz*DQDual.w)*2.0 + Position.xyz;
+
+#ifdef DUAL_QUAT_TRANSFORM_NORMALS
+Normal = cross(DQReal.xyz, cross(DQReal.xyz, Normal) + Normal*DQReal.w)*2.0 + Normal;
+#endif
+
+#ifdef DUAL_QUAT_TRANSFORM_TANGENT
+Tangent = cross(DQReal.xyz, cross(DQReal.xyz, Tangent) + Tangent*DQReal.w)*2.0 + Tangent;
+#endif
+}
+
+#define DUAL_QUAT_TRANSFORM_TANGENT
+#if defined(DUAL_QUAT_TRANSFORM_NORMALS)
+#if defined(DUAL_QUAT_TRANSFORM_TANGENT)
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal, inout vec3 Tangent)
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal)
+#endif
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position)
+#endif
+{
+int index;
+vec4 Indices = a_BonesIndices;
+vec4 Weights = a_BonesWeights;
+vec4 Indices_2 = Indices * 2.0;
+vec4 DQReal, DQDual;
+
+index = int(Indices_2.x);
+DQReal = u_QF_DualQuats[index+0];
+DQDual = u_QF_DualQuats[index+1];
+
+if (numWeights > 1)
+{
+DQReal *= Weights.x;
+DQDual *= Weights.x;
+
+vec4 DQReal1, DQDual1;
+float scale;
+
+index = int(Indices_2.y);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.y;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 2)
+{
+index = int(Indices_2.z);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.z;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 3)
+{
+index = int(Indices_2.w);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.w;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+}
+}
+}
+
+float len = length(DQReal);
+DQReal /= len;
+DQDual /= len;
+
+Position.xyz = (cross(DQReal.xyz, cross(DQReal.xyz, Position.xyz) + Position.xyz*DQReal.w + DQDual.xyz) + DQDual.xyz*DQReal.w - DQReal.xyz*DQDual.w)*2.0 + Position.xyz;
+
+#ifdef DUAL_QUAT_TRANSFORM_NORMALS
+Normal = cross(DQReal.xyz, cross(DQReal.xyz, Normal) + Normal*DQReal.w)*2.0 + Normal;
+#endif
+
+#ifdef DUAL_QUAT_TRANSFORM_TANGENT
+Tangent = cross(DQReal.xyz, cross(DQReal.xyz, Tangent) + Tangent*DQReal.w)*2.0 + Tangent;
+#endif
+}
+
+#endif
+#ifdef VERTEX_SHADER
+#ifdef APPLY_INSTANCED_ATTRIB_TRASNFORMS
+attribute vec4 a_InstanceQuat;
+attribute vec4 a_InstancePosAndScale;
+#elif defined(GL_ARB_draw_instanced)
+
+uniform vec4 u_QF_InstancePoints[MAX_UNIFORM_INSTANCES*2];
+
+#define a_InstanceQuat u_QF_InstancePoints[gl_InstanceID*2]
+#define a_InstancePosAndScale u_QF_InstancePoints[gl_InstanceID*2+1]
+#else
+uniform vec4 u_QF_InstancePoints[2];
+#define a_InstanceQuat u_QF_InstancePoints[0]
+#define a_InstancePosAndScale u_QF_InstancePoints[1]
+#endif
+
+void QF_InstancedTransform(inout vec4 Position, inout vec3 Normal)
+{
+Position.xyz = (cross(a_InstanceQuat.xyz, cross(a_InstanceQuat.xyz, Position.xyz) + Position.xyz*a_InstanceQuat.w)*2.0 + Position.xyz) *
+ a_InstancePosAndScale.w + a_InstancePosAndScale.xyz;
+Normal = cross(a_InstanceQuat.xyz, cross(a_InstanceQuat.xyz, Normal) + Normal*a_InstanceQuat.w)*2.0 + Normal;
+}
+
+#endif
+#define QF_LatLong2Norm(ll) vec3(cos((ll).y) * sin((ll).x), sin((ll).y) * sin((ll).x), cos((ll).x))
+
+#define NUM_BONE_INFLUENCES 3
+#define APPLY_PCF
+
+#define DRAWFLAT_NORMAL_STEP	0.5		// floor or ceiling if < abs(normal.z)
+uniform mat4 u_ModelViewMatrix;
+uniform mat4 u_ModelViewProjectionMatrix;
+
+uniform float u_ShaderTime;
+
+uniform vec3 u_ViewOrigin;
+uniform mat3 u_ViewAxis;
+
+uniform vec3 u_EntityDist;
+uniform vec3 u_EntityOrigin;
+uniform myhalf4 u_EntityColor;
+
+uniform myhalf4 u_ConstColor;
+uniform myhalf4 u_RGBGenFuncArgs, u_AlphaGenFuncArgs;
+uniform myhalf3 u_LightstyleColor[4]; // lightstyle colors
+
+uniform myhalf3 u_LightAmbient;
+uniform myhalf3 u_LightDiffuse;
+uniform vec3 u_LightDir;
+
+uniform myhalf2 u_BlendMix;
+
+uniform vec2 u_TextureMatrix[3];
+#define TextureMatrix2x3Mul(m2x3,tc) vec2(dot((m2x3)[0],(tc)) + (m2x3)[2][0], dot((m2x3)[1],(tc)) + (m2x3)[2][1])
+
+uniform float u_MirrorSide;
+
+uniform float u_ZNear, u_ZFar;
+
+uniform ivec4 u_Viewport; // x, y, width, height
+
+uniform vec4 u_TextureParams;
+
+uniform myhalf u_SoftParticlesScale;
+#ifndef decodedepthmacro
+// Lifted from Darkplaces shader program
+#define decodedepthmacro(d) dot((d).rgb, vec3(1.0, 255.0 / 65536.0, 255.0 / 16777215.0))
+#define encodedepthmacro(d) (vec4(d, d*256.0, d*65536.0, 0.0) - floor(vec4(d, d*256.0, d*65536.0, 0.0)))
+#endif
+
+
+#ifndef NUM_SHADOWS
+#define NUM_SHADOWS 1
+#endif
+
+qf_varying vec4 v_ShadowProjVector[NUM_SHADOWS];
+
+#ifdef VERTEX_SHADER
+#ifdef VERTEX_SHADER
+qf_attribute vec4 a_Position;
+qf_attribute vec4 a_SVector;
+qf_attribute vec4 a_Normal;
+qf_attribute vec4 a_Color;
+qf_attribute vec2 a_TexCoord;
+qf_attribute vec2 a_LightmapCoord0, a_LightmapCoord1, a_LightmapCoord2, a_LightmapCoord3;
+#endif
+void TransformVerts(inout vec4 Position, inout vec3 Normal, inout vec2 TexCoord)
+{
+#ifdef NUM_BONE_INFLUENCES
+	QF_VertexDualQuatsTransform(NUM_BONE_INFLUENCES, Position, Normal);
+#endif
+
+#ifdef APPLY_DEFORMVERTS
+	QF_DeformVerts(Position, Normal, TexCoord);
+#endif
+
+#ifdef APPLY_INSTANCED_TRANSFORMS
+	QF_InstancedTransform(Position, Normal);
+#endif
+}
+
+void TransformVerts(inout vec4 Position, inout vec3 Normal, inout vec3 Tangent, inout vec2 TexCoord)
+{
+#ifdef NUM_BONE_INFLUENCES
+	QF_VertexDualQuatsTransform(NUM_BONE_INFLUENCES, Position, Normal, Tangent);
+#endif
+
+#ifdef APPLY_DEFORMVERTS
+	QF_DeformVerts(Position, Normal, TexCoord);
+#endif
+
+#ifdef APPLY_INSTANCED_TRANSFORMS
+	QF_InstancedTransform(Position, Normal);
+#endif
+}
+
+
+uniform mat4 u_ShadowmapMatrix[NUM_SHADOWS];
+
+void main(void)
+{
+	vec4 Position = a_Position;
+	vec3 Normal = a_Normal.xyz;
+	vec2 TexCoord = a_TexCoord;
+
+	TransformVerts(Position, Normal, TexCoord);
+
+	gl_Position = u_ModelViewProjectionMatrix * Position;
+
+	for (int i = 0; i < NUM_SHADOWS; i++)
+	{
+		v_ShadowProjVector[i] = u_ShadowmapMatrix[i] * Position;
+		// a trick whish allows us not to perform the
+		// 'shadowmaptc = (shadowmaptc + vec3 (1.0)) * vec3 (0.5)'
+		// computation in the fragment shader
+		v_ShadowProjVector[i].xyz = (v_ShadowProjVector[i].xyz + vec3(v_ShadowProjVector[i].w)) * 0.5;
+	}
+}
+
+#endif // VERTEX_SHADER
+
+
+#ifdef FRAGMENT_SHADER
+// Fragment shader
+
+#ifdef APPLY_RGB_SHADOW
+uniform sampler2D u_ShadowmapTexture[NUM_SHADOWS];
+# define dshadow2D(t,v) step(v.z, decodedepthmacro(qf_texture(t, v.xy)))
+#else
+uniform sampler2DShadow u_ShadowmapTexture[NUM_SHADOWS];
+# define dshadow2D(t,v) float(qf_shadow(t,v))
+#endif
+
+uniform float u_ShadowAlpha;
+uniform float u_ShadowProjDistance[NUM_SHADOWS];
+uniform vec4 u_ShadowmapTextureParams[NUM_SHADOWS];
+
+void main(void)
+{
+	float finalcolor = 1.0;
+
+#if NUM_SHADOWS >= 1
+#define SHADOW_INDEX 0
+	{
+		vec3 shadowmaptc = vec3(v_ShadowProjVector[SHADOW_INDEX].xyz / v_ShadowProjVector[SHADOW_INDEX].w);
+
+		// this keeps shadows from appearing on surfaces behind frustum's nearplane
+		float d = step(v_ShadowProjVector[SHADOW_INDEX].w, 0.0);
+
+		//shadowmaptc = (shadowmaptc + vec3 (1.0)) * vec3 (0.5);
+		shadowmaptc.xy = shadowmaptc.xy * u_ShadowmapTextureParams[SHADOW_INDEX].xy; // .x - texture width
+		shadowmaptc.z = clamp(shadowmaptc.z, 0.0, 1.0);
+		shadowmaptc.xy = vec2(clamp(shadowmaptc.x, 0.0, u_ShadowmapTextureParams[SHADOW_INDEX].x), clamp(shadowmaptc.y, 0.0, u_ShadowmapTextureParams[SHADOW_INDEX].y));
+
+		vec2 ShadowMap_TextureScale = u_ShadowmapTextureParams[SHADOW_INDEX].zw;
+
+		float f;
+
+		#ifdef APPLY_DITHER
+
+		# ifdef APPLY_PCF
+		#  define texval(x, y) dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(center + vec2(x, y)*ShadowMap_TextureScale, shadowmaptc.z))
+
+		// this method can be described as a 'dithered pinwheel' (4 texture lookups)
+		// which is a combination of the 'pinwheel' filter suggested by eihrul and dithered 4x4 PCF,
+		// described here: http://http.developer.nvidia.com/GPUGems/gpugems_ch11.html 
+
+		vec2 offset_dither = mod(floor(gl_FragCoord.xy), 2.0);
+		offset_dither.y += offset_dither.x;  // y ^= x in floating point
+		offset_dither.y *= step(offset_dither.y, 1.1);
+
+		vec2 center = (shadowmaptc.xy + offset_dither.xy) * ShadowMap_TextureScale;
+		float group1 = texval(-0.4,  1.0);
+		float group2 = texval(-1.0, -0.4);
+		float group3 = texval( 0.4, -1.0);
+		float group4 = texval( 1.0,  0.4);
+
+		f = dot(vec4(0.25), vec4(group1, group2, group3, group4));
+		# else
+		f = dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(shadowmaptc.xy*ShadowMap_TextureScale, shadowmaptc.z));
+		# endif // APPLY_PCF
+	
+		#else
+		// an essay by eihrul:
+		// now think of bilinear filtering as a 1x1 weighted box filter
+		// that is, it's sampling over a 2x2 area, but only collecting the portion of each pixel it actually steps on
+		// with a linear shadowmap filter, you are getting that, like normal bilinear sampling
+		// only its doing the shadowmap test on each pixel first, to generate a new little 2x2 area, then its doing
+		// the bilinear filtering on that
+		// so now if you consider your 2x2 filter you have
+		// each of those taps is actually using linear filtering as you've configured it
+		// so you are literally sampling almost 16 pixels as is and all you are getting for it is 2x2
+		// the trick is to realize that in essence you could instead be sampling a 4x4 area of pixels
+		// and running a 3x3 weighted box filter on it
+		// but you would need some way to get the shadowmap to simply return the 4 pixels covered by each
+		// tap, rather than the filtered result
+		// which is what the ARB_texture_gather extension is for
+		// NOTE: we're using emulation of texture_gather now
+
+		# ifdef APPLY_PCF
+		# define texval(off) dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(off,shadowmaptc.z))
+		
+		vec2 offset = fract(shadowmaptc.xy - 0.5);
+		vec4 size = vec4(offset + 1.0, 2.0 - offset), weight = (vec4(2.0 - 1.0 / size.xy, 1.0 / size.zw - 1.0) + (shadowmaptc.xy - offset).xyxy)*ShadowMap_TextureScale.xyxy;
+		f = (1.0/9.0)*dot(size.zxzx*size.wwyy, vec4(texval(weight.zw), texval(weight.xw), texval(weight.zy), texval(weight.xy)));
+		
+		#else
+		
+		f = dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(shadowmaptc.xy * ShadowMap_TextureScale, shadowmaptc.z));
+		
+		#endif // APPLY_PCF
+		
+		#endif // APPLY_DITHER
+
+		finalcolor *= clamp(max(max(f, d), u_ShadowAlpha), 0.0, 1.0);
+	}
+
+#undef SHADOW_INDEX
+#endif
+
+#if NUM_SHADOWS >= 2
+#define SHADOW_INDEX 1
+	{
+		vec3 shadowmaptc = vec3(v_ShadowProjVector[SHADOW_INDEX].xyz / v_ShadowProjVector[SHADOW_INDEX].w);
+
+		// this keeps shadows from appearing on surfaces behind frustum's nearplane
+		float d = step(v_ShadowProjVector[SHADOW_INDEX].w, 0.0);
+
+		//shadowmaptc = (shadowmaptc + vec3 (1.0)) * vec3 (0.5);
+		shadowmaptc.xy = shadowmaptc.xy * u_ShadowmapTextureParams[SHADOW_INDEX].xy; // .x - texture width
+		shadowmaptc.z = clamp(shadowmaptc.z, 0.0, 1.0);
+		shadowmaptc.xy = vec2(clamp(shadowmaptc.x, 0.0, u_ShadowmapTextureParams[SHADOW_INDEX].x), clamp(shadowmaptc.y, 0.0, u_ShadowmapTextureParams[SHADOW_INDEX].y));
+
+		vec2 ShadowMap_TextureScale = u_ShadowmapTextureParams[SHADOW_INDEX].zw;
+
+		float f;
+
+		#ifdef APPLY_DITHER
+
+		# ifdef APPLY_PCF
+		#  define texval(x, y) dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(center + vec2(x, y)*ShadowMap_TextureScale, shadowmaptc.z))
+
+		// this method can be described as a 'dithered pinwheel' (4 texture lookups)
+		// which is a combination of the 'pinwheel' filter suggested by eihrul and dithered 4x4 PCF,
+		// described here: http://http.developer.nvidia.com/GPUGems/gpugems_ch11.html 
+
+		vec2 offset_dither = mod(floor(gl_FragCoord.xy), 2.0);
+		offset_dither.y += offset_dither.x;  // y ^= x in floating point
+		offset_dither.y *= step(offset_dither.y, 1.1);
+
+		vec2 center = (shadowmaptc.xy + offset_dither.xy) * ShadowMap_TextureScale;
+		float group1 = texval(-0.4,  1.0);
+		float group2 = texval(-1.0, -0.4);
+		float group3 = texval( 0.4, -1.0);
+		float group4 = texval( 1.0,  0.4);
+
+		f = dot(vec4(0.25), vec4(group1, group2, group3, group4));
+		# else
+		f = dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(shadowmaptc.xy*ShadowMap_TextureScale, shadowmaptc.z));
+		# endif // APPLY_PCF
+	
+		#else
+		// an essay by eihrul:
+		// now think of bilinear filtering as a 1x1 weighted box filter
+		// that is, it's sampling over a 2x2 area, but only collecting the portion of each pixel it actually steps on
+		// with a linear shadowmap filter, you are getting that, like normal bilinear sampling
+		// only its doing the shadowmap test on each pixel first, to generate a new little 2x2 area, then its doing
+		// the bilinear filtering on that
+		// so now if you consider your 2x2 filter you have
+		// each of those taps is actually using linear filtering as you've configured it
+		// so you are literally sampling almost 16 pixels as is and all you are getting for it is 2x2
+		// the trick is to realize that in essence you could instead be sampling a 4x4 area of pixels
+		// and running a 3x3 weighted box filter on it
+		// but you would need some way to get the shadowmap to simply return the 4 pixels covered by each
+		// tap, rather than the filtered result
+		// which is what the ARB_texture_gather extension is for
+		// NOTE: we're using emulation of texture_gather now
+
+		# ifdef APPLY_PCF
+		# define texval(off) dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(off,shadowmaptc.z))
+		
+		vec2 offset = fract(shadowmaptc.xy - 0.5);
+		vec4 size = vec4(offset + 1.0, 2.0 - offset), weight = (vec4(2.0 - 1.0 / size.xy, 1.0 / size.zw - 1.0) + (shadowmaptc.xy - offset).xyxy)*ShadowMap_TextureScale.xyxy;
+		f = (1.0/9.0)*dot(size.zxzx*size.wwyy, vec4(texval(weight.zw), texval(weight.xw), texval(weight.zy), texval(weight.xy)));
+		
+		#else
+		
+		f = dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(shadowmaptc.xy * ShadowMap_TextureScale, shadowmaptc.z));
+		
+		#endif // APPLY_PCF
+		
+		#endif // APPLY_DITHER
+
+		finalcolor *= clamp(max(max(f, d), u_ShadowAlpha), 0.0, 1.0);
+	}
+
+#undef SHADOW_INDEX
+#endif
+
+#if NUM_SHADOWS >= 3
+#define SHADOW_INDEX 2
+	{
+		vec3 shadowmaptc = vec3(v_ShadowProjVector[SHADOW_INDEX].xyz / v_ShadowProjVector[SHADOW_INDEX].w);
+
+		// this keeps shadows from appearing on surfaces behind frustum's nearplane
+		float d = step(v_ShadowProjVector[SHADOW_INDEX].w, 0.0);
+
+		//shadowmaptc = (shadowmaptc + vec3 (1.0)) * vec3 (0.5);
+		shadowmaptc.xy = shadowmaptc.xy * u_ShadowmapTextureParams[SHADOW_INDEX].xy; // .x - texture width
+		shadowmaptc.z = clamp(shadowmaptc.z, 0.0, 1.0);
+		shadowmaptc.xy = vec2(clamp(shadowmaptc.x, 0.0, u_ShadowmapTextureParams[SHADOW_INDEX].x), clamp(shadowmaptc.y, 0.0, u_ShadowmapTextureParams[SHADOW_INDEX].y));
+
+		vec2 ShadowMap_TextureScale = u_ShadowmapTextureParams[SHADOW_INDEX].zw;
+
+		float f;
+
+		#ifdef APPLY_DITHER
+
+		# ifdef APPLY_PCF
+		#  define texval(x, y) dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(center + vec2(x, y)*ShadowMap_TextureScale, shadowmaptc.z))
+
+		// this method can be described as a 'dithered pinwheel' (4 texture lookups)
+		// which is a combination of the 'pinwheel' filter suggested by eihrul and dithered 4x4 PCF,
+		// described here: http://http.developer.nvidia.com/GPUGems/gpugems_ch11.html 
+
+		vec2 offset_dither = mod(floor(gl_FragCoord.xy), 2.0);
+		offset_dither.y += offset_dither.x;  // y ^= x in floating point
+		offset_dither.y *= step(offset_dither.y, 1.1);
+
+		vec2 center = (shadowmaptc.xy + offset_dither.xy) * ShadowMap_TextureScale;
+		float group1 = texval(-0.4,  1.0);
+		float group2 = texval(-1.0, -0.4);
+		float group3 = texval( 0.4, -1.0);
+		float group4 = texval( 1.0,  0.4);
+
+		f = dot(vec4(0.25), vec4(group1, group2, group3, group4));
+		# else
+		f = dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(shadowmaptc.xy*ShadowMap_TextureScale, shadowmaptc.z));
+		# endif // APPLY_PCF
+	
+		#else
+		// an essay by eihrul:
+		// now think of bilinear filtering as a 1x1 weighted box filter
+		// that is, it's sampling over a 2x2 area, but only collecting the portion of each pixel it actually steps on
+		// with a linear shadowmap filter, you are getting that, like normal bilinear sampling
+		// only its doing the shadowmap test on each pixel first, to generate a new little 2x2 area, then its doing
+		// the bilinear filtering on that
+		// so now if you consider your 2x2 filter you have
+		// each of those taps is actually using linear filtering as you've configured it
+		// so you are literally sampling almost 16 pixels as is and all you are getting for it is 2x2
+		// the trick is to realize that in essence you could instead be sampling a 4x4 area of pixels
+		// and running a 3x3 weighted box filter on it
+		// but you would need some way to get the shadowmap to simply return the 4 pixels covered by each
+		// tap, rather than the filtered result
+		// which is what the ARB_texture_gather extension is for
+		// NOTE: we're using emulation of texture_gather now
+
+		# ifdef APPLY_PCF
+		# define texval(off) dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(off,shadowmaptc.z))
+		
+		vec2 offset = fract(shadowmaptc.xy - 0.5);
+		vec4 size = vec4(offset + 1.0, 2.0 - offset), weight = (vec4(2.0 - 1.0 / size.xy, 1.0 / size.zw - 1.0) + (shadowmaptc.xy - offset).xyxy)*ShadowMap_TextureScale.xyxy;
+		f = (1.0/9.0)*dot(size.zxzx*size.wwyy, vec4(texval(weight.zw), texval(weight.xw), texval(weight.zy), texval(weight.xy)));
+		
+		#else
+		
+		f = dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(shadowmaptc.xy * ShadowMap_TextureScale, shadowmaptc.z));
+		
+		#endif // APPLY_PCF
+		
+		#endif // APPLY_DITHER
+
+		finalcolor *= clamp(max(max(f, d), u_ShadowAlpha), 0.0, 1.0);
+	}
+
+#undef SHADOW_INDEX
+#endif
+
+#if NUM_SHADOWS >= 4
+#define SHADOW_INDEX 3
+	{
+		vec3 shadowmaptc = vec3(v_ShadowProjVector[SHADOW_INDEX].xyz / v_ShadowProjVector[SHADOW_INDEX].w);
+
+		// this keeps shadows from appearing on surfaces behind frustum's nearplane
+		float d = step(v_ShadowProjVector[SHADOW_INDEX].w, 0.0);
+
+		//shadowmaptc = (shadowmaptc + vec3 (1.0)) * vec3 (0.5);
+		shadowmaptc.xy = shadowmaptc.xy * u_ShadowmapTextureParams[SHADOW_INDEX].xy; // .x - texture width
+		shadowmaptc.z = clamp(shadowmaptc.z, 0.0, 1.0);
+		shadowmaptc.xy = vec2(clamp(shadowmaptc.x, 0.0, u_ShadowmapTextureParams[SHADOW_INDEX].x), clamp(shadowmaptc.y, 0.0, u_ShadowmapTextureParams[SHADOW_INDEX].y));
+
+		vec2 ShadowMap_TextureScale = u_ShadowmapTextureParams[SHADOW_INDEX].zw;
+
+		float f;
+
+		#ifdef APPLY_DITHER
+
+		# ifdef APPLY_PCF
+		#  define texval(x, y) dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(center + vec2(x, y)*ShadowMap_TextureScale, shadowmaptc.z))
+
+		// this method can be described as a 'dithered pinwheel' (4 texture lookups)
+		// which is a combination of the 'pinwheel' filter suggested by eihrul and dithered 4x4 PCF,
+		// described here: http://http.developer.nvidia.com/GPUGems/gpugems_ch11.html 
+
+		vec2 offset_dither = mod(floor(gl_FragCoord.xy), 2.0);
+		offset_dither.y += offset_dither.x;  // y ^= x in floating point
+		offset_dither.y *= step(offset_dither.y, 1.1);
+
+		vec2 center = (shadowmaptc.xy + offset_dither.xy) * ShadowMap_TextureScale;
+		float group1 = texval(-0.4,  1.0);
+		float group2 = texval(-1.0, -0.4);
+		float group3 = texval( 0.4, -1.0);
+		float group4 = texval( 1.0,  0.4);
+
+		f = dot(vec4(0.25), vec4(group1, group2, group3, group4));
+		# else
+		f = dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(shadowmaptc.xy*ShadowMap_TextureScale, shadowmaptc.z));
+		# endif // APPLY_PCF
+	
+		#else
+		// an essay by eihrul:
+		// now think of bilinear filtering as a 1x1 weighted box filter
+		// that is, it's sampling over a 2x2 area, but only collecting the portion of each pixel it actually steps on
+		// with a linear shadowmap filter, you are getting that, like normal bilinear sampling
+		// only its doing the shadowmap test on each pixel first, to generate a new little 2x2 area, then its doing
+		// the bilinear filtering on that
+		// so now if you consider your 2x2 filter you have
+		// each of those taps is actually using linear filtering as you've configured it
+		// so you are literally sampling almost 16 pixels as is and all you are getting for it is 2x2
+		// the trick is to realize that in essence you could instead be sampling a 4x4 area of pixels
+		// and running a 3x3 weighted box filter on it
+		// but you would need some way to get the shadowmap to simply return the 4 pixels covered by each
+		// tap, rather than the filtered result
+		// which is what the ARB_texture_gather extension is for
+		// NOTE: we're using emulation of texture_gather now
+
+		# ifdef APPLY_PCF
+		# define texval(off) dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(off,shadowmaptc.z))
+		
+		vec2 offset = fract(shadowmaptc.xy - 0.5);
+		vec4 size = vec4(offset + 1.0, 2.0 - offset), weight = (vec4(2.0 - 1.0 / size.xy, 1.0 / size.zw - 1.0) + (shadowmaptc.xy - offset).xyxy)*ShadowMap_TextureScale.xyxy;
+		f = (1.0/9.0)*dot(size.zxzx*size.wwyy, vec4(texval(weight.zw), texval(weight.xw), texval(weight.zy), texval(weight.xy)));
+		
+		#else
+		
+		f = dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(shadowmaptc.xy * ShadowMap_TextureScale, shadowmaptc.z));
+		
+		#endif // APPLY_PCF
+		
+		#endif // APPLY_DITHER
+
+		finalcolor *= clamp(max(max(f, d), u_ShadowAlpha), 0.0, 1.0);
+	}
+
+#undef SHADOW_INDEX
+#endif
+
+	qf_FragColor = vec4(vec3(finalcolor),1.0);
+}
+
+#endif // FRAGMENT_SHADER
+
+
+[fragment shader]
+#version 130
+
+#define QF_GLSL_VERSION 130
+#define FRAGMENT_SHADER
+#if !defined(myhalf)
+//#if !defined(__GLSL_CG_DATA_TYPES)
+#define myhalf float
+#define myhalf2 vec2
+#define myhalf3 vec3
+#define myhalf4 vec4
+//#else
+//#define myhalf half
+//#define myhalf2 half2
+//#define myhalf3 half3
+//#define myhalf4 half4
+//#endif
+#endif
+
+#if QF_GLSL_VERSION >= 130
+  precision highp float;
+
+# ifdef VERTEX_SHADER
+   out myhalf4 qf_FrontColor;
+#  define qf_varying out
+#  define qf_attribute in
+# endif
+# ifdef FRAGMENT_SHADER
+   in myhalf4 qf_FrontColor;
+   out myhalf4	qf_FragColor;
+#  define qf_varying in
+#  define qf_attribute in
+# endif
+
+# define qf_texture texture
+# define qf_textureCube texture
+# define qf_textureLod textureLod
+# define qf_textureOffset(a,b,c,d) textureOffset(a,b,ivec2(c,d))
+# define qf_shadow texture
+#else
+# ifdef VERTEX_SHADER
+#  define qf_FrontColor gl_FrontColor
+#  define qf_varying varying
+#  define qf_attribute attribute
+# endif
+
+# ifdef FRAGMENT_SHADER
+#  define qf_FrontColor gl_Color
+#  define qf_FragColor gl_FragColor
+#  define qf_varying varying
+#  define qf_attribute attribute
+# endif
+# define qf_texture texture2D
+# define qf_textureLod texture2DLod
+# define qf_textureCube textureCube
+# define qf_textureOffset(a,b,c,d) texture2DOffset(a,b,ivec2(c,d))
+# define qf_shadow shadow2D
+#endif
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#ifndef M_TWOPI
+#define M_TWOPI 6.28318530717958647692
+#endif
+
+#ifndef MAX_UNIFORM_BONES
+#define MAX_UNIFORM_BONES 100
+#endif
+
+#ifndef MAX_UNIFORM_INSTANCES
+#define MAX_UNIFORM_INSTANCES 40
+#endif
+uniform vec3 u_QF_ViewOrigin;
+uniform mat3 u_QF_ViewAxis;
+uniform float u_QF_MirrorSide;
+uniform vec3 u_QF_EntityOrigin;
+uniform float u_QF_ShaderTime;
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#ifndef M_TWOPI
+#define M_TWOPI 6.28318530717958647692
+#endif
+
+#ifndef WAVE_SIN
+float QF_WaveFunc_Sin(float x)
+{
+x -= floor(x);
+return sin(x * M_TWOPI);
+}
+float QF_WaveFunc_Triangle(float x)
+{
+x -= floor(x);
+return step(x, 0.25) * x * 4.0 + (2.0 - 4.0 * step(0.25, x) * step(x, 0.75) * x) + ((step(0.75, x) * x - 0.75) * 4.0 - 1.0);
+}
+float QF_WaveFunc_Square(float x)
+{
+x -= floor(x);
+return step(x, 0.5) * 2.0 - 1.0;
+}
+float QF_WaveFunc_Sawtooth(float x)
+{
+x -= floor(x);
+return x;
+}
+float QF_QF_WaveFunc_InverseSawtooth(float x)
+{
+x -= floor(x);
+return 1.0 - x;
+}
+
+#define WAVE_SIN(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Sin((phase)+(time)*(freq))))
+#define WAVE_TRIANGLE(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Triangle((phase)+(time)*(freq))))
+#define WAVE_SQUARE(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Square((phase)+(time)*(freq))))
+#define WAVE_SAWTOOTH(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Sawtooth((phase)+(time)*(freq))))
+#define WAVE_INVERSESAWTOOTH(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_QF_WaveFunc_InverseSawtooth((phase)+(time)*(freq))))
+#endif
+
+#ifdef VERTEX_SHADER
+attribute vec4 a_BonesIndices;
+attribute vec4 a_BonesWeights;
+
+uniform vec4 u_QF_DualQuats[MAX_UNIFORM_BONES*2];
+
+#if defined(DUAL_QUAT_TRANSFORM_NORMALS)
+#if defined(DUAL_QUAT_TRANSFORM_TANGENT)
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal, inout vec3 Tangent)
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal)
+#endif
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position)
+#endif
+{
+int index;
+vec4 Indices = a_BonesIndices;
+vec4 Weights = a_BonesWeights;
+vec4 Indices_2 = Indices * 2.0;
+vec4 DQReal, DQDual;
+
+index = int(Indices_2.x);
+DQReal = u_QF_DualQuats[index+0];
+DQDual = u_QF_DualQuats[index+1];
+
+if (numWeights > 1)
+{
+DQReal *= Weights.x;
+DQDual *= Weights.x;
+
+vec4 DQReal1, DQDual1;
+float scale;
+
+index = int(Indices_2.y);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.y;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 2)
+{
+index = int(Indices_2.z);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.z;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 3)
+{
+index = int(Indices_2.w);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.w;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+}
+}
+}
+
+float len = length(DQReal);
+DQReal /= len;
+DQDual /= len;
+
+Position.xyz = (cross(DQReal.xyz, cross(DQReal.xyz, Position.xyz) + Position.xyz*DQReal.w + DQDual.xyz) + DQDual.xyz*DQReal.w - DQReal.xyz*DQDual.w)*2.0 + Position.xyz;
+
+#ifdef DUAL_QUAT_TRANSFORM_NORMALS
+Normal = cross(DQReal.xyz, cross(DQReal.xyz, Normal) + Normal*DQReal.w)*2.0 + Normal;
+#endif
+
+#ifdef DUAL_QUAT_TRANSFORM_TANGENT
+Tangent = cross(DQReal.xyz, cross(DQReal.xyz, Tangent) + Tangent*DQReal.w)*2.0 + Tangent;
+#endif
+}
+
+// use defines to overload the transform function
+
+#define DUAL_QUAT_TRANSFORM_NORMALS
+#if defined(DUAL_QUAT_TRANSFORM_NORMALS)
+#if defined(DUAL_QUAT_TRANSFORM_TANGENT)
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal, inout vec3 Tangent)
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal)
+#endif
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position)
+#endif
+{
+int index;
+vec4 Indices = a_BonesIndices;
+vec4 Weights = a_BonesWeights;
+vec4 Indices_2 = Indices * 2.0;
+vec4 DQReal, DQDual;
+
+index = int(Indices_2.x);
+DQReal = u_QF_DualQuats[index+0];
+DQDual = u_QF_DualQuats[index+1];
+
+if (numWeights > 1)
+{
+DQReal *= Weights.x;
+DQDual *= Weights.x;
+
+vec4 DQReal1, DQDual1;
+float scale;
+
+index = int(Indices_2.y);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.y;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 2)
+{
+index = int(Indices_2.z);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.z;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 3)
+{
+index = int(Indices_2.w);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.w;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+}
+}
+}
+
+float len = length(DQReal);
+DQReal /= len;
+DQDual /= len;
+
+Position.xyz = (cross(DQReal.xyz, cross(DQReal.xyz, Position.xyz) + Position.xyz*DQReal.w + DQDual.xyz) + DQDual.xyz*DQReal.w - DQReal.xyz*DQDual.w)*2.0 + Position.xyz;
+
+#ifdef DUAL_QUAT_TRANSFORM_NORMALS
+Normal = cross(DQReal.xyz, cross(DQReal.xyz, Normal) + Normal*DQReal.w)*2.0 + Normal;
+#endif
+
+#ifdef DUAL_QUAT_TRANSFORM_TANGENT
+Tangent = cross(DQReal.xyz, cross(DQReal.xyz, Tangent) + Tangent*DQReal.w)*2.0 + Tangent;
+#endif
+}
+
+#define DUAL_QUAT_TRANSFORM_TANGENT
+#if defined(DUAL_QUAT_TRANSFORM_NORMALS)
+#if defined(DUAL_QUAT_TRANSFORM_TANGENT)
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal, inout vec3 Tangent)
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position, inout vec3 Normal)
+#endif
+#else
+void QF_VertexDualQuatsTransform(const int numWeights, inout vec4 Position)
+#endif
+{
+int index;
+vec4 Indices = a_BonesIndices;
+vec4 Weights = a_BonesWeights;
+vec4 Indices_2 = Indices * 2.0;
+vec4 DQReal, DQDual;
+
+index = int(Indices_2.x);
+DQReal = u_QF_DualQuats[index+0];
+DQDual = u_QF_DualQuats[index+1];
+
+if (numWeights > 1)
+{
+DQReal *= Weights.x;
+DQDual *= Weights.x;
+
+vec4 DQReal1, DQDual1;
+float scale;
+
+index = int(Indices_2.y);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.y;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 2)
+{
+index = int(Indices_2.z);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.z;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+
+if (numWeights > 3)
+{
+index = int(Indices_2.w);
+DQReal1 = u_QF_DualQuats[index+0];
+DQDual1 = u_QF_DualQuats[index+1];
+// antipodality handling
+scale = (dot(DQReal1, DQReal) < 0.0 ? -1.0 : 1.0) * Weights.w;
+DQReal += DQReal1 * scale;
+DQDual += DQDual1 * scale;
+}
+}
+}
+
+float len = length(DQReal);
+DQReal /= len;
+DQDual /= len;
+
+Position.xyz = (cross(DQReal.xyz, cross(DQReal.xyz, Position.xyz) + Position.xyz*DQReal.w + DQDual.xyz) + DQDual.xyz*DQReal.w - DQReal.xyz*DQDual.w)*2.0 + Position.xyz;
+
+#ifdef DUAL_QUAT_TRANSFORM_NORMALS
+Normal = cross(DQReal.xyz, cross(DQReal.xyz, Normal) + Normal*DQReal.w)*2.0 + Normal;
+#endif
+
+#ifdef DUAL_QUAT_TRANSFORM_TANGENT
+Tangent = cross(DQReal.xyz, cross(DQReal.xyz, Tangent) + Tangent*DQReal.w)*2.0 + Tangent;
+#endif
+}
+
+#endif
+#ifdef VERTEX_SHADER
+#ifdef APPLY_INSTANCED_ATTRIB_TRASNFORMS
+attribute vec4 a_InstanceQuat;
+attribute vec4 a_InstancePosAndScale;
+#elif defined(GL_ARB_draw_instanced)
+
+uniform vec4 u_QF_InstancePoints[MAX_UNIFORM_INSTANCES*2];
+
+#define a_InstanceQuat u_QF_InstancePoints[gl_InstanceID*2]
+#define a_InstancePosAndScale u_QF_InstancePoints[gl_InstanceID*2+1]
+#else
+uniform vec4 u_QF_InstancePoints[2];
+#define a_InstanceQuat u_QF_InstancePoints[0]
+#define a_InstancePosAndScale u_QF_InstancePoints[1]
+#endif
+
+void QF_InstancedTransform(inout vec4 Position, inout vec3 Normal)
+{
+Position.xyz = (cross(a_InstanceQuat.xyz, cross(a_InstanceQuat.xyz, Position.xyz) + Position.xyz*a_InstanceQuat.w)*2.0 + Position.xyz) *
+ a_InstancePosAndScale.w + a_InstancePosAndScale.xyz;
+Normal = cross(a_InstanceQuat.xyz, cross(a_InstanceQuat.xyz, Normal) + Normal*a_InstanceQuat.w)*2.0 + Normal;
+}
+
+#endif
+#define QF_LatLong2Norm(ll) vec3(cos((ll).y) * sin((ll).x), sin((ll).y) * sin((ll).x), cos((ll).x))
+
+#define NUM_BONE_INFLUENCES 3
+#define APPLY_PCF
+
+#define DRAWFLAT_NORMAL_STEP	0.5		// floor or ceiling if < abs(normal.z)
+uniform mat4 u_ModelViewMatrix;
+uniform mat4 u_ModelViewProjectionMatrix;
+
+uniform float u_ShaderTime;
+
+uniform vec3 u_ViewOrigin;
+uniform mat3 u_ViewAxis;
+
+uniform vec3 u_EntityDist;
+uniform vec3 u_EntityOrigin;
+uniform myhalf4 u_EntityColor;
+
+uniform myhalf4 u_ConstColor;
+uniform myhalf4 u_RGBGenFuncArgs, u_AlphaGenFuncArgs;
+uniform myhalf3 u_LightstyleColor[4]; // lightstyle colors
+
+uniform myhalf3 u_LightAmbient;
+uniform myhalf3 u_LightDiffuse;
+uniform vec3 u_LightDir;
+
+uniform myhalf2 u_BlendMix;
+
+uniform vec2 u_TextureMatrix[3];
+#define TextureMatrix2x3Mul(m2x3,tc) vec2(dot((m2x3)[0],(tc)) + (m2x3)[2][0], dot((m2x3)[1],(tc)) + (m2x3)[2][1])
+
+uniform float u_MirrorSide;
+
+uniform float u_ZNear, u_ZFar;
+
+uniform ivec4 u_Viewport; // x, y, width, height
+
+uniform vec4 u_TextureParams;
+
+uniform myhalf u_SoftParticlesScale;
+#ifndef decodedepthmacro
+// Lifted from Darkplaces shader program
+#define decodedepthmacro(d) dot((d).rgb, vec3(1.0, 255.0 / 65536.0, 255.0 / 16777215.0))
+#define encodedepthmacro(d) (vec4(d, d*256.0, d*65536.0, 0.0) - floor(vec4(d, d*256.0, d*65536.0, 0.0)))
+#endif
+
+
+#ifndef NUM_SHADOWS
+#define NUM_SHADOWS 1
+#endif
+
+qf_varying vec4 v_ShadowProjVector[NUM_SHADOWS];
+
+#ifdef VERTEX_SHADER
+#ifdef VERTEX_SHADER
+qf_attribute vec4 a_Position;
+qf_attribute vec4 a_SVector;
+qf_attribute vec4 a_Normal;
+qf_attribute vec4 a_Color;
+qf_attribute vec2 a_TexCoord;
+qf_attribute vec2 a_LightmapCoord0, a_LightmapCoord1, a_LightmapCoord2, a_LightmapCoord3;
+#endif
+void TransformVerts(inout vec4 Position, inout vec3 Normal, inout vec2 TexCoord)
+{
+#ifdef NUM_BONE_INFLUENCES
+	QF_VertexDualQuatsTransform(NUM_BONE_INFLUENCES, Position, Normal);
+#endif
+
+#ifdef APPLY_DEFORMVERTS
+	QF_DeformVerts(Position, Normal, TexCoord);
+#endif
+
+#ifdef APPLY_INSTANCED_TRANSFORMS
+	QF_InstancedTransform(Position, Normal);
+#endif
+}
+
+void TransformVerts(inout vec4 Position, inout vec3 Normal, inout vec3 Tangent, inout vec2 TexCoord)
+{
+#ifdef NUM_BONE_INFLUENCES
+	QF_VertexDualQuatsTransform(NUM_BONE_INFLUENCES, Position, Normal, Tangent);
+#endif
+
+#ifdef APPLY_DEFORMVERTS
+	QF_DeformVerts(Position, Normal, TexCoord);
+#endif
+
+#ifdef APPLY_INSTANCED_TRANSFORMS
+	QF_InstancedTransform(Position, Normal);
+#endif
+}
+
+
+uniform mat4 u_ShadowmapMatrix[NUM_SHADOWS];
+
+void main(void)
+{
+	vec4 Position = a_Position;
+	vec3 Normal = a_Normal.xyz;
+	vec2 TexCoord = a_TexCoord;
+
+	TransformVerts(Position, Normal, TexCoord);
+
+	gl_Position = u_ModelViewProjectionMatrix * Position;
+
+	for (int i = 0; i < NUM_SHADOWS; i++)
+	{
+		v_ShadowProjVector[i] = u_ShadowmapMatrix[i] * Position;
+		// a trick whish allows us not to perform the
+		// 'shadowmaptc = (shadowmaptc + vec3 (1.0)) * vec3 (0.5)'
+		// computation in the fragment shader
+		v_ShadowProjVector[i].xyz = (v_ShadowProjVector[i].xyz + vec3(v_ShadowProjVector[i].w)) * 0.5;
+	}
+}
+
+#endif // VERTEX_SHADER
+
+
+#ifdef FRAGMENT_SHADER
+// Fragment shader
+
+#ifdef APPLY_RGB_SHADOW
+uniform sampler2D u_ShadowmapTexture[NUM_SHADOWS];
+# define dshadow2D(t,v) step(v.z, decodedepthmacro(qf_texture(t, v.xy)))
+#else
+uniform sampler2DShadow u_ShadowmapTexture[NUM_SHADOWS];
+# define dshadow2D(t,v) float(qf_shadow(t,v))
+#endif
+
+uniform float u_ShadowAlpha;
+uniform float u_ShadowProjDistance[NUM_SHADOWS];
+uniform vec4 u_ShadowmapTextureParams[NUM_SHADOWS];
+
+void main(void)
+{
+	float finalcolor = 1.0;
+
+#if NUM_SHADOWS >= 1
+#define SHADOW_INDEX 0
+	{
+		vec3 shadowmaptc = vec3(v_ShadowProjVector[SHADOW_INDEX].xyz / v_ShadowProjVector[SHADOW_INDEX].w);
+
+		// this keeps shadows from appearing on surfaces behind frustum's nearplane
+		float d = step(v_ShadowProjVector[SHADOW_INDEX].w, 0.0);
+
+		//shadowmaptc = (shadowmaptc + vec3 (1.0)) * vec3 (0.5);
+		shadowmaptc.xy = shadowmaptc.xy * u_ShadowmapTextureParams[SHADOW_INDEX].xy; // .x - texture width
+		shadowmaptc.z = clamp(shadowmaptc.z, 0.0, 1.0);
+		shadowmaptc.xy = vec2(clamp(shadowmaptc.x, 0.0, u_ShadowmapTextureParams[SHADOW_INDEX].x), clamp(shadowmaptc.y, 0.0, u_ShadowmapTextureParams[SHADOW_INDEX].y));
+
+		vec2 ShadowMap_TextureScale = u_ShadowmapTextureParams[SHADOW_INDEX].zw;
+
+		float f;
+
+		#ifdef APPLY_DITHER
+
+		# ifdef APPLY_PCF
+		#  define texval(x, y) dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(center + vec2(x, y)*ShadowMap_TextureScale, shadowmaptc.z))
+
+		// this method can be described as a 'dithered pinwheel' (4 texture lookups)
+		// which is a combination of the 'pinwheel' filter suggested by eihrul and dithered 4x4 PCF,
+		// described here: http://http.developer.nvidia.com/GPUGems/gpugems_ch11.html 
+
+		vec2 offset_dither = mod(floor(gl_FragCoord.xy), 2.0);
+		offset_dither.y += offset_dither.x;  // y ^= x in floating point
+		offset_dither.y *= step(offset_dither.y, 1.1);
+
+		vec2 center = (shadowmaptc.xy + offset_dither.xy) * ShadowMap_TextureScale;
+		float group1 = texval(-0.4,  1.0);
+		float group2 = texval(-1.0, -0.4);
+		float group3 = texval( 0.4, -1.0);
+		float group4 = texval( 1.0,  0.4);
+
+		f = dot(vec4(0.25), vec4(group1, group2, group3, group4));
+		# else
+		f = dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(shadowmaptc.xy*ShadowMap_TextureScale, shadowmaptc.z));
+		# endif // APPLY_PCF
+	
+		#else
+		// an essay by eihrul:
+		// now think of bilinear filtering as a 1x1 weighted box filter
+		// that is, it's sampling over a 2x2 area, but only collecting the portion of each pixel it actually steps on
+		// with a linear shadowmap filter, you are getting that, like normal bilinear sampling
+		// only its doing the shadowmap test on each pixel first, to generate a new little 2x2 area, then its doing
+		// the bilinear filtering on that
+		// so now if you consider your 2x2 filter you have
+		// each of those taps is actually using linear filtering as you've configured it
+		// so you are literally sampling almost 16 pixels as is and all you are getting for it is 2x2
+		// the trick is to realize that in essence you could instead be sampling a 4x4 area of pixels
+		// and running a 3x3 weighted box filter on it
+		// but you would need some way to get the shadowmap to simply return the 4 pixels covered by each
+		// tap, rather than the filtered result
+		// which is what the ARB_texture_gather extension is for
+		// NOTE: we're using emulation of texture_gather now
+
+		# ifdef APPLY_PCF
+		# define texval(off) dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(off,shadowmaptc.z))
+		
+		vec2 offset = fract(shadowmaptc.xy - 0.5);
+		vec4 size = vec4(offset + 1.0, 2.0 - offset), weight = (vec4(2.0 - 1.0 / size.xy, 1.0 / size.zw - 1.0) + (shadowmaptc.xy - offset).xyxy)*ShadowMap_TextureScale.xyxy;
+		f = (1.0/9.0)*dot(size.zxzx*size.wwyy, vec4(texval(weight.zw), texval(weight.xw), texval(weight.zy), texval(weight.xy)));
+		
+		#else
+		
+		f = dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(shadowmaptc.xy * ShadowMap_TextureScale, shadowmaptc.z));
+		
+		#endif // APPLY_PCF
+		
+		#endif // APPLY_DITHER
+
+		finalcolor *= clamp(max(max(f, d), u_ShadowAlpha), 0.0, 1.0);
+	}
+
+#undef SHADOW_INDEX
+#endif
+
+#if NUM_SHADOWS >= 2
+#define SHADOW_INDEX 1
+	{
+		vec3 shadowmaptc = vec3(v_ShadowProjVector[SHADOW_INDEX].xyz / v_ShadowProjVector[SHADOW_INDEX].w);
+
+		// this keeps shadows from appearing on surfaces behind frustum's nearplane
+		float d = step(v_ShadowProjVector[SHADOW_INDEX].w, 0.0);
+
+		//shadowmaptc = (shadowmaptc + vec3 (1.0)) * vec3 (0.5);
+		shadowmaptc.xy = shadowmaptc.xy * u_ShadowmapTextureParams[SHADOW_INDEX].xy; // .x - texture width
+		shadowmaptc.z = clamp(shadowmaptc.z, 0.0, 1.0);
+		shadowmaptc.xy = vec2(clamp(shadowmaptc.x, 0.0, u_ShadowmapTextureParams[SHADOW_INDEX].x), clamp(shadowmaptc.y, 0.0, u_ShadowmapTextureParams[SHADOW_INDEX].y));
+
+		vec2 ShadowMap_TextureScale = u_ShadowmapTextureParams[SHADOW_INDEX].zw;
+
+		float f;
+
+		#ifdef APPLY_DITHER
+
+		# ifdef APPLY_PCF
+		#  define texval(x, y) dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(center + vec2(x, y)*ShadowMap_TextureScale, shadowmaptc.z))
+
+		// this method can be described as a 'dithered pinwheel' (4 texture lookups)
+		// which is a combination of the 'pinwheel' filter suggested by eihrul and dithered 4x4 PCF,
+		// described here: http://http.developer.nvidia.com/GPUGems/gpugems_ch11.html 
+
+		vec2 offset_dither = mod(floor(gl_FragCoord.xy), 2.0);
+		offset_dither.y += offset_dither.x;  // y ^= x in floating point
+		offset_dither.y *= step(offset_dither.y, 1.1);
+
+		vec2 center = (shadowmaptc.xy + offset_dither.xy) * ShadowMap_TextureScale;
+		float group1 = texval(-0.4,  1.0);
+		float group2 = texval(-1.0, -0.4);
+		float group3 = texval( 0.4, -1.0);
+		float group4 = texval( 1.0,  0.4);
+
+		f = dot(vec4(0.25), vec4(group1, group2, group3, group4));
+		# else
+		f = dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(shadowmaptc.xy*ShadowMap_TextureScale, shadowmaptc.z));
+		# endif // APPLY_PCF
+	
+		#else
+		// an essay by eihrul:
+		// now think of bilinear filtering as a 1x1 weighted box filter
+		// that is, it's sampling over a 2x2 area, but only collecting the portion of each pixel it actually steps on
+		// with a linear shadowmap filter, you are getting that, like normal bilinear sampling
+		// only its doing the shadowmap test on each pixel first, to generate a new little 2x2 area, then its doing
+		// the bilinear filtering on that
+		// so now if you consider your 2x2 filter you have
+		// each of those taps is actually using linear filtering as you've configured it
+		// so you are literally sampling almost 16 pixels as is and all you are getting for it is 2x2
+		// the trick is to realize that in essence you could instead be sampling a 4x4 area of pixels
+		// and running a 3x3 weighted box filter on it
+		// but you would need some way to get the shadowmap to simply return the 4 pixels covered by each
+		// tap, rather than the filtered result
+		// which is what the ARB_texture_gather extension is for
+		// NOTE: we're using emulation of texture_gather now
+
+		# ifdef APPLY_PCF
+		# define texval(off) dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(off,shadowmaptc.z))
+		
+		vec2 offset = fract(shadowmaptc.xy - 0.5);
+		vec4 size = vec4(offset + 1.0, 2.0 - offset), weight = (vec4(2.0 - 1.0 / size.xy, 1.0 / size.zw - 1.0) + (shadowmaptc.xy - offset).xyxy)*ShadowMap_TextureScale.xyxy;
+		f = (1.0/9.0)*dot(size.zxzx*size.wwyy, vec4(texval(weight.zw), texval(weight.xw), texval(weight.zy), texval(weight.xy)));
+		
+		#else
+		
+		f = dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(shadowmaptc.xy * ShadowMap_TextureScale, shadowmaptc.z));
+		
+		#endif // APPLY_PCF
+		
+		#endif // APPLY_DITHER
+
+		finalcolor *= clamp(max(max(f, d), u_ShadowAlpha), 0.0, 1.0);
+	}
+
+#undef SHADOW_INDEX
+#endif
+
+#if NUM_SHADOWS >= 3
+#define SHADOW_INDEX 2
+	{
+		vec3 shadowmaptc = vec3(v_ShadowProjVector[SHADOW_INDEX].xyz / v_ShadowProjVector[SHADOW_INDEX].w);
+
+		// this keeps shadows from appearing on surfaces behind frustum's nearplane
+		float d = step(v_ShadowProjVector[SHADOW_INDEX].w, 0.0);
+
+		//shadowmaptc = (shadowmaptc + vec3 (1.0)) * vec3 (0.5);
+		shadowmaptc.xy = shadowmaptc.xy * u_ShadowmapTextureParams[SHADOW_INDEX].xy; // .x - texture width
+		shadowmaptc.z = clamp(shadowmaptc.z, 0.0, 1.0);
+		shadowmaptc.xy = vec2(clamp(shadowmaptc.x, 0.0, u_ShadowmapTextureParams[SHADOW_INDEX].x), clamp(shadowmaptc.y, 0.0, u_ShadowmapTextureParams[SHADOW_INDEX].y));
+
+		vec2 ShadowMap_TextureScale = u_ShadowmapTextureParams[SHADOW_INDEX].zw;
+
+		float f;
+
+		#ifdef APPLY_DITHER
+
+		# ifdef APPLY_PCF
+		#  define texval(x, y) dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(center + vec2(x, y)*ShadowMap_TextureScale, shadowmaptc.z))
+
+		// this method can be described as a 'dithered pinwheel' (4 texture lookups)
+		// which is a combination of the 'pinwheel' filter suggested by eihrul and dithered 4x4 PCF,
+		// described here: http://http.developer.nvidia.com/GPUGems/gpugems_ch11.html 
+
+		vec2 offset_dither = mod(floor(gl_FragCoord.xy), 2.0);
+		offset_dither.y += offset_dither.x;  // y ^= x in floating point
+		offset_dither.y *= step(offset_dither.y, 1.1);
+
+		vec2 center = (shadowmaptc.xy + offset_dither.xy) * ShadowMap_TextureScale;
+		float group1 = texval(-0.4,  1.0);
+		float group2 = texval(-1.0, -0.4);
+		float group3 = texval( 0.4, -1.0);
+		float group4 = texval( 1.0,  0.4);
+
+		f = dot(vec4(0.25), vec4(group1, group2, group3, group4));
+		# else
+		f = dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(shadowmaptc.xy*ShadowMap_TextureScale, shadowmaptc.z));
+		# endif // APPLY_PCF
+	
+		#else
+		// an essay by eihrul:
+		// now think of bilinear filtering as a 1x1 weighted box filter
+		// that is, it's sampling over a 2x2 area, but only collecting the portion of each pixel it actually steps on
+		// with a linear shadowmap filter, you are getting that, like normal bilinear sampling
+		// only its doing the shadowmap test on each pixel first, to generate a new little 2x2 area, then its doing
+		// the bilinear filtering on that
+		// so now if you consider your 2x2 filter you have
+		// each of those taps is actually using linear filtering as you've configured it
+		// so you are literally sampling almost 16 pixels as is and all you are getting for it is 2x2
+		// the trick is to realize that in essence you could instead be sampling a 4x4 area of pixels
+		// and running a 3x3 weighted box filter on it
+		// but you would need some way to get the shadowmap to simply return the 4 pixels covered by each
+		// tap, rather than the filtered result
+		// which is what the ARB_texture_gather extension is for
+		// NOTE: we're using emulation of texture_gather now
+
+		# ifdef APPLY_PCF
+		# define texval(off) dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(off,shadowmaptc.z))
+		
+		vec2 offset = fract(shadowmaptc.xy - 0.5);
+		vec4 size = vec4(offset + 1.0, 2.0 - offset), weight = (vec4(2.0 - 1.0 / size.xy, 1.0 / size.zw - 1.0) + (shadowmaptc.xy - offset).xyxy)*ShadowMap_TextureScale.xyxy;
+		f = (1.0/9.0)*dot(size.zxzx*size.wwyy, vec4(texval(weight.zw), texval(weight.xw), texval(weight.zy), texval(weight.xy)));
+		
+		#else
+		
+		f = dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(shadowmaptc.xy * ShadowMap_TextureScale, shadowmaptc.z));
+		
+		#endif // APPLY_PCF
+		
+		#endif // APPLY_DITHER
+
+		finalcolor *= clamp(max(max(f, d), u_ShadowAlpha), 0.0, 1.0);
+	}
+
+#undef SHADOW_INDEX
+#endif
+
+#if NUM_SHADOWS >= 4
+#define SHADOW_INDEX 3
+	{
+		vec3 shadowmaptc = vec3(v_ShadowProjVector[SHADOW_INDEX].xyz / v_ShadowProjVector[SHADOW_INDEX].w);
+
+		// this keeps shadows from appearing on surfaces behind frustum's nearplane
+		float d = step(v_ShadowProjVector[SHADOW_INDEX].w, 0.0);
+
+		//shadowmaptc = (shadowmaptc + vec3 (1.0)) * vec3 (0.5);
+		shadowmaptc.xy = shadowmaptc.xy * u_ShadowmapTextureParams[SHADOW_INDEX].xy; // .x - texture width
+		shadowmaptc.z = clamp(shadowmaptc.z, 0.0, 1.0);
+		shadowmaptc.xy = vec2(clamp(shadowmaptc.x, 0.0, u_ShadowmapTextureParams[SHADOW_INDEX].x), clamp(shadowmaptc.y, 0.0, u_ShadowmapTextureParams[SHADOW_INDEX].y));
+
+		vec2 ShadowMap_TextureScale = u_ShadowmapTextureParams[SHADOW_INDEX].zw;
+
+		float f;
+
+		#ifdef APPLY_DITHER
+
+		# ifdef APPLY_PCF
+		#  define texval(x, y) dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(center + vec2(x, y)*ShadowMap_TextureScale, shadowmaptc.z))
+
+		// this method can be described as a 'dithered pinwheel' (4 texture lookups)
+		// which is a combination of the 'pinwheel' filter suggested by eihrul and dithered 4x4 PCF,
+		// described here: http://http.developer.nvidia.com/GPUGems/gpugems_ch11.html 
+
+		vec2 offset_dither = mod(floor(gl_FragCoord.xy), 2.0);
+		offset_dither.y += offset_dither.x;  // y ^= x in floating point
+		offset_dither.y *= step(offset_dither.y, 1.1);
+
+		vec2 center = (shadowmaptc.xy + offset_dither.xy) * ShadowMap_TextureScale;
+		float group1 = texval(-0.4,  1.0);
+		float group2 = texval(-1.0, -0.4);
+		float group3 = texval( 0.4, -1.0);
+		float group4 = texval( 1.0,  0.4);
+
+		f = dot(vec4(0.25), vec4(group1, group2, group3, group4));
+		# else
+		f = dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(shadowmaptc.xy*ShadowMap_TextureScale, shadowmaptc.z));
+		# endif // APPLY_PCF
+	
+		#else
+		// an essay by eihrul:
+		// now think of bilinear filtering as a 1x1 weighted box filter
+		// that is, it's sampling over a 2x2 area, but only collecting the portion of each pixel it actually steps on
+		// with a linear shadowmap filter, you are getting that, like normal bilinear sampling
+		// only its doing the shadowmap test on each pixel first, to generate a new little 2x2 area, then its doing
+		// the bilinear filtering on that
+		// so now if you consider your 2x2 filter you have
+		// each of those taps is actually using linear filtering as you've configured it
+		// so you are literally sampling almost 16 pixels as is and all you are getting for it is 2x2
+		// the trick is to realize that in essence you could instead be sampling a 4x4 area of pixels
+		// and running a 3x3 weighted box filter on it
+		// but you would need some way to get the shadowmap to simply return the 4 pixels covered by each
+		// tap, rather than the filtered result
+		// which is what the ARB_texture_gather extension is for
+		// NOTE: we're using emulation of texture_gather now
+
+		# ifdef APPLY_PCF
+		# define texval(off) dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(off,shadowmaptc.z))
+		
+		vec2 offset = fract(shadowmaptc.xy - 0.5);
+		vec4 size = vec4(offset + 1.0, 2.0 - offset), weight = (vec4(2.0 - 1.0 / size.xy, 1.0 / size.zw - 1.0) + (shadowmaptc.xy - offset).xyxy)*ShadowMap_TextureScale.xyxy;
+		f = (1.0/9.0)*dot(size.zxzx*size.wwyy, vec4(texval(weight.zw), texval(weight.xw), texval(weight.zy), texval(weight.xy)));
+		
+		#else
+		
+		f = dshadow2D(u_ShadowmapTexture[SHADOW_INDEX], vec3(shadowmaptc.xy * ShadowMap_TextureScale, shadowmaptc.z));
+		
+		#endif // APPLY_PCF
+		
+		#endif // APPLY_DITHER
+
+		finalcolor *= clamp(max(max(f, d), u_ShadowAlpha), 0.0, 1.0);
+	}
+
+#undef SHADOW_INDEX
+#endif
+
+	qf_FragColor = vec4(vec3(finalcolor),1.0);
+}
+
+#endif // FRAGMENT_SHADER
+
+
