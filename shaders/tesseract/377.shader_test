@@ -1,0 +1,201 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+attribute vec4 vvertex;
+        uniform mat4 lightmatrix;
+        void main(void)
+        {
+            gl_Position = lightmatrix * vvertex;
+        }
+    
+[fragment shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+#define fragdata(loc, name, type)
+#define fragcolor gl_FragData[0]
+uniform sampler2DRect tex0, tex1, tex3 , tex2;
+        
+        
+        
+            uniform vec4 lightpos[3];
+            uniform vec3 lightcolor[3];
+            
+            
+        
+        
+            uniform vec3 splitcenter[3];
+            uniform vec3 splitbounds[3];
+            uniform vec3 splitscale[3];
+            uniform vec3 splitoffset[3];
+        
+        
+        uniform vec3 camera;
+        uniform mat4 worldmatrix;
+        uniform vec4 fogdir;
+        uniform vec3 fogcolor;
+        uniform vec2 fogdensity;
+        uniform vec4 radialfogscale;
+        uniform vec2 shadowatlasscale;
+        uniform vec4 lightscale;
+        
+        
+        uniform vec3 gdepthscale;
+        uniform vec3 gdepthunpackparams;
+    
+        fragdata(0, fragcolor, vec4)
+
+        
+
+        
+
+        
+
+        void main(void)
+        {
+            
+                #define gfetch(sampler, coords) texture2DRect(sampler, coords)
+
+                #define accumlight(light) fragcolor.rgb = light
+                #define accumalpha(alpha) fragcolor.a = alpha
+            
+
+            
+                vec4 normal = gfetch(tex1, gl_FragCoord.xy);
+
+                
+                    
+
+                    normal.xyz = normal.xyz*2.0 - 1.0;
+                    
+                        #define alpha normal.a
+                    
+
+                    vec4 diffuse = gfetch(tex0, gl_FragCoord.xy);
+                    
+                
+            
+
+            
+                
+                    #define depthvals gfetch(tex3, gl_FragCoord.xy)
+                
+                
+        float depth = depthvals.r;
+        
+                    vec4 pos = worldmatrix * vec4(gl_FragCoord.xy, depth, 1.0);
+                    pos.xyz /= pos.w;
+                
+    
+                
+                    float fogcoord = length(camera - pos.xyz);
+                
+                
+                    
+                    vec3 camdir = normalize(camera - pos.xyz);
+                    float facing = 2.0*dot(normal.xyz, camdir);
+                
+                
+            
+
+            
+                vec3 light = vec3(0.0);
+            
+
+            
+
+            
+                vec3 light0dir = pos.xyz * lightpos[0].w - lightpos[0].xyz;
+                float light0dist2 = dot(light0dir, light0dir);
+                if(light0dist2 < 1.0)
+                {
+                    
+                    float light0facing = dot(light0dir, normal.xyz);
+                    if(light0facing < 0.0)
+                    {
+                        float light0invdist = inversesqrt(light0dist2); 
+                        
+                        float light0atten = light0facing * (1.0 - light0invdist);
+                        
+                        
+                        
+                        
+                        
+                            
+                            float light0spec = pow(clamp(light0invdist*(dot(camdir, light0dir) - light0facing*facing), 0.0, 1.0), 16.0) * diffuse.a;
+                            light += (diffuse.rgb + light0spec) * lightcolor[0] * light0atten;
+                            
+                        
+                        
+                    }
+                }
+             
+                vec3 light1dir = pos.xyz * lightpos[1].w - lightpos[1].xyz;
+                float light1dist2 = dot(light1dir, light1dir);
+                if(light1dist2 < 1.0)
+                {
+                    
+                    float light1facing = dot(light1dir, normal.xyz);
+                    if(light1facing < 0.0)
+                    {
+                        float light1invdist = inversesqrt(light1dist2); 
+                        
+                        float light1atten = light1facing * (1.0 - light1invdist);
+                        
+                        
+                        
+                        
+                        
+                            
+                            float light1spec = pow(clamp(light1invdist*(dot(camdir, light1dir) - light1facing*facing), 0.0, 1.0), 16.0) * diffuse.a;
+                            light += (diffuse.rgb + light1spec) * lightcolor[1] * light1atten;
+                            
+                        
+                        
+                    }
+                }
+             
+                vec3 light2dir = pos.xyz * lightpos[2].w - lightpos[2].xyz;
+                float light2dist2 = dot(light2dir, light2dir);
+                if(light2dist2 < 1.0)
+                {
+                    
+                    float light2facing = dot(light2dir, normal.xyz);
+                    if(light2facing < 0.0)
+                    {
+                        float light2invdist = inversesqrt(light2dist2); 
+                        
+                        float light2atten = light2facing * (1.0 - light2invdist);
+                        
+                        
+                        
+                        
+                        
+                            
+                            float light2spec = pow(clamp(light2invdist*(dot(camdir, light2dir) - light2facing*facing), 0.0, 1.0), 16.0) * diffuse.a;
+                            light += (diffuse.rgb + light2spec) * lightcolor[2] * light2atten;
+                            
+                        
+                        
+                    }
+                }
+            
+            
+                float foglerp = clamp(exp2(fogcoord*fogdensity.x)*fogdensity.y, 0.0, 1.0);
+                
+                    accumlight(light*foglerp);
+                    accumalpha(0.0);
+                
+            
+
+            
+        }
+    

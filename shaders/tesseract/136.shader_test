@@ -1,0 +1,53 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+attribute vec4 vvertex;
+    attribute vec2 vtexcoord0;
+    
+        uniform sampler2D tex2;
+    
+    uniform vec4 hdrparams;
+    varying vec2 texcoord0;
+    flat varying float lumscale, lumthreshold;
+    void main(void)
+    {
+        gl_Position = vvertex;
+        texcoord0 = vtexcoord0; 
+        float avglum = 4.0 * texture2D(tex2, vec2(0.5, 0.5)).r;
+        lumscale = hdrparams.x * -log2(1.0 - clamp(avglum, 0.03, 0.3))/(avglum + 1e-4);
+        lumthreshold = -log2(1.0 - hdrparams.z);
+    }
+
+[fragment shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+#define fragdata(loc, name, type)
+#define fragcolor gl_FragData[0]
+uniform sampler2DRect tex0; 
+    uniform vec2 hdrgamma;
+    varying vec2 texcoord0;
+    flat varying float lumscale, lumthreshold;
+    fragdata(0, fragcolor, vec4)
+    void main(void)
+    {
+        vec3 color = texture2DRect(tex0, texcoord0).rgb*2.0;
+        
+        color *= color;
+    
+        float lum = dot(color, vec3(0.2126, 0.7152, 0.0722));
+        color *= max(lum*lumscale - lumthreshold, 0.0) / (lum + 1e-4);
+        
+        color = sqrt(color);
+    
+        fragcolor.rgb = color;
+    }
+

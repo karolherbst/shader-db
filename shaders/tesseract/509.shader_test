@@ -1,0 +1,59 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+attribute vec4 vvertex;
+        attribute vec3 vnormal;
+        attribute vec2 vtexcoord0;
+        uniform mat4 rsmmatrix;
+        uniform vec2 texgenscroll;
+        uniform vec4 colorparams;
+        uniform vec3 rsmdir;
+        varying vec4 normal;
+        varying vec2 texcoord0;
+        
+        void main(void)
+        {
+            gl_Position = rsmmatrix * vvertex;
+            texcoord0 = vtexcoord0 + texgenscroll;
+            
+            normal = vec4(vnormal, dot(vnormal, rsmdir));
+        }
+    
+[fragment shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+#define fragdata(loc, name, type)
+#define gcolor gl_FragData[0]
+#define gnormal gl_FragData[1]
+uniform vec4 colorparams;
+        uniform sampler2D diffusemap;
+        varying vec4 normal;
+        varying vec2 texcoord0;
+        
+        fragdata(0, gcolor, vec4)
+        fragdata(1, gnormal, vec4)
+        void main(void)
+        {
+            vec4 diffuse = texture2D(diffusemap, texcoord0);   
+
+            
+                #define alpha colorparams.a
+            
+
+            gcolor.rgb = normal.w*diffuse.rgb*colorparams.rgb;
+            gnormal = vec4(normal.xyz*0.5+0.5, 0.0);
+
+            
+                gcolor.a = alpha;
+            
+        }
+    

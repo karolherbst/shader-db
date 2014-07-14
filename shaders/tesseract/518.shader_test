@@ -1,0 +1,25 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+attribute vec2 position;
+attribute vec2 textureCoords;
+varying vec2 texCoords;
+void main()
+{
+   texCoords = textureCoords;
+   gl_Position = vec4(position, 0.0, 1.0);
+}
+
+[fragment shader]
+#ifdef GL_ES
+precision highp float;
+#endif
+uniform sampler2DRect texSampler;
+varying vec2 texCoords;
+void main()
+{
+   gl_FragColor = texture2DRect(texSampler, texCoords);
+   gl_FragDepth = gl_FragColor.r;
+}
+

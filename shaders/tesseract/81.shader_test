@@ -1,0 +1,83 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+#pragma CUBE2_fog
+        attribute vec4 vvertex, vcolor;
+        uniform mat4 explosionmatrix;
+        uniform vec3 center;
+        uniform vec4 animstate;
+        uniform float side;
+        
+            attribute vec2 vtexcoord0;
+            varying vec2 texcoord2;
+            uniform vec4 texgenS, texgenT;
+        
+        
+        varying vec4 color;
+        varying vec2 texcoord0, texcoord1;
+
+uniform vec2 lineardepthscale;
+varying float lineardepth;
+        void main(void)
+        {
+            vec4 wobble = vec4(vvertex.xyz*(1.0 + 0.5*abs(fract(dot(vvertex.xyz, center) + animstate.w*2.0) - 0.5)), vvertex.w);
+            wobble.z *= side;
+            gl_Position = explosionmatrix * wobble;
+            
+
+            color = vcolor;
+
+            
+                texcoord0 = vtexcoord0; 
+                vec2 texgen = vec2(dot(texgenS, vvertex), dot(texgenT, vvertex)); 
+                texcoord1 = texgen;
+                texcoord2 = texgen - animstate.w*0.5;
+            
+        
+lineardepth = dot(lineardepthscale, gl_Position.zw);
+}
+    
+[fragment shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+#define fragdata(loc, name, type)
+#define fragcolor gl_FragData[0]
+varying vec2 texcoord2;
+        
+        
+        varying vec4 color;
+        varying vec2 texcoord0, texcoord1;
+        uniform sampler2D tex0, tex1;
+        fragdata(0, fragcolor, vec4)
+
+varying float lineardepth;
+
+uniform vec3 fogcolor;
+uniform vec2 fogdensity;
+uniform vec4 radialfogscale;
+#define fogcoord lineardepth*length(vec3(gl_FragCoord.xy*radialfogscale.xy + radialfogscale.zw, 1.0))
+        void main(void)
+        {
+            vec2 dtc = texcoord0 + texture2D(tex0, texcoord2).xy*0.1; 
+            vec4 diffuse = texture2D(tex0, dtc);
+            float blend = texture2D(tex1, texcoord1).r; 
+            diffuse *= blend*4.0; 
+            diffuse.b += 0.5 - blend*0.5; 
+
+            
+                fragcolor = diffuse * color;
+            
+        
+#define FOG_COLOR fogcolor
+fragcolor.rgb = mix((FOG_COLOR).rgb, fragcolor.rgb, clamp(exp2(fogcoord*-fogdensity.x)*fogdensity.y, 0.0, 1.0));
+}
+    

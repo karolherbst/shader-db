@@ -1,0 +1,29 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+attribute vec4 vvertex;
+    void main(void)
+    {
+        gl_Position = vvertex;
+    }
+
+[fragment shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+#define fragdata(loc, name, type)
+#define fragcolor gl_FragData[0]
+fragdata(0, fragcolor, vec4)
+    void main(void)
+    {
+        fragcolor = vec4(1.0, 0.0, 1.0, 1.0);
+    }
+

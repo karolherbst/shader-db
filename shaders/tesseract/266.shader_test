@@ -1,0 +1,48 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+attribute vec4 vvertex;
+        
+        attribute vec4 vboneweight, vboneindex; 
+        #pragma CUBE2_uniform animdata
+        uniform vec4 animdata[192];
+    
+        uniform mat4 modelmatrix;
+        
+        void main(void)
+        {
+            
+        int index = int(vboneindex.x);
+        
+            vec4 dqreal = animdata[index];
+            vec4 dqdual = animdata[index+1];
+        
+
+        vec4 mpos = vec4((cross(dqreal.xyz, cross(dqreal.xyz, vvertex.xyz) + vvertex.xyz*dqreal.w + dqdual.xyz) + dqdual.xyz*dqreal.w - dqreal.xyz*dqdual.w)*2.0 + vvertex.xyz, vvertex.w);
+
+        
+    
+
+            gl_Position = modelmatrix * mpos;
+
+            
+        }
+    
+[fragment shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+#define fragdata(loc, name, type)
+void main(void)
+        {
+            
+        }
+    

@@ -1,0 +1,93 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+#pragma CUBE2_fog
+        attribute vec4 vvertex, vcolor;
+        uniform mat4 explosionmatrix;
+        uniform vec3 center;
+        uniform vec4 animstate;
+        uniform float side;
+        
+        
+            uniform vec2 lineardepthscale;
+            varying float lineardepth;
+        
+        varying vec4 color;
+        varying vec2 texcoord0, texcoord1;
+        void main(void)
+        {
+            vec4 wobble = vec4(vvertex.xyz*(1.0 + 0.5*abs(fract(dot(vvertex.xyz, center) + animstate.w*2.0) - 0.5)), vvertex.w);
+            wobble.z *= side;
+            gl_Position = explosionmatrix * wobble;
+            
+                lineardepth = dot(lineardepthscale, gl_Position.zw);
+            
+
+            color = vcolor;
+
+            
+                
+                float dtc = 1.768 - animstate.x*1.414; 
+                dtc *= dtc;
+                texcoord0 = animstate.w*0.4 + dtc*vvertex.xy;
+                texcoord1 = vvertex.xy*0.5 + 0.5; 
+            
+        }
+    
+[fragment shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+#define fragdata(loc, name, type)
+#define fragcolor gl_FragData[0]
+uniform sampler2DRect tex2;
+        #define gfetch(sampler, coords) texture2DRect(sampler, coords)
+        #define gfetchoffset(sampler, coords, offset) texture2DRectOffset(sampler, coords, offset)
+        #define gfetchproj(sampler, coords) texture2DRectProj(sampler, coords)
+        #define gfetchclamp(sampler, coords) texture2DRect(sampler, coords)
+        
+        uniform vec3 gdepthscale;
+        uniform vec3 gdepthunpackparams;
+    
+    
+            uniform vec3 softparams;
+            varying float lineardepth;
+        
+        varying vec4 color;
+        varying vec2 texcoord0, texcoord1;
+        uniform sampler2D tex0, tex1;
+        fragdata(0, fragcolor, vec4)
+
+uniform vec3 fogcolor;
+uniform vec2 fogdensity;
+uniform vec4 radialfogscale;
+#define fogcoord lineardepth*length(vec3(gl_FragCoord.xy*radialfogscale.xy + radialfogscale.zw, 1.0))
+        void main(void)
+        {
+            vec2 dtc = texcoord0 + texture2D(tex0, texcoord1).xy*0.1; 
+            vec4 diffuse = texture2D(tex0, dtc);
+            float blend = texture2D(tex1, texcoord1).r; 
+            diffuse *= blend*4.0; 
+            diffuse.b += 0.5 - blend*0.5; 
+
+            
+                fragcolor.rgb = diffuse.rgb * color.rgb;
+
+                
+        float depth = gdepthscale.x / (gfetch(tex2, gl_FragCoord.xy).r*gdepthscale.y + gdepthscale.z);
+    
+                fragcolor.a = diffuse.a * max(clamp((depth - lineardepth)*softparams.x - softparams.y, 0.0, 1.0) * color.a, softparams.z);
+            
+        
+#define FOG_COLOR fogcolor
+fragcolor.rgb = mix((FOG_COLOR).rgb, fragcolor.rgb, clamp(exp2(fogcoord*-fogdensity.x)*fogdensity.y, 0.0, 1.0));
+}
+    

@@ -1,0 +1,40 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+attribute vec4 vvertex, vcolor;
+    attribute vec2 vtexcoord0;
+    uniform mat4 hudmatrix;
+    varying vec2 texcoord0;
+    varying vec4 colorscale;
+    void main(void)
+    {
+        gl_Position = hudmatrix * vvertex;
+        texcoord0 = vtexcoord0; 
+        colorscale = vcolor;
+    }
+
+[fragment shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+#define fragdata(loc, name, type)
+#define fragcolor gl_FragData[0]
+uniform sampler2D tex0;
+    varying vec2 texcoord0;
+    varying vec4 colorscale;
+    fragdata(0, fragcolor, vec4)
+    void main(void)
+    {
+        vec4 color = texture2D(tex0, texcoord0);
+        #pragma CUBE2_swizzle color
+        fragcolor = colorscale * color;
+    }
+

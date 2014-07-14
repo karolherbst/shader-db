@@ -1,0 +1,46 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+attribute vec4 vvertex, vcolor;
+    attribute vec2 vtexcoord0;
+    uniform mat4 skymatrix;
+    uniform float ldrscale;
+    varying vec4 colorscale;
+    varying vec2 texcoord0;
+    void main(void)
+    {
+        gl_Position = skymatrix * vvertex;
+        texcoord0 = vtexcoord0; 
+        colorscale = vec4(ldrscale * vcolor.rgb, vcolor.a);
+    }
+
+[fragment shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+#define fragdata(loc, name, type)
+#define fragcolor gl_FragData[0]
+uniform sampler2D tex0;
+    uniform vec3 overbrightparams;
+    uniform float ldrscale;
+    varying vec4 colorscale;
+    varying vec2 texcoord0;
+    fragdata(0, fragcolor, vec4)
+    void main(void)
+    {
+        vec4 color = texture2D(tex0, texcoord0);
+        #pragma CUBE2_swizzle color
+        float lum = dot(vec3(0.2126, 0.7152, 0.0722), color.rgb);
+        float overbright = mix(overbrightparams.x, overbrightparams.y, clamp(lum - overbrightparams.z, 0.0, 1.0));
+        color.rgb *= overbright;
+        fragcolor = colorscale * color;
+    }
+

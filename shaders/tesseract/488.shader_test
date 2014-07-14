@@ -1,0 +1,141 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+attribute vec4 vvertex;
+        attribute vec2 vtexcoord0, vtexcoord1;
+        varying vec2 texcoord0, texcoord1;
+        void main(void)
+        {
+            gl_Position = vvertex;
+            texcoord0 = vtexcoord0; 
+            texcoord1 = vtexcoord1;
+        }
+    
+[fragment shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+#define fragdata(loc, name, type)
+#define fragcolor gl_FragData[0]
+uniform sampler2DRect tex0;
+        #define gdepthfetch(sampler, coords) texture2DRect(sampler, coords)
+        #define gdepthfetchoffset(sampler, coords, offset) texture2DRectOffset(sampler, coords, offset)
+        #define gdepthfetchproj(sampler, coords) texture2DRectProj(sampler, coords)
+        #define gdepthfetchclamp(sampler, coords) texture2DRect(sampler, coords)
+        
+    
+        
+        uniform sampler2DRect tex1;
+        #define gnormfetch(sampler, coords) texture2DRect(sampler, coords)
+        #define gnormfetchoffset(sampler, coords, offset) texture2DRectOffset(sampler, coords, offset)
+        #define gnormfetchproj(sampler, coords) texture2DRectProj(sampler, coords)
+        #define gnormfetchclamp(sampler, coords) texture2DRect(sampler, coords)
+        
+    
+        
+        uniform vec3 gdepthscale;
+        uniform vec3 gdepthunpackparams;
+    
+        uniform sampler2D tex2;
+        uniform vec3 tapparams;
+        uniform vec2 contrastparams;
+        uniform vec4 offsetscale;
+        uniform float prefilterdepth;
+        
+            uniform mat3 normalmatrix;
+        
+        
+            #define depthtc gl_FragCoord.xy
+        
+        uniform vec3 gdepthpackparams;
+        varying vec2 texcoord0, texcoord1;
+        fragdata(0, fragcolor, vec4)
+        void main(void)
+        {
+            
+                
+            float depth = gdepthfetch(tex0, depthtc).r;
+            
+                    vec2 tapscale = tapparams.xy/depth;
+                
+        
+            
+            vec2 dpos = depthtc*offsetscale.xy + offsetscale.zw, pos = depth*dpos;
+            
+                vec3 normal = gnormfetch(tex1, texcoord0).rgb*2.0 - 1.0;
+                float normscale = inversesqrt(dot(normal, normal));
+                normal *= normscale > 0.75 ? normscale : 0.0;
+                normal = normalmatrix * normal;
+            
+            vec2 noise = texture2D(tex2, texcoord1).rg*2.0-1.0;
+            float obscure = 0.0;
+            
+                vec2 offset0 = reflect(vec2(-0.933103, 0.025116), noise);
+                offset0 = depthtc + tapscale * offset0;
+                
+            float depth0 = gdepthfetch(tex0, offset0).r;
+            
+        
+                vec3 v0 = vec3(depth0*(offset0*offsetscale.xy + offsetscale.zw) - pos, depth0 - depth);
+                float dist20 = dot(v0, v0);
+                obscure += step(dist20, tapparams.z) * max(0.0, dot(v0, normal) + depth*1.0e-2) / (dist20 + 1.0e-5);
+             
+                vec2 offset1 = reflect(vec2(-0.432784, -0.989868), noise);
+                offset1 = depthtc + tapscale * offset1;
+                
+            float depth1 = gdepthfetch(tex0, offset1).r;
+            
+        
+                vec3 v1 = vec3(depth1*(offset1*offsetscale.xy + offsetscale.zw) - pos, depth1 - depth);
+                float dist21 = dot(v1, v1);
+                obscure += step(dist21, tapparams.z) * max(0.0, dot(v1, normal) + depth*1.0e-2) / (dist21 + 1.0e-5);
+             
+                vec2 offset2 = reflect(vec2(0.432416, -0.413800), noise);
+                offset2 = depthtc + tapscale * offset2;
+                
+            float depth2 = gdepthfetch(tex0, offset2).r;
+            
+        
+                vec3 v2 = vec3(depth2*(offset2*offsetscale.xy + offsetscale.zw) - pos, depth2 - depth);
+                float dist22 = dot(v2, v2);
+                obscure += step(dist22, tapparams.z) * max(0.0, dot(v2, normal) + depth*1.0e-2) / (dist22 + 1.0e-5);
+             
+                vec2 offset3 = reflect(vec2(-0.117770, 0.970336), noise);
+                offset3 = depthtc + tapscale * offset3;
+                
+            float depth3 = gdepthfetch(tex0, offset3).r;
+            
+        
+                vec3 v3 = vec3(depth3*(offset3*offsetscale.xy + offsetscale.zw) - pos, depth3 - depth);
+                float dist23 = dot(v3, v3);
+                obscure += step(dist23, tapparams.z) * max(0.0, dot(v3, normal) + depth*1.0e-2) / (dist23 + 1.0e-5);
+             
+                vec2 offset4 = reflect(vec2(0.837276, 0.531114), noise);
+                offset4 = depthtc + tapscale * offset4;
+                
+            float depth4 = gdepthfetch(tex0, offset4).r;
+            
+        
+                vec3 v4 = vec3(depth4*(offset4*offsetscale.xy + offsetscale.zw) - pos, depth4 - depth);
+                float dist24 = dot(v4, v4);
+                obscure += step(dist24, tapparams.z) * max(0.0, dot(v4, normal) + depth*1.0e-2) / (dist24 + 1.0e-5);
+            
+            obscure = pow(clamp(1.0 - contrastparams.x*obscure, 0.0, 1.0), contrastparams.y);
+            
+                vec2 weights = step(fwidth(depth), prefilterdepth) * (2.0*fract((gl_FragCoord.xy - 0.5)*0.5) - 0.5);
+            
+            obscure -= dFdx(obscure) * weights.x;
+            obscure -= dFdy(obscure) * weights.y;
+            
+                    fragcolor.rg = vec2(obscure, depth);
+                
+        }
+    

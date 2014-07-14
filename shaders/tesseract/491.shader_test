@@ -1,0 +1,126 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+attribute vec4 vvertex;
+        
+        
+        void main(void)
+        {
+            gl_Position = vvertex;
+            
+            
+        }
+    
+[fragment shader]
+#version 120
+#extension GL_ARB_texture_rectangle : enable
+#define flat
+#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))
+#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))
+#define fragdata(loc, name, type)
+#define fragcolor gl_FragData[0]
+uniform sampler2DRect tex1;
+        #define gfetch(sampler, coords) texture2DRect(sampler, coords)
+        #define gfetchoffset(sampler, coords, offset) texture2DRectOffset(sampler, coords, offset)
+        #define gfetchproj(sampler, coords) texture2DRectProj(sampler, coords)
+        #define gfetchclamp(sampler, coords) texture2DRect(sampler, coords)
+        
+        uniform vec3 gdepthscale;
+        uniform vec3 gdepthunpackparams;
+    
+    
+        uniform sampler2DRect tex0;
+        uniform vec2 bilateralparams;
+        uniform vec3 gdepthpackparams;
+        
+        
+        fragdata(0, fragcolor, vec4)
+        void main(void)
+        {
+            #define tc gl_FragCoord.xy
+            #define depthtc gl_FragCoord.xy
+            #define tapvec(type, i) type(i, 0.0)
+            #define texval(i) texture2DRect(tex0, tc + tapvec(vec2, i))
+            #define texvaloffset(i) texture2DRectOffset(tex0, tc, tapvec(ivec2, i))
+            #define depthval(i) gfetch(tex1, depthtc + tapvec(vec2, i))
+            #define depthvaloffset(i) gfetchoffset(tex1, depthtc, tapvec(ivec2, i))
+            
+                    vec2 vals = texture2DRect(tex0, tc).rg;
+                    #define color vals.x
+                    
+                        #define depth vals.y
+                    
+                
+            float weights = 1.0;
+            
+                    
+                            vec2 vals0 = texval(-6.0).rg;
+                            #define color0 vals0.x
+                            #define depth0 vals0.y
+                        
+                    depth0 -= depth;
+                    float weight0 = exp2(-9.0*bilateralparams.x - depth0*depth0*bilateralparams.y); 
+                    weights += weight0;
+                    color += weight0 * color0;
+                 
+                    
+                            vec2 vals1 = texval(-4.0).rg;
+                            #define color1 vals1.x
+                            #define depth1 vals1.y
+                        
+                    depth1 -= depth;
+                    float weight1 = exp2(-4.0*bilateralparams.x - depth1*depth1*bilateralparams.y); 
+                    weights += weight1;
+                    color += weight1 * color1;
+                 
+                    
+                            vec2 vals2 = texval(-2.0).rg;
+                            #define color2 vals2.x
+                            #define depth2 vals2.y
+                        
+                    depth2 -= depth;
+                    float weight2 = exp2(-1.0*bilateralparams.x - depth2*depth2*bilateralparams.y); 
+                    weights += weight2;
+                    color += weight2 * color2;
+                 
+                    
+                            vec2 vals3 = texval(2.0).rg;
+                            #define color3 vals3.x
+                            #define depth3 vals3.y
+                        
+                    depth3 -= depth;
+                    float weight3 = exp2(-1.0*bilateralparams.x - depth3*depth3*bilateralparams.y); 
+                    weights += weight3;
+                    color += weight3 * color3;
+                 
+                    
+                            vec2 vals4 = texval(4.0).rg;
+                            #define color4 vals4.x
+                            #define depth4 vals4.y
+                        
+                    depth4 -= depth;
+                    float weight4 = exp2(-4.0*bilateralparams.x - depth4*depth4*bilateralparams.y); 
+                    weights += weight4;
+                    color += weight4 * color4;
+                 
+                    
+                            vec2 vals5 = texval(6.0).rg;
+                            #define color5 vals5.x
+                            #define depth5 vals5.y
+                        
+                    depth5 -= depth;
+                    float weight5 = exp2(-9.0*bilateralparams.x - depth5*depth5*bilateralparams.y); 
+                    weights += weight5;
+                    color += weight5 * color5;
+                
+            
+                    fragcolor.rg = vec2(color / weights, depth);
+                
+        }
+    
