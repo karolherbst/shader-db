@@ -48,7 +48,7 @@ def run_test(filename):
 
     lines = (line for line in results.splitlines())
     re_number = re.compile(
-        r'Native code for unnamed (fragment|vertex|geometry) shader (?P<number>\d+)')
+        r'Native code for (unnamed )?(fragment|vertex|geometry) (shader|program) (?P<number>\d+)')
     for line in lines:
         shader = re_number.match(line)
         if shader and int(shader.group('number')) > 0:
