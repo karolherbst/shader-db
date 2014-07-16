@@ -45,8 +45,8 @@ def get_result_string(p, b, a):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("before", help="the output of the original code")
-    parser.add_argument("after", help="the output of the new code")
+    parser.add_argument("before", type=get_results, help="the output of the original code")
+    parser.add_argument("after", type=get_results, help="the output of the new code")
     args = parser.parse_args()
 
     total_before = 0
