@@ -113,9 +113,9 @@ def main():
     if not os.path.isdir(dirname):
         os.mkdir(dirname)
 
-    infile = open(args.mesadebug, 'r')
+    with open(args.mesadebug, 'r') as infile:
+        shaders, programs = parse_input(infile.read())
 
-    shaders, programs = parse_input(input.read())
     write_files(dirname, shaders, programs)
 
 if __name__ == "__main__":
