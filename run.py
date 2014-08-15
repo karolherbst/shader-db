@@ -86,7 +86,6 @@ def main():
 
     env_add = {}
     env_add["shader_precompile"] = "true"
-    env_add["force_glsl_extensions_warn"] = "true"
     env_add["INTEL_DEBUG"] = "vs,wm,gs"
 
     os.environ.update(env_add)
