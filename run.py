@@ -87,6 +87,7 @@ def main():
     env_add = {}
     env_add["shader_precompile"] = "true"
     env_add["INTEL_DEBUG"] = "vs,wm,gs"
+    env_add["allow_glsl_extension_directive_midshader"] = "true"
 
     os.environ.update(env_add)
 
