@@ -56,6 +56,7 @@ def main():
 
     helped = []
     hurt = []
+    unchanged = []
     lost = []
     gained = []
     for p in args.before:
@@ -73,11 +74,13 @@ def main():
                 affected_before += before_count
                 affected_after += after_count
 
-                result = get_result_string(namestr, before_count, after_count)
-                if after_count > before_count:
-                    hurt.append(p)
-                else:
-                    helped.append(result)
+            result = get_result_string(namestr, before_count, after_count)
+            if after_count > before_count:
+                hurt.append(p)
+            elif after_count == before_count:
+                unchanged.append(result)
+            else:
+                helped.append(result)
         else:
             lost.append(namestr)
 
@@ -89,6 +92,12 @@ def main():
     for r in helped:
         print("helped: " + r)
     if len(helped) > 0:
+        print("")
+
+    unchanged.sort()
+    for r in unchanged:
+        print("unchanged: " + r)
+    if len(unchanged) > 0:
         print("")
 
     hurt.sort(
