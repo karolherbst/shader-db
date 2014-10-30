@@ -57,19 +57,19 @@ def run_test(filename):
         raise Exception('Only shader 0 found. {}'.format(filename))
 
     re_search = re.compile(
-        r'(?P<stage>[A-Za-z0-9]+) shader\: (?P<count>\d+) instructions.')
+        r'(?P<stage>[A-Za-z0-9]+) shader\: (?P<count>\d+) instructions. (?P<loop>\d+) loops.')
     for line in lines:
         match = re_search.match(line)
         if match is not None:
-            counts[match.group('stage')] = int(match.group('count'))
+            counts[match.group('stage')] = int(match.group('count')), int(match.group('loop'))
 
     assert counts, 'File: {} does not have any shaders'.format(filename)
 
     timestr = "    {:.3f} secs".format(timeafter - timebefore)
     out = ''
     for k, v in counts.items():
-        if v != 0:
-            out += "{0:40} {1} : {2:6}{3}\n".format(filename, k, v, timestr)
+        if v[0] != 0:
+            out += "{0:40} {1:6} : {2:6}{3:6} loops {4}\n".format(filename, k, v[0], v[1],timestr)
             timestr = ""
     return out
 

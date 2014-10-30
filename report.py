@@ -10,7 +10,7 @@ def get_results(filename):
 
     results = {}
 
-    re_match = re.compile(r"(\S*)\s*(\S*)\s*:\s*(\S*)")
+    re_match = re.compile(r"(\S*)\s*(\S*)\s*:\s*(\S*)\s*(\S*)")
     for line in lines:
         match = re.search(re_match, line)
         if match is None:
@@ -18,8 +18,9 @@ def get_results(filename):
 
         groups = match.groups()
         count = int(groups[2])
+        loop = int(groups[3])
         if count != 0:
-            results[(groups[0], groups[1])] = count
+            results[(groups[0], groups[1])] = count, loop
 
     return results
 
@@ -51,6 +52,8 @@ def main():
 
     total_before = 0
     total_after = 0
+    total_loop_before = 0;
+    total_loop_after = 0;
     affected_before = 0
     affected_after = 0
 
@@ -62,25 +65,30 @@ def main():
     for p in args.before:
         (name, type) = p
         namestr = name + " " + type
-        before_count = args.before[p]
+        before_count = args.before[p][0]
+        before_loop_count = args.before[p][1]
 
         if args.after.get(p) is not None:
-            after_count = args.after[p]
+            after_count = args.after[p][0]
+            after_loop_count = args.after[p][1]
 
             total_before += before_count
+            total_loop_before += before_loop_count
             total_after += after_count
+            total_loop_after += after_loop_count
 
             if before_count != after_count:
                 affected_before += before_count
                 affected_after += after_count
 
             result = get_result_string(namestr, before_count, after_count)
-            if after_count > before_count:
+            if after_count > before_count and after_loop_count >= before_loop_count:
                 hurt.append(p)
             elif after_count == before_count:
                 unchanged.append(result)
             else:
-                helped.append(result)
+                res = (result, before_loop_count, after_loop_count)
+                helped.append(res)
         else:
             lost.append(namestr)
 
@@ -90,7 +98,10 @@ def main():
 
     helped.sort()
     for r in helped:
-        print("helped: " + r)
+        if (r[1] > r[2]):
+            print("helped: " + r[0] + " loop: " + change(r[1], r[2]))
+        else:
+            print("helped: " + r[0])
     if len(helped) > 0:
         print("")
 
@@ -101,11 +112,12 @@ def main():
         print("")
 
     hurt.sort(
-        key=lambda k: float(args.after[k] - args.before[k]) / args.before[k])
+        key=lambda k: float(args.after[k][0] - args.before[k][0]) / args.before[k][0])
     for p in hurt:
         namestr = p[0] + " " + p[1]
         print("HURT:   " + get_result_string(
-            namestr, args.before[p], args.after[p]))
+            namestr, args.before[p][0], args.after[p][0]) +
+              "  loop: " + change(args.before[p][1], args.after[p][1]))
     if len(hurt) > 0:
         print("")
 
@@ -123,10 +135,12 @@ def main():
 
     print("total instructions in shared programs: {0}\n"
           "instructions in affected programs:     {1}\n"
-          "GAINED:                                {2}\n"
-          "LOST:                                  {3}".format(
+          "total loops in shared programs:        {2}\n"
+          "GAINED:                                {3}\n"
+          "LOST:                                  {4}".format(
               change(total_before, total_after),
               change(affected_before, affected_after),
+              change(total_loop_before, total_loop_after),
               len(gained),
               len(lost)))
 
