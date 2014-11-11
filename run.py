@@ -84,12 +84,9 @@ def main():
                              "files. Defaults to 'shaders/'")
     args = parser.parse_args()
 
-    env_add = {}
-    env_add["shader_precompile"] = "true"
-    env_add["INTEL_DEBUG"] = "vs,gs,fs"
-    env_add["allow_glsl_extension_directive_midshader"] = "true"
-
-    os.environ.update(env_add)
+    os.environ["shader_precompile"] = "true"
+    os.environ["allow_glsl_extension_directive_midshader"] = "true"
+    os.environ["INTEL_DEBUG"] = "vs,gs,fs"
 
     try:
         os.stat("bin/glslparsertest")
