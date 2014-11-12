@@ -73,11 +73,10 @@ def main():
                 affected_before += before_count
                 affected_after += after_count
 
-                result = get_result_string(namestr, before_count, after_count)
                 if after_count > before_count:
                     hurt.append(p)
                 else:
-                    helped.append(result)
+                    helped.append(p)
         else:
             lost.append(namestr)
 
@@ -85,9 +84,12 @@ def main():
         if args.before.get(p) is None:
             gained.append(p[0] + " " + p[1])
 
-    helped.sort()
-    for r in helped:
-        print("helped: " + r)
+    helped.sort(
+        key=lambda k: float(args.before[k] - args.after[k]) / args.before[k])
+    for p in helped:
+        namestr = p[0] + " " + p[1]
+        print("helped:   " + get_result_string(
+            namestr, args.before[p], args.after[p]))
     if len(helped) > 0:
         print("")
 
