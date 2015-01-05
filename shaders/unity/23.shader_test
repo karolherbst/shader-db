@@ -1,0 +1,43 @@
+# Built-in shader from Unity 5.0.0b19:
+# Hidden/Camera-DepthNormalTexture
+# internal variant: 
+# This shader GLSL dump is put under MIT license
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+uniform vec4 _ProjectionParams;
+
+
+
+varying vec4 xlv_TEXCOORD0;
+void main ()
+{
+  vec4 tmpvar_1;
+  mat3 tmpvar_2;
+  tmpvar_2[0] = gl_ModelViewMatrixInverseTranspose[0].xyz;
+  tmpvar_2[1] = gl_ModelViewMatrixInverseTranspose[1].xyz;
+  tmpvar_2[2] = gl_ModelViewMatrixInverseTranspose[2].xyz;
+  tmpvar_1.xyz = normalize((tmpvar_2 * gl_Normal));
+  tmpvar_1.w = -(((gl_ModelViewMatrix * gl_Vertex).z * _ProjectionParams.w));
+  gl_Position = (gl_ModelViewProjectionMatrix * gl_Vertex);
+  xlv_TEXCOORD0 = tmpvar_1;
+}
+
+[fragment shader]
+varying vec4 xlv_TEXCOORD0;
+void main ()
+{
+  vec4 enc_1;
+  enc_1.xy = (((
+    (xlv_TEXCOORD0.xy / (xlv_TEXCOORD0.z + 1.0))
+   / 1.7777) * 0.5) + 0.5);
+  vec2 enc_2;
+  vec2 tmpvar_3;
+  tmpvar_3 = fract((vec2(1.0, 255.0) * xlv_TEXCOORD0.w));
+  enc_2.y = tmpvar_3.y;
+  enc_2.x = (tmpvar_3.x - (tmpvar_3.y * 0.00392157));
+  enc_1.zw = enc_2;
+  gl_FragData[0] = enc_1;
+}
+

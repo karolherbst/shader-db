@@ -1,0 +1,230 @@
+# Built-in shader from Unity 5.0.0b19:
+# Hidden/Internal-PrePassCollectShadows
+# internal variant: SHADOWS_NATIVE
+# This shader GLSL dump is put under MIT license
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+uniform vec4 _ProjectionParams;
+uniform mat4 unity_CameraInvProjection;
+
+varying vec2 xlv_TEXCOORD0;
+varying vec3 xlv_TEXCOORD1;
+varying vec4 xlv_TEXCOORD2;
+void main ()
+{
+  vec4 clipPos_1;
+  vec4 tmpvar_2;
+  tmpvar_2 = (gl_ModelViewProjectionMatrix * gl_Vertex);
+  clipPos_1.xzw = tmpvar_2.xzw;
+  clipPos_1.y = (tmpvar_2.y * _ProjectionParams.x);
+  vec4 tmpvar_3;
+  tmpvar_3.zw = vec2(-1.0, 1.0);
+  tmpvar_3.xy = clipPos_1.xy;
+  vec4 tmpvar_4;
+  tmpvar_4 = (unity_CameraInvProjection * tmpvar_3);
+  vec4 tmpvar_5;
+  tmpvar_5.zw = vec2(1.0, 1.0);
+  tmpvar_5.xy = clipPos_1.xy;
+  vec4 tmpvar_6;
+  tmpvar_6.xy = tmpvar_4.xy;
+  tmpvar_6.z = -(tmpvar_4.z);
+  tmpvar_6.w = -((unity_CameraInvProjection * tmpvar_5).z);
+  xlv_TEXCOORD0 = gl_MultiTexCoord0.xy;
+  xlv_TEXCOORD1 = gl_Normal;
+  xlv_TEXCOORD2 = tmpvar_6;
+  gl_Position = tmpvar_2;
+}
+
+[fragment shader]
+uniform vec4 _ZBufferParams;
+uniform vec4 unity_OrthoParams;
+uniform vec4 _LightSplitsNear;
+uniform vec4 _LightSplitsFar;
+uniform mat4 unity_World2Shadow[4];
+uniform vec4 _LightShadowData;
+uniform sampler2D _CameraDepthTexture;
+uniform mat4 _CameraToWorld;
+uniform sampler2DShadow _ShadowMapTexture;
+uniform vec4 _ShadowMapTexture_TexelSize;
+varying vec2 xlv_TEXCOORD0;
+varying vec3 xlv_TEXCOORD1;
+varying vec4 xlv_TEXCOORD2;
+void main ()
+{
+  vec3 vposOrtho_1;
+  vec4 tmpvar_2;
+  tmpvar_2 = texture2D (_CameraDepthTexture, xlv_TEXCOORD0);
+  vposOrtho_1.xy = xlv_TEXCOORD2.xy;
+  vposOrtho_1.z = mix (xlv_TEXCOORD2.z, xlv_TEXCOORD2.w, tmpvar_2.x);
+  vec3 tmpvar_3;
+  tmpvar_3 = mix ((xlv_TEXCOORD1 * mix (
+    (1.0/(((_ZBufferParams.x * tmpvar_2.x) + _ZBufferParams.y)))
+  , tmpvar_2.x, unity_OrthoParams.w)), vposOrtho_1, unity_OrthoParams.www);
+  vec4 tmpvar_4;
+  tmpvar_4.w = 1.0;
+  tmpvar_4.xyz = tmpvar_3;
+  vec4 tmpvar_5;
+  tmpvar_5 = (_CameraToWorld * tmpvar_4);
+  vec4 tmpvar_6;
+  tmpvar_6 = (vec4(greaterThanEqual (tmpvar_3.zzzz, _LightSplitsNear)) * vec4(lessThan (tmpvar_3.zzzz, _LightSplitsFar)));
+  vec4 tmpvar_7;
+  tmpvar_7.w = 1.0;
+  tmpvar_7.xyz = (((
+    ((unity_World2Shadow[0] * tmpvar_5).xyz * tmpvar_6.x)
+   + 
+    ((unity_World2Shadow[1] * tmpvar_5).xyz * tmpvar_6.y)
+  ) + (
+    (unity_World2Shadow[2] * tmpvar_5)
+  .xyz * tmpvar_6.z)) + ((unity_World2Shadow[3] * tmpvar_5).xyz * tmpvar_6.w));
+  vec2 tmpvar_8;
+  tmpvar_8 = ((tmpvar_7.xy * _ShadowMapTexture_TexelSize.zw) + vec2(0.5, 0.5));
+  vec2 tmpvar_9;
+  tmpvar_9 = ((floor(tmpvar_8) - vec2(0.5, 0.5)) * _ShadowMapTexture_TexelSize.xy);
+  vec2 tmpvar_10;
+  tmpvar_10 = fract(tmpvar_8);
+  vec3 tmpvar_11;
+  tmpvar_11.y = 7.0;
+  tmpvar_11.x = (4.0 - (3.0 * tmpvar_10.x));
+  tmpvar_11.z = (1.0 + (3.0 * tmpvar_10.x));
+  vec3 tmpvar_12;
+  tmpvar_12.x = (((3.0 - 
+    (2.0 * tmpvar_10.x)
+  ) / tmpvar_11.x) - 2.0);
+  tmpvar_12.y = ((3.0 + tmpvar_10.x) / 7.0);
+  tmpvar_12.z = ((tmpvar_10.x / tmpvar_11.z) + 2.0);
+  vec3 tmpvar_13;
+  tmpvar_13 = (tmpvar_12 * _ShadowMapTexture_TexelSize.x);
+  vec3 tmpvar_14;
+  tmpvar_14.y = 7.0;
+  tmpvar_14.x = (4.0 - (3.0 * tmpvar_10.y));
+  tmpvar_14.z = (1.0 + (3.0 * tmpvar_10.y));
+  vec3 tmpvar_15;
+  tmpvar_15.x = (((3.0 - 
+    (2.0 * tmpvar_10.y)
+  ) / tmpvar_14.x) - 2.0);
+  tmpvar_15.y = ((3.0 + tmpvar_10.y) / 7.0);
+  tmpvar_15.z = ((tmpvar_10.y / tmpvar_14.z) + 2.0);
+  vec3 tmpvar_16;
+  tmpvar_16 = (tmpvar_15 * _ShadowMapTexture_TexelSize.y);
+  vec3 tmpvar_17;
+  tmpvar_17 = (tmpvar_11 * tmpvar_14.x);
+  vec2 tmpvar_18;
+  tmpvar_18.x = tmpvar_13.x;
+  tmpvar_18.y = tmpvar_16.x;
+  float depth_19;
+  depth_19 = tmpvar_7.z;
+  vec3 uv_20;
+  vec3 tmpvar_21;
+  tmpvar_21.xy = (tmpvar_9 + tmpvar_18);
+  tmpvar_21.z = depth_19;
+  uv_20.xy = tmpvar_21.xy;
+  uv_20.z = depth_19;
+  vec2 tmpvar_22;
+  tmpvar_22.x = tmpvar_13.y;
+  tmpvar_22.y = tmpvar_16.x;
+  float depth_23;
+  depth_23 = tmpvar_7.z;
+  vec3 uv_24;
+  vec3 tmpvar_25;
+  tmpvar_25.xy = (tmpvar_9 + tmpvar_22);
+  tmpvar_25.z = depth_23;
+  uv_24.xy = tmpvar_25.xy;
+  uv_24.z = depth_23;
+  vec2 tmpvar_26;
+  tmpvar_26.x = tmpvar_13.z;
+  tmpvar_26.y = tmpvar_16.x;
+  float depth_27;
+  depth_27 = tmpvar_7.z;
+  vec3 uv_28;
+  vec3 tmpvar_29;
+  tmpvar_29.xy = (tmpvar_9 + tmpvar_26);
+  tmpvar_29.z = depth_27;
+  uv_28.xy = tmpvar_29.xy;
+  uv_28.z = depth_27;
+  vec3 tmpvar_30;
+  tmpvar_30 = (tmpvar_11 * 7.0);
+  vec2 tmpvar_31;
+  tmpvar_31.x = tmpvar_13.x;
+  tmpvar_31.y = tmpvar_16.y;
+  float depth_32;
+  depth_32 = tmpvar_7.z;
+  vec3 uv_33;
+  vec3 tmpvar_34;
+  tmpvar_34.xy = (tmpvar_9 + tmpvar_31);
+  tmpvar_34.z = depth_32;
+  uv_33.xy = tmpvar_34.xy;
+  uv_33.z = depth_32;
+  vec2 tmpvar_35;
+  tmpvar_35.x = tmpvar_13.y;
+  tmpvar_35.y = tmpvar_16.y;
+  float depth_36;
+  depth_36 = tmpvar_7.z;
+  vec3 uv_37;
+  vec3 tmpvar_38;
+  tmpvar_38.xy = (tmpvar_9 + tmpvar_35);
+  tmpvar_38.z = depth_36;
+  uv_37.xy = tmpvar_38.xy;
+  uv_37.z = depth_36;
+  vec2 tmpvar_39;
+  tmpvar_39.x = tmpvar_13.z;
+  tmpvar_39.y = tmpvar_16.y;
+  float depth_40;
+  depth_40 = tmpvar_7.z;
+  vec3 uv_41;
+  vec3 tmpvar_42;
+  tmpvar_42.xy = (tmpvar_9 + tmpvar_39);
+  tmpvar_42.z = depth_40;
+  uv_41.xy = tmpvar_42.xy;
+  uv_41.z = depth_40;
+  vec3 tmpvar_43;
+  tmpvar_43 = (tmpvar_11 * tmpvar_14.z);
+  vec2 tmpvar_44;
+  tmpvar_44.x = tmpvar_13.x;
+  tmpvar_44.y = tmpvar_16.z;
+  float depth_45;
+  depth_45 = tmpvar_7.z;
+  vec3 uv_46;
+  vec3 tmpvar_47;
+  tmpvar_47.xy = (tmpvar_9 + tmpvar_44);
+  tmpvar_47.z = depth_45;
+  uv_46.xy = tmpvar_47.xy;
+  uv_46.z = depth_45;
+  vec2 tmpvar_48;
+  tmpvar_48.x = tmpvar_13.y;
+  tmpvar_48.y = tmpvar_16.z;
+  float depth_49;
+  depth_49 = tmpvar_7.z;
+  vec3 uv_50;
+  vec3 tmpvar_51;
+  tmpvar_51.xy = (tmpvar_9 + tmpvar_48);
+  tmpvar_51.z = depth_49;
+  uv_50.xy = tmpvar_51.xy;
+  uv_50.z = depth_49;
+  vec2 tmpvar_52;
+  tmpvar_52.x = tmpvar_13.z;
+  tmpvar_52.y = tmpvar_16.z;
+  float depth_53;
+  depth_53 = tmpvar_7.z;
+  vec3 uv_54;
+  vec3 tmpvar_55;
+  tmpvar_55.xy = (tmpvar_9 + tmpvar_52);
+  tmpvar_55.z = depth_53;
+  uv_54.xy = tmpvar_55.xy;
+  uv_54.z = depth_53;
+  gl_FragData[0] = vec4((mix (_LightShadowData.x, 1.0, (
+    ((((
+      ((((
+        (tmpvar_17.x * shadow2D (_ShadowMapTexture, uv_20).x)
+       + 
+        (tmpvar_17.y * shadow2D (_ShadowMapTexture, uv_24).x)
+      ) + (tmpvar_17.z * shadow2D (_ShadowMapTexture, uv_28).x)) + (tmpvar_30.x * shadow2D (_ShadowMapTexture, uv_33).x)) + (tmpvar_30.y * shadow2D (_ShadowMapTexture, uv_37).x))
+     + 
+      (tmpvar_30.z * shadow2D (_ShadowMapTexture, uv_41).x)
+    ) + (tmpvar_43.x * shadow2D (_ShadowMapTexture, uv_46).x)) + (tmpvar_43.y * shadow2D (_ShadowMapTexture, uv_50).x)) + (tmpvar_43.z * shadow2D (_ShadowMapTexture, uv_54).x))
+   / 144.0)) + clamp ((
+    (tmpvar_3.z * _LightShadowData.z)
+   + _LightShadowData.w), 0.0, 1.0)));
+}
+

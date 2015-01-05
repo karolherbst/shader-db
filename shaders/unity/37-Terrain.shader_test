@@ -1,0 +1,132 @@
+# Built-in shader from Unity 5.0.0b19:
+# Nature/Terrain/Diffuse
+# internal variant: DIRECTIONAL DIRLIGHTMAP_OFF DYNAMICLIGHTMAP_OFF LIGHTMAP_OFF SHADOWS_SCREEN
+# This shader GLSL dump is put under MIT license
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+uniform vec4 _ProjectionParams;
+uniform vec4 unity_SHAr;
+uniform vec4 unity_SHAg;
+uniform vec4 unity_SHAb;
+uniform vec4 unity_SHBr;
+uniform vec4 unity_SHBg;
+uniform vec4 unity_SHBb;
+uniform vec4 unity_SHC;
+
+uniform mat4 _World2Object;
+uniform vec4 _Control_ST;
+uniform vec4 _Splat0_ST;
+uniform vec4 _Splat1_ST;
+uniform vec4 _Splat2_ST;
+uniform vec4 _Splat3_ST;
+varying vec4 xlv_TEXCOORD0;
+varying vec4 xlv_TEXCOORD1;
+varying vec2 xlv_TEXCOORD2;
+varying vec3 xlv_TEXCOORD3;
+varying vec3 xlv_TEXCOORD4;
+varying vec4 xlv_TEXCOORD5;
+void main ()
+{
+  vec4 tmpvar_1;
+  vec4 tmpvar_2;
+  vec4 tmpvar_3;
+  tmpvar_3 = (gl_ModelViewProjectionMatrix * gl_Vertex);
+  tmpvar_1.xy = ((gl_MultiTexCoord0.xy * _Control_ST.xy) + _Control_ST.zw);
+  tmpvar_1.zw = ((gl_MultiTexCoord0.xy * _Splat0_ST.xy) + _Splat0_ST.zw);
+  tmpvar_2.xy = ((gl_MultiTexCoord0.xy * _Splat1_ST.xy) + _Splat1_ST.zw);
+  tmpvar_2.zw = ((gl_MultiTexCoord0.xy * _Splat2_ST.xy) + _Splat2_ST.zw);
+  vec4 v_4;
+  v_4.x = _World2Object[0].x;
+  v_4.y = _World2Object[1].x;
+  v_4.z = _World2Object[2].x;
+  v_4.w = _World2Object[3].x;
+  vec4 v_5;
+  v_5.x = _World2Object[0].y;
+  v_5.y = _World2Object[1].y;
+  v_5.z = _World2Object[2].y;
+  v_5.w = _World2Object[3].y;
+  vec4 v_6;
+  v_6.x = _World2Object[0].z;
+  v_6.y = _World2Object[1].z;
+  v_6.z = _World2Object[2].z;
+  v_6.w = _World2Object[3].z;
+  vec3 tmpvar_7;
+  tmpvar_7 = normalize(((
+    (v_4.xyz * gl_Normal.x)
+   + 
+    (v_5.xyz * gl_Normal.y)
+  ) + (v_6.xyz * gl_Normal.z)));
+  vec4 tmpvar_8;
+  tmpvar_8.w = 1.0;
+  tmpvar_8.xyz = tmpvar_7;
+  vec3 x2_9;
+  vec3 x1_10;
+  x1_10.x = dot (unity_SHAr, tmpvar_8);
+  x1_10.y = dot (unity_SHAg, tmpvar_8);
+  x1_10.z = dot (unity_SHAb, tmpvar_8);
+  vec4 tmpvar_11;
+  tmpvar_11 = (tmpvar_7.xyzz * tmpvar_7.yzzx);
+  x2_9.x = dot (unity_SHBr, tmpvar_11);
+  x2_9.y = dot (unity_SHBg, tmpvar_11);
+  x2_9.z = dot (unity_SHBb, tmpvar_11);
+  vec4 o_12;
+  vec4 tmpvar_13;
+  tmpvar_13 = (tmpvar_3 * 0.5);
+  vec2 tmpvar_14;
+  tmpvar_14.x = tmpvar_13.x;
+  tmpvar_14.y = (tmpvar_13.y * _ProjectionParams.x);
+  o_12.xy = (tmpvar_14 + tmpvar_13.w);
+  o_12.zw = tmpvar_3.zw;
+  gl_Position = tmpvar_3;
+  xlv_TEXCOORD0 = tmpvar_1;
+  xlv_TEXCOORD1 = tmpvar_2;
+  xlv_TEXCOORD2 = ((gl_MultiTexCoord0.xy * _Splat3_ST.xy) + _Splat3_ST.zw);
+  xlv_TEXCOORD3 = tmpvar_7;
+  xlv_TEXCOORD4 = ((x1_10 + x2_9) + (unity_SHC.xyz * (
+    (tmpvar_7.x * tmpvar_7.x)
+   - 
+    (tmpvar_7.y * tmpvar_7.y)
+  )));
+  xlv_TEXCOORD5 = o_12;
+}
+
+[fragment shader]
+uniform vec4 _WorldSpaceLightPos0;
+uniform vec4 _LightColor0;
+uniform sampler2D _ShadowMapTexture;
+uniform sampler2D _Control;
+uniform sampler2D _Splat0;
+uniform sampler2D _Splat1;
+uniform sampler2D _Splat2;
+uniform sampler2D _Splat3;
+varying vec4 xlv_TEXCOORD0;
+varying vec4 xlv_TEXCOORD1;
+varying vec2 xlv_TEXCOORD2;
+varying vec3 xlv_TEXCOORD3;
+varying vec3 xlv_TEXCOORD4;
+varying vec4 xlv_TEXCOORD5;
+void main ()
+{
+  vec4 c_1;
+  vec4 tmpvar_2;
+  tmpvar_2 = texture2D (_Control, xlv_TEXCOORD0.xy);
+  vec3 tmpvar_3;
+  tmpvar_3 = (((
+    (tmpvar_2.x * texture2D (_Splat0, xlv_TEXCOORD0.zw).xyz)
+   + 
+    (tmpvar_2.y * texture2D (_Splat1, xlv_TEXCOORD1.xy).xyz)
+  ) + (tmpvar_2.z * texture2D (_Splat2, xlv_TEXCOORD1.zw).xyz)) + (tmpvar_2.w * texture2D (_Splat3, xlv_TEXCOORD2).xyz));
+  c_1.w = 0.0;
+  c_1.xyz = (tmpvar_3 * xlv_TEXCOORD4);
+  vec4 c_4;
+  c_4.xyz = ((tmpvar_3 * _LightColor0.xyz) * ((
+    max (0.0, dot (xlv_TEXCOORD3, _WorldSpaceLightPos0.xyz))
+   * texture2DProj (_ShadowMapTexture, xlv_TEXCOORD5).x) * 2.0));
+  c_4.w = 0.0;
+  c_1.xyz = (c_1 + c_4).xyz;
+  c_1.w = 1.0;
+  gl_FragData[0] = c_1;
+}
+

@@ -1,0 +1,149 @@
+# Built-in shader from Unity 5.0.0b19:
+# Hidden/TerrainEngine/Details/BillboardWavingDoublePass
+# internal variant: SHADOWS_DEPTH shadow caster pass
+# This shader GLSL dump is put under MIT license
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+uniform vec4 _WorldSpaceLightPos0;
+uniform vec4 unity_LightShadowBias;
+
+uniform mat4 _Object2World;
+uniform mat4 _World2Object;
+uniform mat4 unity_MatrixVP;
+uniform vec4 _WavingTint;
+uniform vec4 _WaveAndDistance;
+uniform vec4 _CameraPosition;
+uniform vec3 _CameraRight;
+uniform vec3 _CameraUp;
+uniform vec4 _MainTex_ST;
+attribute vec4 TANGENT;
+varying vec2 xlv_TEXCOORD1;
+varying vec4 xlv_COLOR0;
+void main ()
+{
+  vec2 tmpvar_1;
+  vec4 pos_2;
+  pos_2 = gl_Vertex;
+  vec2 offset_3;
+  offset_3 = TANGENT.xy;
+  vec3 tmpvar_4;
+  tmpvar_4 = (gl_Vertex.xyz - _CameraPosition.xyz);
+  float tmpvar_5;
+  tmpvar_5 = dot (tmpvar_4, tmpvar_4);
+  if ((tmpvar_5 > _WaveAndDistance.w)) {
+    offset_3 = vec2(0.0, 0.0);
+  };
+  pos_2.xyz = (gl_Vertex.xyz + (offset_3.x * _CameraRight));
+  pos_2.xyz = (pos_2.xyz + (offset_3.y * _CameraUp));
+  vec4 vertex_6;
+  vertex_6.yw = pos_2.yw;
+  vec4 color_7;
+  color_7.xyz = gl_Color.xyz;
+  vec3 waveMove_8;
+  vec4 tmpvar_9;
+  tmpvar_9 = ((fract(
+    (((pos_2.x * (vec4(0.012, 0.02, 0.06, 0.024) * _WaveAndDistance.y)) + (pos_2.z * (vec4(0.006, 0.02, 0.02, 0.05) * _WaveAndDistance.y))) + (_WaveAndDistance.x * vec4(1.2, 2.0, 1.6, 4.8)))
+  ) * 6.40885) - 3.14159);
+  vec4 tmpvar_10;
+  tmpvar_10 = (tmpvar_9 * tmpvar_9);
+  vec4 tmpvar_11;
+  tmpvar_11 = (tmpvar_10 * tmpvar_9);
+  vec4 tmpvar_12;
+  tmpvar_12 = (tmpvar_11 * tmpvar_10);
+  vec4 tmpvar_13;
+  tmpvar_13 = (((tmpvar_9 + 
+    (tmpvar_11 * -0.161616)
+  ) + (tmpvar_12 * 0.0083333)) + ((tmpvar_12 * tmpvar_10) * -0.00019841));
+  vec4 tmpvar_14;
+  tmpvar_14 = (tmpvar_13 * tmpvar_13);
+  vec4 tmpvar_15;
+  tmpvar_15 = (tmpvar_14 * tmpvar_14);
+  vec4 tmpvar_16;
+  tmpvar_16 = (tmpvar_15 * TANGENT.y);
+  waveMove_8.y = 0.0;
+  waveMove_8.x = dot (tmpvar_16, vec4(0.024, 0.04, -0.12, 0.096));
+  waveMove_8.z = dot (tmpvar_16, vec4(0.006, 0.02, -0.02, 0.1));
+  vertex_6.xz = (pos_2.xz - (waveMove_8.xz * _WaveAndDistance.z));
+  vec3 tmpvar_17;
+  tmpvar_17 = (vertex_6.xyz - _CameraPosition.xyz);
+  color_7.w = clamp (((2.0 * 
+    (_WaveAndDistance.w - dot (tmpvar_17, tmpvar_17))
+  ) * _CameraPosition.w), 0.0, 1.0);
+  vec4 tmpvar_18;
+  tmpvar_18.xyz = ((2.0 * mix (vec3(0.5, 0.5, 0.5), _WavingTint.xyz, vec3(
+    (dot (tmpvar_15, vec4(0.6742, 0.6742, 0.26968, 0.13484)) * 0.7)
+  ))) * gl_Color.xyz);
+  tmpvar_18.w = color_7.w;
+  tmpvar_1 = ((gl_MultiTexCoord0.xy * _MainTex_ST.xy) + _MainTex_ST.zw);
+  vec3 vertex_19;
+  vertex_19 = vertex_6.xyz;
+  vec4 clipPos_20;
+  if ((unity_LightShadowBias.z != 0.0)) {
+    vec4 tmpvar_21;
+    tmpvar_21.w = 1.0;
+    tmpvar_21.xyz = vertex_19;
+    vec3 tmpvar_22;
+    tmpvar_22 = (_Object2World * tmpvar_21).xyz;
+    vec4 v_23;
+    v_23.x = _World2Object[0].x;
+    v_23.y = _World2Object[1].x;
+    v_23.z = _World2Object[2].x;
+    v_23.w = _World2Object[3].x;
+    vec4 v_24;
+    v_24.x = _World2Object[0].y;
+    v_24.y = _World2Object[1].y;
+    v_24.z = _World2Object[2].y;
+    v_24.w = _World2Object[3].y;
+    vec4 v_25;
+    v_25.x = _World2Object[0].z;
+    v_25.y = _World2Object[1].z;
+    v_25.z = _World2Object[2].z;
+    v_25.w = _World2Object[3].z;
+    vec3 tmpvar_26;
+    tmpvar_26 = normalize(((
+      (v_23.xyz * gl_Normal.x)
+     + 
+      (v_24.xyz * gl_Normal.y)
+    ) + (v_25.xyz * gl_Normal.z)));
+    float tmpvar_27;
+    tmpvar_27 = dot (tmpvar_26, normalize((_WorldSpaceLightPos0.xyz - 
+      (tmpvar_22 * _WorldSpaceLightPos0.w)
+    )));
+    vec4 tmpvar_28;
+    tmpvar_28.w = 1.0;
+    tmpvar_28.xyz = (tmpvar_22 - (tmpvar_26 * (unity_LightShadowBias.z * 
+      sqrt((1.0 - (tmpvar_27 * tmpvar_27)))
+    )));
+    clipPos_20 = (unity_MatrixVP * tmpvar_28);
+  } else {
+    vec4 tmpvar_29;
+    tmpvar_29.w = 1.0;
+    tmpvar_29.xyz = vertex_19;
+    clipPos_20 = (gl_ModelViewProjectionMatrix * tmpvar_29);
+  };
+  vec4 clipPos_30;
+  clipPos_30.xyw = clipPos_20.xyw;
+  clipPos_30.z = (clipPos_20.z + clamp ((unity_LightShadowBias.x / clipPos_20.w), 0.0, 1.0));
+  clipPos_30.z = mix (clipPos_30.z, max (clipPos_30.z, -(clipPos_20.w)), unity_LightShadowBias.y);
+  gl_Position = clipPos_30;
+  xlv_TEXCOORD1 = tmpvar_1;
+  xlv_COLOR0 = tmpvar_18;
+}
+
+[fragment shader]
+uniform sampler2D _MainTex;
+uniform float _Cutoff;
+varying vec2 xlv_TEXCOORD1;
+varying vec4 xlv_COLOR0;
+void main ()
+{
+  float x_1;
+  x_1 = ((texture2D (_MainTex, xlv_TEXCOORD1) * xlv_COLOR0).w - _Cutoff);
+  if ((x_1 < 0.0)) {
+    discard;
+  };
+  gl_FragData[0] = vec4(0.0, 0.0, 0.0, 0.0);
+}
+

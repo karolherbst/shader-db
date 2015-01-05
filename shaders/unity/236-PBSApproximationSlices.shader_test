@@ -1,0 +1,138 @@
+# Built-in shader from Unity 5.0.0b19:
+# Surface/Standard/Slices
+# internal variant: DIRECTIONAL DIRLIGHTMAP_OFF DYNAMICLIGHTMAP_OFF LIGHTMAP_OFF SHADOWS_OFF
+# This shader GLSL dump is put under MIT license
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+uniform vec4 unity_SHAr;
+uniform vec4 unity_SHAg;
+uniform vec4 unity_SHAb;
+uniform vec4 unity_SHBr;
+uniform vec4 unity_SHBg;
+uniform vec4 unity_SHBb;
+uniform vec4 unity_SHC;
+
+uniform mat4 _Object2World;
+uniform mat4 _World2Object;
+uniform vec4 _MainTex_ST;
+varying vec2 xlv_TEXCOORD0;
+varying vec3 xlv_TEXCOORD1;
+varying vec3 xlv_TEXCOORD2;
+varying vec3 xlv_TEXCOORD3;
+void main ()
+{
+  vec4 v_1;
+  v_1.x = _World2Object[0].x;
+  v_1.y = _World2Object[1].x;
+  v_1.z = _World2Object[2].x;
+  v_1.w = _World2Object[3].x;
+  vec4 v_2;
+  v_2.x = _World2Object[0].y;
+  v_2.y = _World2Object[1].y;
+  v_2.z = _World2Object[2].y;
+  v_2.w = _World2Object[3].y;
+  vec4 v_3;
+  v_3.x = _World2Object[0].z;
+  v_3.y = _World2Object[1].z;
+  v_3.z = _World2Object[2].z;
+  v_3.w = _World2Object[3].z;
+  vec3 tmpvar_4;
+  tmpvar_4 = normalize(((
+    (v_1.xyz * gl_Normal.x)
+   + 
+    (v_2.xyz * gl_Normal.y)
+  ) + (v_3.xyz * gl_Normal.z)));
+  vec4 tmpvar_5;
+  tmpvar_5.w = 1.0;
+  tmpvar_5.xyz = tmpvar_4;
+  vec3 x2_6;
+  vec3 x1_7;
+  x1_7.x = dot (unity_SHAr, tmpvar_5);
+  x1_7.y = dot (unity_SHAg, tmpvar_5);
+  x1_7.z = dot (unity_SHAb, tmpvar_5);
+  vec4 tmpvar_8;
+  tmpvar_8 = (tmpvar_4.xyzz * tmpvar_4.yzzx);
+  x2_6.x = dot (unity_SHBr, tmpvar_8);
+  x2_6.y = dot (unity_SHBg, tmpvar_8);
+  x2_6.z = dot (unity_SHBb, tmpvar_8);
+  gl_Position = (gl_ModelViewProjectionMatrix * gl_Vertex);
+  xlv_TEXCOORD0 = ((gl_MultiTexCoord0.xy * _MainTex_ST.xy) + _MainTex_ST.zw);
+  xlv_TEXCOORD1 = tmpvar_4;
+  xlv_TEXCOORD2 = (_Object2World * gl_Vertex).xyz;
+  xlv_TEXCOORD3 = ((x1_7 + x2_6) + (unity_SHC.xyz * (
+    (tmpvar_4.x * tmpvar_4.x)
+   - 
+    (tmpvar_4.y * tmpvar_4.y)
+  )));
+}
+
+[fragment shader]
+uniform vec3 _WorldSpaceCameraPos;
+uniform vec4 _WorldSpaceLightPos0;
+uniform vec4 _LightColor0;
+uniform sampler2D unity_NHxRoughness;
+uniform samplerCube unity_SpecCube;
+uniform sampler2D _MainTex;
+uniform vec4 unity_SpecCube_HDR;
+varying vec2 xlv_TEXCOORD0;
+varying vec3 xlv_TEXCOORD1;
+varying vec3 xlv_TEXCOORD2;
+varying vec3 xlv_TEXCOORD3;
+void main ()
+{
+  vec3 tmpvar_1;
+  float tmpvar_2;
+  vec4 c_3;
+  vec3 tmpvar_4;
+  tmpvar_4 = normalize((_WorldSpaceCameraPos - xlv_TEXCOORD2));
+  float x_5;
+  x_5 = (fract((
+    (xlv_TEXCOORD2.y + (xlv_TEXCOORD2.z * 0.3))
+   * 4.0)) - 0.5);
+  if ((x_5 < 0.0)) {
+    discard;
+  };
+  vec4 tmpvar_6;
+  tmpvar_6 = texture2D (_MainTex, xlv_TEXCOORD0);
+  tmpvar_1 = (_LightColor0.xyz + _LightColor0.xyz);
+  tmpvar_2 = clamp (dot (xlv_TEXCOORD1, _WorldSpaceLightPos0.xyz), 0.0, 1.0);
+  vec3 tmpvar_7;
+  vec3 I_8;
+  I_8 = -(tmpvar_4);
+  vec4 tmpvar_9;
+  tmpvar_9.xyz = (I_8 - (2.0 * (
+    dot (xlv_TEXCOORD1, I_8)
+   * xlv_TEXCOORD1)));
+  tmpvar_9.w = ((1.0 - tmpvar_6.w) * 7.0);
+  vec4 tmpvar_10;
+  tmpvar_10 = textureCube (unity_SpecCube, tmpvar_9.xyz, tmpvar_9.w);
+  tmpvar_7 = ((tmpvar_10.w * unity_SpecCube_HDR.x) * tmpvar_10.xyz);
+  vec4 c_11;
+  vec3 tmpvar_12;
+  tmpvar_12 = normalize(xlv_TEXCOORD1);
+  float tmpvar_13;
+  tmpvar_13 = (1.0 - tmpvar_6.x);
+  vec2 tmpvar_14;
+  tmpvar_14.x = dot (tmpvar_12, normalize((_WorldSpaceLightPos0.xyz + tmpvar_4)));
+  tmpvar_14.y = (1.0 - tmpvar_6.w);
+  float tmpvar_15;
+  tmpvar_15 = (1.0 - clamp (dot (tmpvar_12, tmpvar_4), 0.0, 1.0));
+  float tmpvar_16;
+  tmpvar_16 = (tmpvar_15 * tmpvar_15);
+  c_11.xyz = (((vec3(tmpvar_13) * 
+    (xlv_TEXCOORD3 + (tmpvar_1 * tmpvar_2))
+  ) + (tmpvar_6.xyz * 
+    (tmpvar_7 + (tmpvar_1 * ((texture2D (unity_NHxRoughness, tmpvar_14).w * 16.0) * tmpvar_2)))
+  )) + (tmpvar_7 * (
+    (tmpvar_13 * tmpvar_6.w)
+   * 
+    (tmpvar_16 * tmpvar_16)
+  )));
+  c_11.w = 0.0;
+  c_3.xyz = c_11.xyz;
+  c_3.w = 1.0;
+  gl_FragData[0] = c_3;
+}
+

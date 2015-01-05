@@ -1,0 +1,99 @@
+# Built-in shader from Unity 5.0.0b19:
+# Surface/Rim Bump
+# internal variant: DIRECTIONAL
+# This shader GLSL dump is put under MIT license
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+uniform mat4 _Object2World;
+uniform mat4 _World2Object;
+uniform vec4 _BumpMap_ST;
+attribute vec4 TANGENT;
+varying vec2 xlv_TEXCOORD0;
+varying vec3 xlv_TEXCOORD1;
+varying vec3 xlv_TEXCOORD2;
+varying vec3 xlv_TEXCOORD3;
+varying vec3 xlv_TEXCOORD4;
+void main ()
+{
+  vec4 v_1;
+  v_1.x = _World2Object[0].x;
+  v_1.y = _World2Object[1].x;
+  v_1.z = _World2Object[2].x;
+  v_1.w = _World2Object[3].x;
+  vec4 v_2;
+  v_2.x = _World2Object[0].y;
+  v_2.y = _World2Object[1].y;
+  v_2.z = _World2Object[2].y;
+  v_2.w = _World2Object[3].y;
+  vec4 v_3;
+  v_3.x = _World2Object[0].z;
+  v_3.y = _World2Object[1].z;
+  v_3.z = _World2Object[2].z;
+  v_3.w = _World2Object[3].z;
+  vec3 tmpvar_4;
+  tmpvar_4 = normalize(((
+    (v_1.xyz * gl_Normal.x)
+   + 
+    (v_2.xyz * gl_Normal.y)
+  ) + (v_3.xyz * gl_Normal.z)));
+  mat3 tmpvar_5;
+  tmpvar_5[0] = _Object2World[0].xyz;
+  tmpvar_5[1] = _Object2World[1].xyz;
+  tmpvar_5[2] = _Object2World[2].xyz;
+  vec3 tmpvar_6;
+  tmpvar_6 = normalize((tmpvar_5 * TANGENT.xyz));
+  vec3 tmpvar_7;
+  tmpvar_7 = (((tmpvar_4.yzx * tmpvar_6.zxy) - (tmpvar_4.zxy * tmpvar_6.yzx)) * TANGENT.w);
+  vec3 tmpvar_8;
+  tmpvar_8.x = tmpvar_6.x;
+  tmpvar_8.y = tmpvar_7.x;
+  tmpvar_8.z = tmpvar_4.x;
+  vec3 tmpvar_9;
+  tmpvar_9.x = tmpvar_6.y;
+  tmpvar_9.y = tmpvar_7.y;
+  tmpvar_9.z = tmpvar_4.y;
+  vec3 tmpvar_10;
+  tmpvar_10.x = tmpvar_6.z;
+  tmpvar_10.y = tmpvar_7.z;
+  tmpvar_10.z = tmpvar_4.z;
+  gl_Position = (gl_ModelViewProjectionMatrix * gl_Vertex);
+  xlv_TEXCOORD0 = ((gl_MultiTexCoord0.xy * _BumpMap_ST.xy) + _BumpMap_ST.zw);
+  xlv_TEXCOORD1 = tmpvar_8;
+  xlv_TEXCOORD2 = tmpvar_9;
+  xlv_TEXCOORD3 = tmpvar_10;
+  xlv_TEXCOORD4 = (_Object2World * gl_Vertex).xyz;
+}
+
+[fragment shader]
+uniform vec4 _WorldSpaceLightPos0;
+uniform vec4 _LightColor0;
+uniform sampler2D _MainTex;
+uniform sampler2D _BumpMap;
+varying vec2 xlv_TEXCOORD0;
+varying vec3 xlv_TEXCOORD1;
+varying vec3 xlv_TEXCOORD2;
+varying vec3 xlv_TEXCOORD3;
+void main ()
+{
+  vec3 worldN_1;
+  vec4 c_2;
+  vec3 normal_3;
+  normal_3.xy = ((texture2D (_BumpMap, xlv_TEXCOORD0).wy * 2.0) - 1.0);
+  normal_3.z = sqrt((1.0 - clamp (
+    dot (normal_3.xy, normal_3.xy)
+  , 0.0, 1.0)));
+  worldN_1.x = dot (xlv_TEXCOORD1, normal_3);
+  worldN_1.y = dot (xlv_TEXCOORD2, normal_3);
+  worldN_1.z = dot (xlv_TEXCOORD3, normal_3);
+  vec4 c_4;
+  c_4.xyz = ((texture2D (_MainTex, xlv_TEXCOORD0).xyz * _LightColor0.xyz) * (max (0.0, 
+    dot (worldN_1, _WorldSpaceLightPos0.xyz)
+  ) * 2.0));
+  c_4.w = 0.0;
+  c_2.xyz = c_4.xyz;
+  c_2.w = 1.0;
+  gl_FragData[0] = c_2;
+}
+

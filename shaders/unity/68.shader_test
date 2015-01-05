@@ -1,0 +1,104 @@
+# Built-in shader from Unity 5.0.0b19:
+# Hidden/Dof/DepthOfFieldHdr
+# internal variant: 
+# This shader GLSL dump is put under MIT license
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+varying vec2 xlv_TEXCOORD0;
+varying vec2 xlv_TEXCOORD1;
+void main ()
+{
+  vec2 tmpvar_1;
+  tmpvar_1 = gl_MultiTexCoord0.xy;
+  gl_Position = (gl_ModelViewProjectionMatrix * gl_Vertex);
+  xlv_TEXCOORD0 = tmpvar_1;
+  xlv_TEXCOORD1 = tmpvar_1;
+}
+
+[fragment shader]
+uniform sampler2D _MainTex;
+uniform vec4 _MainTex_TexelSize;
+uniform vec4 _Offsets;
+vec3 DiscKernel[28];
+varying vec2 xlv_TEXCOORD1;
+void main ()
+{
+  DiscKernel[0] = vec3(0.62463, 0.54337, 0.8279);
+  DiscKernel[1] = vec3(-0.13414, -0.94488, 0.95435);
+  DiscKernel[2] = vec3(0.38772, -0.43475, 0.58253);
+  DiscKernel[3] = vec3(0.12126, -0.19282, 0.22778);
+  DiscKernel[4] = vec3(-0.20388, 0.11133, 0.2323);
+  DiscKernel[5] = vec3(0.83114, -0.29218, 0.881);
+  DiscKernel[6] = vec3(0.10759, -0.57839, 0.58831);
+  DiscKernel[7] = vec3(0.28285, 0.79036, 0.83945);
+  DiscKernel[8] = vec3(-0.36622, 0.39516, 0.53876);
+  DiscKernel[9] = vec3(0.75591, 0.21916, 0.78704);
+  DiscKernel[10] = vec3(-0.5261, 0.02386, 0.52664);
+  DiscKernel[11] = vec3(-0.88216, -0.24471, 0.91547);
+  DiscKernel[12] = vec3(-0.48888, -0.2933, 0.57011);
+  DiscKernel[13] = vec3(0.44014, -0.08558, 0.44838);
+  DiscKernel[14] = vec3(0.21179, 0.51373, 0.55567);
+  DiscKernel[15] = vec3(0.05483, 0.95701, 0.95858);
+  DiscKernel[16] = vec3(-0.59001, -0.70509, 0.91938);
+  DiscKernel[17] = vec3(-0.80065, 0.24631, 0.83768);
+  DiscKernel[18] = vec3(-0.19424, -0.18402, 0.26757);
+  DiscKernel[19] = vec3(-0.43667, 0.76751, 0.88304);
+  DiscKernel[20] = vec3(0.21666, 0.11602, 0.24577);
+  DiscKernel[21] = vec3(0.15696, -0.856, 0.87027);
+  DiscKernel[22] = vec3(-0.75821, 0.58363, 0.95682);
+  DiscKernel[23] = vec3(0.99284, -0.02904, 0.99327);
+  DiscKernel[24] = vec3(-0.22234, -0.57907, 0.62029);
+  DiscKernel[25] = vec3(0.55052, -0.66984, 0.86704);
+  DiscKernel[26] = vec3(0.46431, 0.28115, 0.5428);
+  DiscKernel[27] = vec3(-0.07214, 0.60554, 0.60982);
+  vec2 tmpvar_1;
+  tmpvar_1 = xlv_TEXCOORD1;
+  vec4 returnValue_2;
+  float sampleCount_4;
+  vec4 poissonScale_5;
+  vec4 sum_6;
+  vec4 centerTap_7;
+  vec4 tmpvar_8;
+  tmpvar_8 = texture2D (_MainTex, xlv_TEXCOORD1);
+  centerTap_7 = tmpvar_8;
+  poissonScale_5 = ((_MainTex_TexelSize.xyxy * tmpvar_8.w) * _Offsets.w);
+  float tmpvar_9;
+  tmpvar_9 = max ((tmpvar_8.w * 0.25), _Offsets.z);
+  sampleCount_4 = tmpvar_9;
+  sum_6 = (tmpvar_8 * tmpvar_9);
+  for (int l_3 = 0; l_3 < 28; l_3++) {
+    vec4 tmpvar_10;
+    tmpvar_10.xy = vec2(1.2, 1.2);
+    tmpvar_10.zw = DiscKernel[l_3].zz;
+    vec4 tmpvar_11;
+    tmpvar_11 = (tmpvar_1.xyxy + ((DiscKernel[l_3].xyxy * poissonScale_5.xyxy) / tmpvar_10));
+    vec4 tmpvar_12;
+    tmpvar_12 = texture2D (_MainTex, tmpvar_11.xy);
+    vec4 tmpvar_13;
+    tmpvar_13 = texture2D (_MainTex, tmpvar_11.zw);
+    if (((tmpvar_12.w + tmpvar_13.w) > 0.0)) {
+      vec2 tmpvar_14;
+      tmpvar_14.y = 1.0;
+      tmpvar_14.x = (DiscKernel[l_3].z / 1.2);
+      vec2 tmpvar_15;
+      tmpvar_15.x = tmpvar_12.w;
+      tmpvar_15.y = tmpvar_13.w;
+      vec2 tmpvar_16;
+      vec2 tmpvar_17;
+      tmpvar_17 = clamp (((
+        (tmpvar_15 - (centerTap_7.ww * tmpvar_14))
+       - vec2(-0.265, -0.265)) / vec2(0.265, 0.265)), 0.0, 1.0);
+      tmpvar_16 = (tmpvar_17 * (tmpvar_17 * (3.0 - 
+        (2.0 * tmpvar_17)
+      )));
+      sum_6 = (sum_6 + ((tmpvar_12 * tmpvar_16.x) + (tmpvar_13 * tmpvar_16.y)));
+      sampleCount_4 = (sampleCount_4 + dot (tmpvar_16, vec2(1.0, 1.0)));
+    };
+  };
+  returnValue_2.xyz = (sum_6 / sampleCount_4).xyz;
+  returnValue_2.w = tmpvar_8.w;
+  gl_FragData[0] = returnValue_2;
+}
+

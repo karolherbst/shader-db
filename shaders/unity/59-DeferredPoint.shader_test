@@ -1,0 +1,120 @@
+# Built-in shader from Unity 5.0.0b19:
+# Hidden/Internal-DeferredShading
+# internal variant: POINT SHADOWS_OFF
+# This shader GLSL dump is put under MIT license
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+uniform vec4 _ProjectionParams;
+
+
+uniform float _LightAsQuad;
+varying vec4 xlv_TEXCOORD0;
+varying vec3 xlv_TEXCOORD1;
+void main ()
+{
+  vec4 tmpvar_1;
+  tmpvar_1 = (gl_ModelViewProjectionMatrix * gl_Vertex);
+  vec4 o_2;
+  vec4 tmpvar_3;
+  tmpvar_3 = (tmpvar_1 * 0.5);
+  vec2 tmpvar_4;
+  tmpvar_4.x = tmpvar_3.x;
+  tmpvar_4.y = (tmpvar_3.y * _ProjectionParams.x);
+  o_2.xy = (tmpvar_4 + tmpvar_3.w);
+  o_2.zw = tmpvar_1.zw;
+  gl_Position = tmpvar_1;
+  xlv_TEXCOORD0 = o_2;
+  xlv_TEXCOORD1 = mix (((gl_ModelViewMatrix * gl_Vertex).xyz * vec3(-1.0, -1.0, 1.0)), gl_Normal, vec3(_LightAsQuad));
+}
+
+[fragment shader]
+uniform vec3 _WorldSpaceCameraPos;
+uniform vec4 _ProjectionParams;
+uniform vec4 _ZBufferParams;
+uniform sampler2D _CameraDepthTexture;
+uniform vec4 _LightPos;
+uniform vec4 _LightColor;
+uniform mat4 _CameraToWorld;
+uniform sampler2D _LightTextureB0;
+uniform sampler2D _CameraGBufferTexture0;
+uniform sampler2D _CameraGBufferTexture1;
+uniform sampler2D _CameraGBufferTexture2;
+varying vec4 xlv_TEXCOORD0;
+varying vec3 xlv_TEXCOORD1;
+void main ()
+{
+  vec2 tmpvar_1;
+  tmpvar_1 = (xlv_TEXCOORD0.xy / xlv_TEXCOORD0.w);
+  vec4 tmpvar_2;
+  tmpvar_2.w = 1.0;
+  tmpvar_2.xyz = ((xlv_TEXCOORD1 * (_ProjectionParams.z / xlv_TEXCOORD1.z)) * (1.0/((
+    (_ZBufferParams.x * texture2D (_CameraDepthTexture, tmpvar_1).x)
+   + _ZBufferParams.y))));
+  vec3 tmpvar_3;
+  tmpvar_3 = (_CameraToWorld * tmpvar_2).xyz;
+  vec3 tmpvar_4;
+  tmpvar_4 = (tmpvar_3 - _LightPos.xyz);
+  vec3 tmpvar_5;
+  tmpvar_5 = -(normalize(tmpvar_4));
+  vec4 tmpvar_6;
+  tmpvar_6 = texture2D (_CameraGBufferTexture1, tmpvar_1);
+  vec3 tmpvar_7;
+  tmpvar_7 = (_LightColor.xyz * texture2D (_LightTextureB0, vec2((dot (tmpvar_4, tmpvar_4) * _LightPos.w))).w);
+  vec3 tmpvar_8;
+  tmpvar_8 = normalize(((texture2D (_CameraGBufferTexture2, tmpvar_1).xyz * 2.0) - 1.0));
+  float tmpvar_9;
+  tmpvar_9 = max (0.0, dot (tmpvar_8, tmpvar_5));
+  vec3 viewDir_10;
+  viewDir_10 = -(normalize((tmpvar_3 - _WorldSpaceCameraPos)));
+  float tmpvar_11;
+  tmpvar_11 = (1.0 - tmpvar_6.w);
+  vec3 tmpvar_12;
+  tmpvar_12 = normalize((tmpvar_5 + viewDir_10));
+  float tmpvar_13;
+  tmpvar_13 = max (0.0, dot (tmpvar_8, viewDir_10));
+  float tmpvar_14;
+  tmpvar_14 = max (0.0, dot (tmpvar_5, tmpvar_12));
+  float tmpvar_15;
+  tmpvar_15 = ((tmpvar_11 * tmpvar_11) * 0.797885);
+  float tmpvar_16;
+  float tmpvar_17;
+  tmpvar_17 = (10.0 / log2((
+    ((1.0 - tmpvar_11) * 0.968)
+   + 0.03)));
+  tmpvar_16 = (tmpvar_17 * tmpvar_17);
+  float tmpvar_18;
+  tmpvar_18 = (0.5 + ((
+    (2.0 * tmpvar_14)
+   * tmpvar_14) * tmpvar_11));
+  vec4 tmpvar_19;
+  tmpvar_19.w = 1.0;
+  tmpvar_19.xyz = ((texture2D (_CameraGBufferTexture0, tmpvar_1).xyz * (tmpvar_7 * 
+    (((1.0 + (
+      (tmpvar_18 - 1.0)
+     * 
+      pow ((1.0001 - tmpvar_9), 5.0)
+    )) * (1.0 + (
+      (tmpvar_18 - 1.0)
+     * 
+      pow ((1.0001 - tmpvar_13), 5.0)
+    ))) * tmpvar_9)
+  )) + ((
+    (max (0.0, ((
+      ((1.0/(((
+        (tmpvar_9 * (1.0 - tmpvar_15))
+       + tmpvar_15) * (
+        (tmpvar_13 * (1.0 - tmpvar_15))
+       + tmpvar_15)))) * (pow (max (0.0, 
+        dot (tmpvar_8, tmpvar_12)
+      ), tmpvar_16) * ((tmpvar_16 + 1.0) / 6.28319)))
+     * tmpvar_9) / 4.0)) * 3.14159)
+   * tmpvar_7) * (tmpvar_6.xyz + 
+    ((1.0 - tmpvar_6.xyz) * pow (abs((1.0 - 
+      max (0.0, dot (viewDir_10, tmpvar_12))
+    )), 5.0))
+  )));
+  gl_FragData[0] = exp2(-(tmpvar_19));
+}
+

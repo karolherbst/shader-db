@@ -1,0 +1,98 @@
+# Built-in shader from Unity 5.0.0b19:
+# Hidden/GlobalFog
+# internal variant: 
+# This shader GLSL dump is put under MIT license
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+uniform mat4 _FrustumCornersWS;
+varying vec2 xlv_TEXCOORD0;
+varying vec2 xlv_TEXCOORD1;
+varying vec4 xlv_TEXCOORD2;
+void main ()
+{
+  vec2 tmpvar_1;
+  tmpvar_1 = gl_MultiTexCoord0.xy;
+  vec4 tmpvar_2;
+  tmpvar_2.xyw = gl_Vertex.xyw;
+  vec4 tmpvar_3;
+  tmpvar_2.z = 0.1;
+  int i_4;
+  i_4 = int(gl_Vertex.z);
+  vec4 v_5;
+  v_5.x = _FrustumCornersWS[0][i_4];
+  v_5.y = _FrustumCornersWS[1][i_4];
+  v_5.z = _FrustumCornersWS[2][i_4];
+  v_5.w = _FrustumCornersWS[3][i_4];
+  tmpvar_3.xyz = v_5.xyz;
+  tmpvar_3.w = gl_Vertex.z;
+  gl_Position = (gl_ModelViewProjectionMatrix * tmpvar_2);
+  xlv_TEXCOORD0 = tmpvar_1;
+  xlv_TEXCOORD1 = tmpvar_1;
+  xlv_TEXCOORD2 = tmpvar_3;
+}
+
+[fragment shader]
+uniform vec4 _ZBufferParams;
+uniform vec4 unity_FogColor;
+uniform sampler2D _MainTex;
+uniform sampler2D _CameraDepthTexture;
+uniform vec4 _HeightParams;
+uniform vec4 _DistanceParams;
+uniform int _SceneFogMode;
+uniform vec4 _SceneFogParams;
+uniform vec4 _CameraWS;
+varying vec2 xlv_TEXCOORD0;
+varying vec2 xlv_TEXCOORD1;
+varying vec4 xlv_TEXCOORD2;
+void main ()
+{
+  float fogFac_1;
+  float g_2;
+  vec4 tmpvar_3;
+  tmpvar_3 = texture2D (_MainTex, xlv_TEXCOORD0);
+  vec4 tmpvar_4;
+  tmpvar_4 = texture2D (_CameraDepthTexture, xlv_TEXCOORD1);
+  vec4 tmpvar_5;
+  tmpvar_5 = ((1.0/((
+    (_ZBufferParams.x * tmpvar_4.x)
+   + _ZBufferParams.y))) * xlv_TEXCOORD2);
+  g_2 = (_DistanceParams.x + sqrt(dot (tmpvar_5.xyz, tmpvar_5.xyz)));
+  vec3 tmpvar_6;
+  tmpvar_6 = (_HeightParams.w * tmpvar_5.xyz);
+  float tmpvar_7;
+  tmpvar_7 = ((_CameraWS.xyz + tmpvar_5.xyz).y - _HeightParams.x);
+  float tmpvar_8;
+  tmpvar_8 = min (((1.0 - 
+    (2.0 * _HeightParams.z)
+  ) * tmpvar_7), 0.0);
+  g_2 = (g_2 + (-(
+    sqrt(dot (tmpvar_6, tmpvar_6))
+  ) * (
+    (_HeightParams.z * (tmpvar_7 + _HeightParams.y))
+   - 
+    ((tmpvar_8 * tmpvar_8) / abs((tmpvar_5.y + 1e-05)))
+  )));
+  float tmpvar_9;
+  tmpvar_9 = max (0.0, g_2);
+  float fogFac_10;
+  fogFac_10 = 0.0;
+  if ((_SceneFogMode == 1)) {
+    fogFac_10 = ((tmpvar_9 * _SceneFogParams.z) + _SceneFogParams.w);
+  };
+  if ((_SceneFogMode == 2)) {
+    fogFac_10 = exp2(-((_SceneFogParams.y * tmpvar_9)));
+  };
+  if ((_SceneFogMode == 3)) {
+    float tmpvar_11;
+    tmpvar_11 = (_SceneFogParams.x * tmpvar_9);
+    fogFac_10 = exp2((-(tmpvar_11) * tmpvar_11));
+  };
+  fogFac_1 = clamp (fogFac_10, 0.0, 1.0);
+  if ((tmpvar_4.x >= 0.999999)) {
+    fogFac_1 = 1.0;
+  };
+  gl_FragData[0] = mix (unity_FogColor, tmpvar_3, vec4(fogFac_1));
+}
+

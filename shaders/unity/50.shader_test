@@ -1,0 +1,101 @@
+# Built-in shader from Unity 5.0.0b19:
+# Hidden/SSAO
+# internal variant: 
+# This shader GLSL dump is put under MIT license
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+uniform vec2 _NoiseScale;
+uniform vec4 _CameraDepthNormalsTexture_ST;
+varying vec2 xlv_TEXCOORD0;
+varying vec2 xlv_TEXCOORD1;
+void main ()
+{
+  gl_Position = (gl_ModelViewProjectionMatrix * gl_Vertex);
+  xlv_TEXCOORD0 = ((gl_MultiTexCoord0.xy * _CameraDepthNormalsTexture_ST.xy) + _CameraDepthNormalsTexture_ST.zw);
+  xlv_TEXCOORD1 = (gl_MultiTexCoord0.xy * _NoiseScale);
+}
+
+[fragment shader]
+uniform vec4 _ProjectionParams;
+uniform sampler2D _CameraDepthNormalsTexture;
+uniform sampler2D _RandomTexture;
+uniform vec4 _Params;
+varying vec2 xlv_TEXCOORD0;
+varying vec2 xlv_TEXCOORD1;
+void main ()
+{
+  vec3 RAND_SAMPLES_1[14];
+  RAND_SAMPLES_1[0] = vec3(0.401004, 0.889938, -0.0175177);
+  RAND_SAMPLES_1[1] = vec3(0.161784, 0.133855, -0.353049);
+  RAND_SAMPLES_1[2] = vec3(-0.23053, -0.190009, 0.50254);
+  RAND_SAMPLES_1[3] = vec3(-0.625668, 0.124166, 0.116393);
+  RAND_SAMPLES_1[4] = vec3(0.382079, -0.32414, 0.411283);
+  RAND_SAMPLES_1[5] = vec3(-0.0882965, 0.164976, 0.139588);
+  RAND_SAMPLES_1[6] = vec3(0.189168, -0.128376, -0.0987356);
+  RAND_SAMPLES_1[7] = vec3(0.198614, 0.176724, 0.438049);
+  RAND_SAMPLES_1[8] = vec3(-0.329497, 0.0268434, -0.402184);
+  RAND_SAMPLES_1[9] = vec3(-0.019565, -0.310806, -0.410663);
+  RAND_SAMPLES_1[10] = vec3(-0.32155, 0.683205, -0.343345);
+  RAND_SAMPLES_1[11] = vec3(0.702613, 0.164825, 0.0225063);
+  RAND_SAMPLES_1[12] = vec3(0.0370446, -0.939131, 0.135877);
+  RAND_SAMPLES_1[13] = vec3(-0.698445, -0.600342, -0.0401694);
+  vec2 tmpvar_2;
+  tmpvar_2 = xlv_TEXCOORD0;
+  vec3 samples_3[14];
+  samples_3[0]=RAND_SAMPLES_1[0];samples_3[1]=RAND_SAMPLES_1[1];samples_3[2]=RAND_SAMPLES_1[2];samples_3[3]=RAND_SAMPLES_1[3];samples_3[4]=RAND_SAMPLES_1[4];samples_3[5]=RAND_SAMPLES_1[5];samples_3[6]=RAND_SAMPLES_1[6];samples_3[7]=RAND_SAMPLES_1[7];samples_3[8]=RAND_SAMPLES_1[8];samples_3[9]=RAND_SAMPLES_1[9];samples_3[10]=RAND_SAMPLES_1[10];samples_3[11]=RAND_SAMPLES_1[11];samples_3[12]=RAND_SAMPLES_1[12];samples_3[13]=RAND_SAMPLES_1[13];
+  float occ_5;
+  float scale_6;
+  float depth_7;
+  vec3 viewNorm_8;
+  vec3 randN_9;
+  randN_9 = ((texture2D (_RandomTexture, xlv_TEXCOORD1).xyz * 2.0) - 1.0);
+  vec4 tmpvar_10;
+  tmpvar_10 = texture2D (_CameraDepthNormalsTexture, xlv_TEXCOORD0);
+  vec3 n_11;
+  vec3 tmpvar_12;
+  tmpvar_12 = ((tmpvar_10.xyz * vec3(3.5554, 3.5554, 0.0)) + vec3(-1.7777, -1.7777, 1.0));
+  float tmpvar_13;
+  tmpvar_13 = (2.0 / dot (tmpvar_12, tmpvar_12));
+  n_11.xy = (tmpvar_13 * tmpvar_12.xy);
+  n_11.z = (tmpvar_13 - 1.0);
+  viewNorm_8 = n_11;
+  float tmpvar_14;
+  tmpvar_14 = (dot (tmpvar_10.zw, vec2(1.0, 0.00392157)) * _ProjectionParams.z);
+  depth_7 = tmpvar_14;
+  scale_6 = (_Params.x / tmpvar_14);
+  occ_5 = 0.0;
+  for (int s_4 = 0; s_4 < 14; s_4++) {
+    vec3 tmpvar_15;
+    vec3 I_16;
+    I_16 = samples_3[s_4];
+    tmpvar_15 = (I_16 - (2.0 * (
+      dot (randN_9, I_16)
+     * randN_9)));
+    float tmpvar_17;
+    tmpvar_17 = dot (viewNorm_8, tmpvar_15);
+    float tmpvar_18;
+    if ((tmpvar_17 < 0.0)) {
+      tmpvar_18 = 1.0;
+    } else {
+      tmpvar_18 = -1.0;
+    };
+    vec3 tmpvar_19;
+    tmpvar_19 = ((tmpvar_15 * -(tmpvar_18)) + (viewNorm_8 * 0.3));
+    float tmpvar_20;
+    tmpvar_20 = clamp (((depth_7 - 
+      (tmpvar_19.z * _Params.x)
+    ) - (
+      dot (texture2D (_CameraDepthNormalsTexture, (tmpvar_2 + (tmpvar_19.xy * scale_6))).zw, vec2(1.0, 0.00392157))
+     * _ProjectionParams.z)), 0.0, 1.0);
+    if ((tmpvar_20 > _Params.y)) {
+      occ_5 = (occ_5 + pow ((1.0 - tmpvar_20), _Params.z));
+    };
+  };
+  float tmpvar_21;
+  tmpvar_21 = (occ_5 / 14.0);
+  occ_5 = tmpvar_21;
+  gl_FragData[0] = vec4((1.0 - tmpvar_21));
+}
+

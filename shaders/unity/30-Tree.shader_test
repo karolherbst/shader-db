@@ -1,0 +1,343 @@
+# Built-in shader from Unity 5.0.0b19:
+# Nature/SpeedTree
+# internal variant: DIRECTIONAL DIRLIGHTMAP_OFF DYNAMICLIGHTMAP_OFF EFFECT_BUMP EFFECT_HUE_VARIATION GEOM_TYPE_BRANCH LIGHTMAP_OFF SHADOWS_OFF
+# This shader GLSL dump is put under MIT license
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+uniform vec4 unity_SHAr;
+uniform vec4 unity_SHAg;
+uniform vec4 unity_SHAb;
+uniform vec4 unity_SHBr;
+uniform vec4 unity_SHBg;
+uniform vec4 unity_SHBb;
+uniform vec4 unity_SHC;
+
+uniform mat4 _Object2World;
+uniform mat4 _World2Object;
+uniform float _WindQuality;
+uniform float _WindEnabled;
+uniform vec4 _ST_WindVector;
+uniform vec4 _ST_WindGlobal;
+uniform vec4 _ST_WindBranch;
+uniform vec4 _ST_WindBranchTwitch;
+uniform vec4 _ST_WindBranchWhip;
+uniform vec4 _ST_WindBranchAnchor;
+uniform vec4 _ST_WindBranchAdherences;
+uniform vec4 _ST_WindTurbulences;
+uniform vec4 _ST_WindAnimation;
+uniform vec4 _HueVariation;
+uniform vec4 _Color;
+attribute vec4 TANGENT;
+varying vec3 xlv_TEXCOORD0;
+varying vec3 xlv_TEXCOORD1;
+varying vec3 xlv_TEXCOORD2;
+varying vec4 xlv_TEXCOORD3;
+varying vec3 xlv_TEXCOORD4;
+varying vec3 xlv_TEXCOORD5;
+void main ()
+{
+  vec4 tmpvar_1;
+  vec3 tmpvar_2;
+  tmpvar_2.xy = gl_MultiTexCoord0.xy;
+  tmpvar_1.w = _Color.w;
+  tmpvar_1.xyz = (_Color.xyz * gl_Color.x);
+  float cse_3;
+  cse_3 = _Object2World[3].x;
+  float cse_4;
+  cse_4 = _Object2World[3].y;
+  tmpvar_2.z = clamp (((
+    fract(((cse_3 + cse_4) + _Object2World[3].z))
+   + 
+    ((fract((
+      (gl_Vertex.x + gl_Normal.y)
+     + gl_Normal.x)) * 0.5) - 0.3)
+  ) * _HueVariation.w), 0.0, 1.0);
+  vec4 tmpvar_5;
+  tmpvar_5 = gl_Vertex;
+  vec3 vRotatedBranchAnchor_6;
+  vec3 vRotatedWindVector_7;
+  vec3 FinalPosition_8;
+  vec3 tmpvar_9;
+  tmpvar_9 = gl_Vertex.xyz;
+  FinalPosition_8 = tmpvar_9;
+  float tmpvar_10;
+  tmpvar_10 = (_WindQuality * _WindEnabled);
+  if ((tmpvar_10 > 0.0)) {
+    mat3 tmpvar_11;
+    tmpvar_11[0] = _World2Object[0].xyz;
+    tmpvar_11[1] = _World2Object[1].xyz;
+    tmpvar_11[2] = _World2Object[2].xyz;
+    vRotatedWindVector_7 = normalize((tmpvar_11 * _ST_WindVector.xyz));
+    mat3 tmpvar_12;
+    tmpvar_12[0] = _World2Object[0].xyz;
+    tmpvar_12[1] = _World2Object[1].xyz;
+    tmpvar_12[2] = _World2Object[2].xyz;
+    vRotatedBranchAnchor_6 = (normalize((tmpvar_12 * _ST_WindBranchAnchor.xyz)) * _ST_WindBranchAnchor.w);
+  } else {
+    vRotatedWindVector_7 = vec3(0.0, 0.0, 0.0);
+    vRotatedBranchAnchor_6 = vec3(0.0, 0.0, 0.0);
+  };
+  if ((tmpvar_10 >= 3.0)) {
+    vec3 vPos_13;
+    vPos_13 = tmpvar_9;
+    if ((tmpvar_10 == 5.0)) {
+      vec3 vPos_14;
+      vPos_14 = tmpvar_9;
+      float fAdherenceScale_15;
+      vec3 tmpvar_16;
+      tmpvar_16 = (((
+        fract((gl_MultiTexCoord0.w / vec3(16.0, 1.0, 0.0625)))
+       * 2.0) - 1.0) * gl_MultiTexCoord0.z);
+      float tmpvar_17;
+      tmpvar_17 = (_ST_WindBranch.x + (cse_3 + cse_4));
+      vec4 vOscillations_18;
+      float fOscillation_19;
+      fOscillation_19 = 1.0;
+      float fAmount_20;
+      float fTarget_21;
+      vec4 tmpvar_22;
+      tmpvar_22.x = (tmpvar_17 + gl_MultiTexCoord0.w);
+      tmpvar_22.y = ((tmpvar_17 * _ST_WindBranchTwitch.y) + gl_MultiTexCoord0.w);
+      tmpvar_22.z = ((_ST_WindBranchTwitch.y * 0.5) * (tmpvar_17 + gl_MultiTexCoord0.w));
+      tmpvar_22.w = ((tmpvar_17 + gl_MultiTexCoord0.w) + (1.0 - gl_MultiTexCoord0.z));
+      vec4 tmpvar_23;
+      tmpvar_23 = abs(((
+        fract((tmpvar_22 + 0.5))
+       * 2.0) - 1.0));
+      vOscillations_18 = (((
+        (tmpvar_23 * tmpvar_23)
+       * 
+        (3.0 - (2.0 * tmpvar_23))
+      ) - 0.5) * 2.0);
+      float tmpvar_24;
+      tmpvar_24 = (vOscillations_18.y * vOscillations_18.z);
+      fTarget_21 = 1.0;
+      fAmount_20 = tmpvar_24;
+      if ((tmpvar_24 < 0.0)) {
+        fTarget_21 = -1.0;
+        fAmount_20 = -(tmpvar_24);
+      };
+      fOscillation_19 = (((
+        (mix (mix (tmpvar_24, fTarget_21, fAmount_20), fTarget_21, fAmount_20) * _ST_WindBranchTwitch.x)
+       * 
+        (1.0 - _ST_WindVector.w)
+      ) + (vOscillations_18.x * 
+        (1.0 - _ST_WindBranchTwitch.x)
+      )) * (1.0 + (vOscillations_18.w * _ST_WindBranchWhip.x)));
+      vPos_14 = (gl_Vertex.xyz + ((tmpvar_16 * fOscillation_19) * _ST_WindBranch.y));
+      vec4 tmpvar_25;
+      tmpvar_25.zw = vec2(0.0, 0.0);
+      tmpvar_25.x = ((tmpvar_17 * 0.1) + gl_MultiTexCoord0.w);
+      tmpvar_25.y = (((_ST_WindAnimation.x * _ST_WindTurbulences.x) * 0.1) + gl_MultiTexCoord0.w);
+      vec4 tmpvar_26;
+      vec4 tmpvar_27;
+      tmpvar_27 = abs(((
+        fract((tmpvar_25 + 0.5))
+       * 2.0) - 1.0));
+      tmpvar_26 = (((
+        (tmpvar_27 * tmpvar_27)
+       * 
+        (3.0 - (2.0 * tmpvar_27))
+      ) - 0.5) * 2.0);
+      fAdherenceScale_15 = (1.0 - ((
+        ((tmpvar_26.x * tmpvar_26.y) * tmpvar_26.x)
+       * tmpvar_26.y) * _ST_WindTurbulences.x));
+      fAdherenceScale_15 = (fAdherenceScale_15 + ((vOscillations_18.w * _ST_WindVector.w) * _ST_WindBranchWhip.x));
+      vPos_14 = (vPos_14 + ((
+        ((vRotatedBranchAnchor_6 - vPos_14) * _ST_WindBranchAdherences.y)
+       * fAdherenceScale_15) * gl_MultiTexCoord0.z));
+      vPos_13 = vPos_14;
+    } else {
+      vec3 vPos_28;
+      vPos_28 = vPos_13;
+      vec3 tmpvar_29;
+      tmpvar_29 = (((
+        fract((gl_MultiTexCoord0.w / vec3(16.0, 1.0, 0.0625)))
+       * 2.0) - 1.0) * gl_MultiTexCoord0.z);
+      float tmpvar_30;
+      tmpvar_30 = (_ST_WindBranch.x + (cse_3 + cse_4));
+      vec4 vOscillations_31;
+      float fAmount_32;
+      float fTarget_33;
+      vec4 tmpvar_34;
+      tmpvar_34.w = 0.0;
+      tmpvar_34.x = (tmpvar_30 + gl_MultiTexCoord0.w);
+      tmpvar_34.y = ((tmpvar_30 * _ST_WindBranchTwitch.y) + gl_MultiTexCoord0.w);
+      tmpvar_34.z = ((_ST_WindBranchTwitch.y * 0.5) * (tmpvar_30 + gl_MultiTexCoord0.w));
+      vec4 tmpvar_35;
+      tmpvar_35 = abs(((
+        fract((tmpvar_34 + 0.5))
+       * 2.0) - 1.0));
+      vOscillations_31 = (((
+        (tmpvar_35 * tmpvar_35)
+       * 
+        (3.0 - (2.0 * tmpvar_35))
+      ) - 0.5) * 2.0);
+      float tmpvar_36;
+      tmpvar_36 = (vOscillations_31.y * vOscillations_31.z);
+      fTarget_33 = 1.0;
+      fAmount_32 = tmpvar_36;
+      if ((tmpvar_36 < 0.0)) {
+        fTarget_33 = -1.0;
+        fAmount_32 = -(tmpvar_36);
+      };
+      vPos_28 = (vPos_13 + ((tmpvar_29 * 
+        (((mix (
+          mix (tmpvar_36, fTarget_33, fAmount_32)
+        , fTarget_33, fAmount_32) * _ST_WindBranchTwitch.x) * (1.0 - _ST_WindVector.w)) + (vOscillations_31.x * (1.0 - _ST_WindBranchTwitch.x)))
+      ) * _ST_WindBranch.y));
+      vPos_13 = vPos_28;
+    };
+    FinalPosition_8 = vPos_13;
+  };
+  if ((tmpvar_10 > 0.0)) {
+    vec3 vPos_37;
+    vPos_37 = FinalPosition_8;
+    float fAdjust_38;
+    float fLength_39;
+    fLength_39 = sqrt(dot (FinalPosition_8, FinalPosition_8));
+    float tmpvar_40;
+    tmpvar_40 = (max ((FinalPosition_8.y - 
+      ((1.0/(_ST_WindGlobal.z)) * 0.25)
+    ), 0.0) * _ST_WindGlobal.z);
+    fAdjust_38 = tmpvar_40;
+    if ((tmpvar_40 != 0.0)) {
+      fAdjust_38 = pow (tmpvar_40, _ST_WindGlobal.w);
+    };
+    vec4 tmpvar_41;
+    tmpvar_41.zw = vec2(0.0, 0.0);
+    tmpvar_41.x = (cse_3 + _ST_WindGlobal.x);
+    tmpvar_41.y = (cse_4 + (_ST_WindGlobal.x * 0.8));
+    vec4 tmpvar_42;
+    vec4 tmpvar_43;
+    tmpvar_43 = abs(((
+      fract((tmpvar_41 + 0.5))
+     * 2.0) - 1.0));
+    tmpvar_42 = (((
+      (tmpvar_43 * tmpvar_43)
+     * 
+      (3.0 - (2.0 * tmpvar_43))
+    ) - 0.5) * 2.0);
+    vPos_37.xz = (FinalPosition_8.xz + (vRotatedWindVector_7.xz * (
+      ((_ST_WindGlobal.y * (tmpvar_42.x + (tmpvar_42.y * tmpvar_42.y))) + (_ST_WindBranchAdherences.x / _ST_WindGlobal.z))
+     * fAdjust_38)));
+    vPos_37 = (normalize(vPos_37) * fLength_39);
+    FinalPosition_8 = vPos_37;
+  };
+  tmpvar_5.xyz = FinalPosition_8;
+  vec4 v_44;
+  v_44.x = _World2Object[0].x;
+  v_44.y = _World2Object[1].x;
+  v_44.z = _World2Object[2].x;
+  v_44.w = _World2Object[3].x;
+  vec4 v_45;
+  v_45.x = _World2Object[0].y;
+  v_45.y = _World2Object[1].y;
+  v_45.z = _World2Object[2].y;
+  v_45.w = _World2Object[3].y;
+  vec4 v_46;
+  v_46.x = _World2Object[0].z;
+  v_46.y = _World2Object[1].z;
+  v_46.z = _World2Object[2].z;
+  v_46.w = _World2Object[3].z;
+  vec3 tmpvar_47;
+  tmpvar_47 = normalize(((
+    (v_44.xyz * gl_Normal.x)
+   + 
+    (v_45.xyz * gl_Normal.y)
+  ) + (v_46.xyz * gl_Normal.z)));
+  mat3 tmpvar_48;
+  tmpvar_48[0] = _Object2World[0].xyz;
+  tmpvar_48[1] = _Object2World[1].xyz;
+  tmpvar_48[2] = _Object2World[2].xyz;
+  vec3 tmpvar_49;
+  tmpvar_49 = normalize((tmpvar_48 * TANGENT.xyz));
+  vec3 tmpvar_50;
+  tmpvar_50 = (((tmpvar_47.yzx * tmpvar_49.zxy) - (tmpvar_47.zxy * tmpvar_49.yzx)) * TANGENT.w);
+  vec3 tmpvar_51;
+  tmpvar_51.x = tmpvar_49.x;
+  tmpvar_51.y = tmpvar_50.x;
+  tmpvar_51.z = tmpvar_47.x;
+  vec3 tmpvar_52;
+  tmpvar_52.x = tmpvar_49.y;
+  tmpvar_52.y = tmpvar_50.y;
+  tmpvar_52.z = tmpvar_47.y;
+  vec3 tmpvar_53;
+  tmpvar_53.x = tmpvar_49.z;
+  tmpvar_53.y = tmpvar_50.z;
+  tmpvar_53.z = tmpvar_47.z;
+  vec4 tmpvar_54;
+  tmpvar_54.w = 1.0;
+  tmpvar_54.xyz = tmpvar_47;
+  vec3 x2_55;
+  vec3 x1_56;
+  x1_56.x = dot (unity_SHAr, tmpvar_54);
+  x1_56.y = dot (unity_SHAg, tmpvar_54);
+  x1_56.z = dot (unity_SHAb, tmpvar_54);
+  vec4 tmpvar_57;
+  tmpvar_57 = (tmpvar_47.xyzz * tmpvar_47.yzzx);
+  x2_55.x = dot (unity_SHBr, tmpvar_57);
+  x2_55.y = dot (unity_SHBg, tmpvar_57);
+  x2_55.z = dot (unity_SHBb, tmpvar_57);
+  gl_Position = (gl_ModelViewProjectionMatrix * tmpvar_5);
+  xlv_TEXCOORD0 = tmpvar_51;
+  xlv_TEXCOORD1 = tmpvar_52;
+  xlv_TEXCOORD2 = tmpvar_53;
+  xlv_TEXCOORD3 = tmpvar_1;
+  xlv_TEXCOORD4 = tmpvar_2;
+  xlv_TEXCOORD5 = ((x1_56 + x2_55) + (unity_SHC.xyz * (
+    (tmpvar_47.x * tmpvar_47.x)
+   - 
+    (tmpvar_47.y * tmpvar_47.y)
+  )));
+}
+
+[fragment shader]
+uniform vec4 _WorldSpaceLightPos0;
+uniform vec4 _LightColor0;
+uniform sampler2D _MainTex;
+uniform vec4 _HueVariation;
+uniform sampler2D _BumpMap;
+varying vec3 xlv_TEXCOORD0;
+varying vec3 xlv_TEXCOORD1;
+varying vec3 xlv_TEXCOORD2;
+varying vec4 xlv_TEXCOORD3;
+varying vec3 xlv_TEXCOORD4;
+varying vec3 xlv_TEXCOORD5;
+void main ()
+{
+  vec3 worldN_1;
+  vec4 c_2;
+  vec4 diffuseColor_3;
+  vec4 tmpvar_4;
+  tmpvar_4 = texture2D (_MainTex, xlv_TEXCOORD4.xy);
+  diffuseColor_3.w = min (1.0, (2.0 * tmpvar_4.w));
+  vec3 tmpvar_5;
+  tmpvar_5 = mix (tmpvar_4.xyz, _HueVariation.xyz, xlv_TEXCOORD4.zzz);
+  diffuseColor_3.xyz = clamp ((tmpvar_5 * (
+    ((max (tmpvar_4.x, max (tmpvar_4.y, tmpvar_4.z)) / max (tmpvar_5.x, max (tmpvar_5.y, tmpvar_5.z))) * 0.5)
+   + 0.5)), 0.0, 1.0);
+  vec3 tmpvar_6;
+  tmpvar_6 = (diffuseColor_3.xyz * xlv_TEXCOORD3.xyz);
+  vec3 normal_7;
+  normal_7.xy = ((texture2D (_BumpMap, xlv_TEXCOORD4.xy).wy * 2.0) - 1.0);
+  normal_7.z = sqrt((1.0 - clamp (
+    dot (normal_7.xy, normal_7.xy)
+  , 0.0, 1.0)));
+  c_2.w = 0.0;
+  c_2.xyz = (tmpvar_6 * xlv_TEXCOORD5);
+  worldN_1.x = dot (xlv_TEXCOORD0, normal_7);
+  worldN_1.y = dot (xlv_TEXCOORD1, normal_7);
+  worldN_1.z = dot (xlv_TEXCOORD2, normal_7);
+  vec4 c_8;
+  c_8.xyz = ((tmpvar_6 * _LightColor0.xyz) * (max (0.0, 
+    dot (worldN_1, _WorldSpaceLightPos0.xyz)
+  ) * 2.0));
+  c_8.w = 1.0;
+  c_2.xyz = (c_2 + c_8).xyz;
+  c_2.w = 1.0;
+  gl_FragData[0] = c_2;
+}
+

@@ -1,0 +1,152 @@
+# Built-in shader from Unity 5.0.0b19:
+# Surface/WorldNormalReflBump
+# internal variant: DIRECTIONAL DIRLIGHTMAP_OFF DYNAMICLIGHTMAP_OFF LIGHTMAP_OFF SHADOWS_OFF
+# This shader GLSL dump is put under MIT license
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+uniform vec4 unity_SHAr;
+uniform vec4 unity_SHAg;
+uniform vec4 unity_SHAb;
+uniform vec4 unity_SHBr;
+uniform vec4 unity_SHBg;
+uniform vec4 unity_SHBb;
+uniform vec4 unity_SHC;
+
+uniform mat4 _Object2World;
+uniform mat4 _World2Object;
+uniform vec4 _BumpMap_ST;
+attribute vec4 TANGENT;
+varying vec2 xlv_TEXCOORD0;
+varying vec4 xlv_TEXCOORD1;
+varying vec4 xlv_TEXCOORD2;
+varying vec4 xlv_TEXCOORD3;
+varying vec3 xlv_TEXCOORD4;
+void main ()
+{
+  vec3 tmpvar_1;
+  tmpvar_1 = (_Object2World * gl_Vertex).xyz;
+  vec4 v_2;
+  v_2.x = _World2Object[0].x;
+  v_2.y = _World2Object[1].x;
+  v_2.z = _World2Object[2].x;
+  v_2.w = _World2Object[3].x;
+  vec4 v_3;
+  v_3.x = _World2Object[0].y;
+  v_3.y = _World2Object[1].y;
+  v_3.z = _World2Object[2].y;
+  v_3.w = _World2Object[3].y;
+  vec4 v_4;
+  v_4.x = _World2Object[0].z;
+  v_4.y = _World2Object[1].z;
+  v_4.z = _World2Object[2].z;
+  v_4.w = _World2Object[3].z;
+  vec3 tmpvar_5;
+  tmpvar_5 = normalize(((
+    (v_2.xyz * gl_Normal.x)
+   + 
+    (v_3.xyz * gl_Normal.y)
+  ) + (v_4.xyz * gl_Normal.z)));
+  mat3 tmpvar_6;
+  tmpvar_6[0] = _Object2World[0].xyz;
+  tmpvar_6[1] = _Object2World[1].xyz;
+  tmpvar_6[2] = _Object2World[2].xyz;
+  vec3 tmpvar_7;
+  tmpvar_7 = normalize((tmpvar_6 * TANGENT.xyz));
+  vec3 tmpvar_8;
+  tmpvar_8 = (((tmpvar_5.yzx * tmpvar_7.zxy) - (tmpvar_5.zxy * tmpvar_7.yzx)) * TANGENT.w);
+  vec4 tmpvar_9;
+  tmpvar_9.x = tmpvar_7.x;
+  tmpvar_9.y = tmpvar_8.x;
+  tmpvar_9.z = tmpvar_5.x;
+  tmpvar_9.w = tmpvar_1.x;
+  vec4 tmpvar_10;
+  tmpvar_10.x = tmpvar_7.y;
+  tmpvar_10.y = tmpvar_8.y;
+  tmpvar_10.z = tmpvar_5.y;
+  tmpvar_10.w = tmpvar_1.y;
+  vec4 tmpvar_11;
+  tmpvar_11.x = tmpvar_7.z;
+  tmpvar_11.y = tmpvar_8.z;
+  tmpvar_11.z = tmpvar_5.z;
+  tmpvar_11.w = tmpvar_1.z;
+  vec4 tmpvar_12;
+  tmpvar_12.w = 1.0;
+  tmpvar_12.xyz = tmpvar_5;
+  vec3 x2_13;
+  vec3 x1_14;
+  x1_14.x = dot (unity_SHAr, tmpvar_12);
+  x1_14.y = dot (unity_SHAg, tmpvar_12);
+  x1_14.z = dot (unity_SHAb, tmpvar_12);
+  vec4 tmpvar_15;
+  tmpvar_15 = (tmpvar_5.xyzz * tmpvar_5.yzzx);
+  x2_13.x = dot (unity_SHBr, tmpvar_15);
+  x2_13.y = dot (unity_SHBg, tmpvar_15);
+  x2_13.z = dot (unity_SHBb, tmpvar_15);
+  gl_Position = (gl_ModelViewProjectionMatrix * gl_Vertex);
+  xlv_TEXCOORD0 = ((gl_MultiTexCoord0.xy * _BumpMap_ST.xy) + _BumpMap_ST.zw);
+  xlv_TEXCOORD1 = tmpvar_9;
+  xlv_TEXCOORD2 = tmpvar_10;
+  xlv_TEXCOORD3 = tmpvar_11;
+  xlv_TEXCOORD4 = ((x1_14 + x2_13) + (unity_SHC.xyz * (
+    (tmpvar_5.x * tmpvar_5.x)
+   - 
+    (tmpvar_5.y * tmpvar_5.y)
+  )));
+}
+
+[fragment shader]
+uniform vec3 _WorldSpaceCameraPos;
+uniform vec4 _WorldSpaceLightPos0;
+uniform vec4 _LightColor0;
+uniform samplerCube _Cube;
+uniform sampler2D _BumpMap;
+uniform samplerCube _ReflCube;
+varying vec2 xlv_TEXCOORD0;
+varying vec4 xlv_TEXCOORD1;
+varying vec4 xlv_TEXCOORD2;
+varying vec4 xlv_TEXCOORD3;
+varying vec3 xlv_TEXCOORD4;
+void main ()
+{
+  vec3 worldN_1;
+  vec4 c_2;
+  vec3 tmpvar_3;
+  tmpvar_3.x = xlv_TEXCOORD1.w;
+  tmpvar_3.y = xlv_TEXCOORD2.w;
+  tmpvar_3.z = xlv_TEXCOORD3.w;
+  vec3 tmpvar_4;
+  tmpvar_4 = -(normalize((_WorldSpaceCameraPos - tmpvar_3)));
+  vec3 normal_5;
+  normal_5.xy = ((texture2D (_BumpMap, xlv_TEXCOORD0).wy * 2.0) - 1.0);
+  normal_5.z = sqrt((1.0 - clamp (
+    dot (normal_5.xy, normal_5.xy)
+  , 0.0, 1.0)));
+  vec3 tmpvar_6;
+  tmpvar_6.x = dot (xlv_TEXCOORD1.xyz, normal_5);
+  tmpvar_6.y = dot (xlv_TEXCOORD2.xyz, normal_5);
+  tmpvar_6.z = dot (xlv_TEXCOORD3.xyz, normal_5);
+  vec3 tmpvar_7;
+  tmpvar_7.x = dot (xlv_TEXCOORD1.xyz, normal_5);
+  tmpvar_7.y = dot (xlv_TEXCOORD2.xyz, normal_5);
+  tmpvar_7.z = dot (xlv_TEXCOORD3.xyz, normal_5);
+  vec3 tmpvar_8;
+  tmpvar_8 = ((textureCube (_Cube, tmpvar_6).xyz * 0.5) + (textureCube (_ReflCube, (tmpvar_4 - 
+    (2.0 * (dot (tmpvar_7, tmpvar_4) * tmpvar_7))
+  )).xyz * 0.3));
+  c_2.w = 0.0;
+  c_2.xyz = (tmpvar_8 * xlv_TEXCOORD4);
+  worldN_1.x = dot (xlv_TEXCOORD1.xyz, normal_5);
+  worldN_1.y = dot (xlv_TEXCOORD2.xyz, normal_5);
+  worldN_1.z = dot (xlv_TEXCOORD3.xyz, normal_5);
+  vec4 c_9;
+  c_9.xyz = ((tmpvar_8 * _LightColor0.xyz) * (max (0.0, 
+    dot (worldN_1, _WorldSpaceLightPos0.xyz)
+  ) * 2.0));
+  c_9.w = 0.0;
+  c_2.xyz = (c_2 + c_9).xyz;
+  c_2.w = 1.0;
+  gl_FragData[0] = c_2;
+}
+

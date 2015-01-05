@@ -1,0 +1,107 @@
+# Built-in shader from Unity 5.0.0b19:
+# Surface/Colored Specular
+# internal variant: DIRECTIONAL DIRLIGHTMAP_OFF DYNAMICLIGHTMAP_OFF LIGHTMAP_OFF SHADOWS_OFF
+# This shader GLSL dump is put under MIT license
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+uniform vec4 unity_SHAr;
+uniform vec4 unity_SHAg;
+uniform vec4 unity_SHAb;
+uniform vec4 unity_SHBr;
+uniform vec4 unity_SHBg;
+uniform vec4 unity_SHBb;
+uniform vec4 unity_SHC;
+
+uniform mat4 _Object2World;
+uniform mat4 _World2Object;
+uniform vec4 _MainTex_ST;
+uniform vec4 _SpecMap_ST;
+varying vec4 xlv_TEXCOORD0;
+varying vec3 xlv_TEXCOORD1;
+varying vec3 xlv_TEXCOORD2;
+varying vec3 xlv_TEXCOORD3;
+void main ()
+{
+  vec4 tmpvar_1;
+  tmpvar_1.xy = ((gl_MultiTexCoord0.xy * _MainTex_ST.xy) + _MainTex_ST.zw);
+  tmpvar_1.zw = ((gl_MultiTexCoord0.xy * _SpecMap_ST.xy) + _SpecMap_ST.zw);
+  vec4 v_2;
+  v_2.x = _World2Object[0].x;
+  v_2.y = _World2Object[1].x;
+  v_2.z = _World2Object[2].x;
+  v_2.w = _World2Object[3].x;
+  vec4 v_3;
+  v_3.x = _World2Object[0].y;
+  v_3.y = _World2Object[1].y;
+  v_3.z = _World2Object[2].y;
+  v_3.w = _World2Object[3].y;
+  vec4 v_4;
+  v_4.x = _World2Object[0].z;
+  v_4.y = _World2Object[1].z;
+  v_4.z = _World2Object[2].z;
+  v_4.w = _World2Object[3].z;
+  vec3 tmpvar_5;
+  tmpvar_5 = normalize(((
+    (v_2.xyz * gl_Normal.x)
+   + 
+    (v_3.xyz * gl_Normal.y)
+  ) + (v_4.xyz * gl_Normal.z)));
+  vec4 tmpvar_6;
+  tmpvar_6.w = 1.0;
+  tmpvar_6.xyz = tmpvar_5;
+  vec3 x2_7;
+  vec3 x1_8;
+  x1_8.x = dot (unity_SHAr, tmpvar_6);
+  x1_8.y = dot (unity_SHAg, tmpvar_6);
+  x1_8.z = dot (unity_SHAb, tmpvar_6);
+  vec4 tmpvar_9;
+  tmpvar_9 = (tmpvar_5.xyzz * tmpvar_5.yzzx);
+  x2_7.x = dot (unity_SHBr, tmpvar_9);
+  x2_7.y = dot (unity_SHBg, tmpvar_9);
+  x2_7.z = dot (unity_SHBb, tmpvar_9);
+  gl_Position = (gl_ModelViewProjectionMatrix * gl_Vertex);
+  xlv_TEXCOORD0 = tmpvar_1;
+  xlv_TEXCOORD1 = tmpvar_5;
+  xlv_TEXCOORD2 = (_Object2World * gl_Vertex).xyz;
+  xlv_TEXCOORD3 = ((x1_8 + x2_7) + (unity_SHC.xyz * (
+    (tmpvar_5.x * tmpvar_5.x)
+   - 
+    (tmpvar_5.y * tmpvar_5.y)
+  )));
+}
+
+[fragment shader]
+uniform vec3 _WorldSpaceCameraPos;
+uniform vec4 _WorldSpaceLightPos0;
+uniform vec4 _LightColor0;
+uniform sampler2D _MainTex;
+uniform sampler2D _SpecMap;
+varying vec4 xlv_TEXCOORD0;
+varying vec3 xlv_TEXCOORD1;
+varying vec3 xlv_TEXCOORD2;
+varying vec3 xlv_TEXCOORD3;
+void main ()
+{
+  vec4 c_1;
+  vec3 tmpvar_2;
+  tmpvar_2 = (texture2D (_MainTex, xlv_TEXCOORD0.xy).xyz * 0.3);
+  c_1.w = 0.0;
+  c_1.xyz = (tmpvar_2 * xlv_TEXCOORD3);
+  vec4 c_3;
+  c_3.xyz = (((
+    (tmpvar_2 * _LightColor0.xyz)
+   * 
+    max (0.0, dot (xlv_TEXCOORD1, _WorldSpaceLightPos0.xyz))
+  ) + (_LightColor0.xyz * 
+    (pow (max (0.0, dot (xlv_TEXCOORD1, 
+      normalize((_WorldSpaceLightPos0.xyz + normalize((_WorldSpaceCameraPos - xlv_TEXCOORD2))))
+    )), 32.0) * texture2D (_SpecMap, xlv_TEXCOORD0.zw).xyz)
+  )) * 2.0);
+  c_3.w = 0.0;
+  c_1.xyz = (c_1 + c_3).xyz;
+  c_1.w = 1.0;
+  gl_FragData[0] = c_1;
+}
+

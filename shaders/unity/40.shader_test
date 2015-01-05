@@ -1,0 +1,331 @@
+# Built-in shader from Unity 5.0.0b19:
+# Standard
+# internal variant: DIRECTIONAL DIRLIGHTMAP_OFF DYNAMICLIGHTMAP_OFF LIGHTMAP_OFF SHADOWS_SCREEN
+# This shader GLSL dump is put under MIT license
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+uniform vec3 _WorldSpaceCameraPos;
+uniform vec4 _ProjectionParams;
+uniform vec4 unity_SHBr;
+uniform vec4 unity_SHBg;
+uniform vec4 unity_SHBb;
+uniform vec4 unity_SHC;
+
+uniform mat4 _Object2World;
+uniform mat4 _World2Object;
+uniform vec4 _MainTex_ST;
+uniform vec4 _DetailAlbedoMap_ST;
+uniform float _UVSec;
+varying vec4 xlv_TEXCOORD0;
+varying vec3 xlv_TEXCOORD1;
+varying vec4 xlv_TEXCOORD2;
+varying vec4 xlv_TEXCOORD2_1;
+varying vec4 xlv_TEXCOORD2_2;
+varying vec4 xlv_TEXCOORD5;
+varying vec4 xlv_TEXCOORD6;
+varying vec3 xlv_TEXCOORD8;
+void main ()
+{
+  vec2 tmpvar_1;
+  tmpvar_1 = gl_MultiTexCoord0.xy;
+  vec2 tmpvar_2;
+  tmpvar_2 = gl_MultiTexCoord1.xy;
+  vec4 tmpvar_3;
+  vec4 tmpvar_4;
+  vec4 tmpvar_5;
+  vec4 tmpvar_6;
+  vec4 tmpvar_7;
+  tmpvar_7 = (_Object2World * gl_Vertex);
+  vec3 tmpvar_8;
+  tmpvar_8 = tmpvar_7.xyz;
+  vec4 tmpvar_9;
+  tmpvar_9 = (gl_ModelViewProjectionMatrix * gl_Vertex);
+  vec4 texcoord_10;
+  texcoord_10.xy = ((gl_MultiTexCoord0.xy * _MainTex_ST.xy) + _MainTex_ST.zw);
+  vec2 tmpvar_11;
+  if ((_UVSec == 0.0)) {
+    tmpvar_11 = tmpvar_1;
+  } else {
+    tmpvar_11 = tmpvar_2;
+  };
+  texcoord_10.zw = ((tmpvar_11 * _DetailAlbedoMap_ST.xy) + _DetailAlbedoMap_ST.zw);
+  vec4 v_12;
+  v_12.x = _World2Object[0].x;
+  v_12.y = _World2Object[1].x;
+  v_12.z = _World2Object[2].x;
+  v_12.w = _World2Object[3].x;
+  vec4 v_13;
+  v_13.x = _World2Object[0].y;
+  v_13.y = _World2Object[1].y;
+  v_13.z = _World2Object[2].y;
+  v_13.w = _World2Object[3].y;
+  vec4 v_14;
+  v_14.x = _World2Object[0].z;
+  v_14.y = _World2Object[1].z;
+  v_14.z = _World2Object[2].z;
+  v_14.w = _World2Object[3].z;
+  vec3 tmpvar_15;
+  tmpvar_15 = normalize(((
+    (v_12.xyz * gl_Normal.x)
+   + 
+    (v_13.xyz * gl_Normal.y)
+  ) + (v_14.xyz * gl_Normal.z)));
+  tmpvar_3.xyz = vec3(0.0, 0.0, 0.0);
+  tmpvar_4.xyz = vec3(0.0, 0.0, 0.0);
+  tmpvar_5.xyz = tmpvar_15;
+  vec4 o_16;
+  vec4 tmpvar_17;
+  tmpvar_17 = (tmpvar_9 * 0.5);
+  vec2 tmpvar_18;
+  tmpvar_18.x = tmpvar_17.x;
+  tmpvar_18.y = (tmpvar_17.y * _ProjectionParams.x);
+  o_16.xy = (tmpvar_18 + tmpvar_17.w);
+  o_16.zw = tmpvar_9.zw;
+  vec3 x2_19;
+  vec4 tmpvar_20;
+  tmpvar_20 = (tmpvar_15.xyzz * tmpvar_15.yzzx);
+  x2_19.x = dot (unity_SHBr, tmpvar_20);
+  x2_19.y = dot (unity_SHBg, tmpvar_20);
+  x2_19.z = dot (unity_SHBb, tmpvar_20);
+  tmpvar_6.xyz = (x2_19 + (unity_SHC.xyz * (
+    (tmpvar_15.x * tmpvar_15.x)
+   - 
+    (tmpvar_15.y * tmpvar_15.y)
+  )));
+  gl_Position = tmpvar_9;
+  xlv_TEXCOORD0 = texcoord_10;
+  xlv_TEXCOORD1 = (tmpvar_7.xyz - _WorldSpaceCameraPos);
+  xlv_TEXCOORD2 = tmpvar_3;
+  xlv_TEXCOORD2_1 = tmpvar_4;
+  xlv_TEXCOORD2_2 = tmpvar_5;
+  xlv_TEXCOORD5 = tmpvar_6;
+  xlv_TEXCOORD6 = o_16;
+  xlv_TEXCOORD8 = tmpvar_8;
+}
+
+[fragment shader]
+#extension GL_ARB_shader_texture_lod : enable
+uniform vec4 _WorldSpaceLightPos0;
+uniform vec4 unity_SHAr;
+uniform vec4 unity_SHAg;
+uniform vec4 unity_SHAb;
+uniform vec4 unity_ColorSpaceDielectricSpec;
+uniform samplerCube unity_SpecCube;
+uniform samplerCube unity_SpecCube1;
+uniform vec4 _LightColor0;
+uniform vec4 _Color;
+uniform sampler2D _MainTex;
+uniform float _Metallic;
+uniform float _Glossiness;
+uniform sampler2D _OcclusionMap;
+uniform float _OcclusionStrength;
+uniform sampler2D _ShadowMapTexture;
+uniform vec4 unity_SpecCube_BoxMax;
+uniform vec4 unity_SpecCube_BoxMin;
+uniform vec4 unity_SpecCube_ProbePosition;
+uniform vec4 unity_SpecCube_HDR;
+uniform vec4 unity_SpecCube_BoxMax1;
+uniform vec4 unity_SpecCube_BoxMin1;
+uniform vec4 unity_SpecCube_ProbePosition1;
+uniform vec4 unity_SpecCube_HDR1;
+varying vec4 xlv_TEXCOORD0;
+varying vec3 xlv_TEXCOORD1;
+varying vec4 xlv_TEXCOORD2_2;
+varying vec4 xlv_TEXCOORD5;
+varying vec4 xlv_TEXCOORD6;
+varying vec3 xlv_TEXCOORD8;
+void main ()
+{
+  vec4 c_1;
+  vec3 tmpvar_2;
+  tmpvar_2 = normalize(xlv_TEXCOORD2_2.xyz);
+  vec3 tmpvar_3;
+  tmpvar_3 = normalize(xlv_TEXCOORD1);
+  vec3 tmpvar_4;
+  tmpvar_4 = (_Color.xyz * texture2D (_MainTex, xlv_TEXCOORD0.xy).xyz);
+  vec3 tmpvar_5;
+  vec3 tmpvar_6;
+  tmpvar_6 = mix (unity_ColorSpaceDielectricSpec.xyz, tmpvar_4, vec3(_Metallic));
+  float tmpvar_7;
+  tmpvar_7 = (unity_ColorSpaceDielectricSpec.w - (_Metallic * unity_ColorSpaceDielectricSpec.w));
+  tmpvar_5 = (tmpvar_4 * tmpvar_7);
+  float tmpvar_8;
+  tmpvar_8 = ((1.0 - _OcclusionStrength) + (texture2D (_OcclusionMap, xlv_TEXCOORD0.xy).y * _OcclusionStrength));
+  float tmpvar_9;
+  tmpvar_9 = max (0.0, dot (tmpvar_2, _WorldSpaceLightPos0.xyz));
+  vec3 tmpvar_10;
+  vec3 tmpvar_11;
+  vec3 tmpvar_12;
+  tmpvar_12 = vec3(0.0, 0.0, 0.0);
+  vec4 tmpvar_13;
+  tmpvar_13.w = 1.0;
+  tmpvar_13.xyz = tmpvar_2;
+  vec3 x1_14;
+  x1_14.x = dot (unity_SHAr, tmpvar_13);
+  x1_14.y = dot (unity_SHAg, tmpvar_13);
+  x1_14.z = dot (unity_SHAb, tmpvar_13);
+  tmpvar_11 = (xlv_TEXCOORD5.xyz + x1_14);
+  tmpvar_10 = ((_LightColor0.xyz + _LightColor0.xyz) * texture2DProj (_ShadowMapTexture, xlv_TEXCOORD6).x);
+  tmpvar_11 = (tmpvar_11 * tmpvar_8);
+  vec3 tmpvar_15;
+  tmpvar_15 = (tmpvar_3 - (2.0 * (
+    dot (tmpvar_2, tmpvar_3)
+   * tmpvar_2)));
+  vec3 worldNormal_16;
+  worldNormal_16 = tmpvar_15;
+  if ((unity_SpecCube_ProbePosition.w > 0.0)) {
+    vec3 tmpvar_17;
+    tmpvar_17 = normalize(tmpvar_15);
+    vec3 tmpvar_18;
+    tmpvar_18 = ((unity_SpecCube_BoxMax.xyz - xlv_TEXCOORD8) / tmpvar_17);
+    vec3 tmpvar_19;
+    tmpvar_19 = ((unity_SpecCube_BoxMin.xyz - xlv_TEXCOORD8) / tmpvar_17);
+    bvec3 tmpvar_20;
+    tmpvar_20 = greaterThan (tmpvar_17, vec3(0.0, 0.0, 0.0));
+    float tmpvar_21;
+    if (tmpvar_20.x) {
+      tmpvar_21 = tmpvar_18.x;
+    } else {
+      tmpvar_21 = tmpvar_19.x;
+    };
+    float tmpvar_22;
+    if (tmpvar_20.y) {
+      tmpvar_22 = tmpvar_18.y;
+    } else {
+      tmpvar_22 = tmpvar_19.y;
+    };
+    float tmpvar_23;
+    if (tmpvar_20.z) {
+      tmpvar_23 = tmpvar_18.z;
+    } else {
+      tmpvar_23 = tmpvar_19.z;
+    };
+    vec3 tmpvar_24;
+    tmpvar_24 = ((unity_SpecCube_BoxMax.xyz + unity_SpecCube_BoxMin.xyz) * 0.5);
+    worldNormal_16 = (((
+      (tmpvar_24 - unity_SpecCube_ProbePosition.xyz)
+     + xlv_TEXCOORD8) + (tmpvar_17 * 
+      min (min (tmpvar_21, tmpvar_22), tmpvar_23)
+    )) - tmpvar_24);
+  };
+  vec4 tmpvar_25;
+  tmpvar_25.xyz = worldNormal_16;
+  tmpvar_25.w = (pow ((1.0 - _Glossiness), 0.75) * 7.0);
+  vec4 tmpvar_26;
+  tmpvar_26 = textureCubeLod (unity_SpecCube, worldNormal_16, tmpvar_25.w);
+  vec3 tmpvar_27;
+  tmpvar_27 = ((unity_SpecCube_HDR.x * pow (tmpvar_26.w, unity_SpecCube_HDR.y)) * tmpvar_26.xyz);
+  if ((unity_SpecCube_BoxMin.w < 0.99999)) {
+    vec3 worldNormal_28;
+    worldNormal_28 = tmpvar_15;
+    if ((unity_SpecCube_ProbePosition1.w > 0.0)) {
+      vec3 tmpvar_29;
+      tmpvar_29 = normalize(tmpvar_15);
+      vec3 tmpvar_30;
+      tmpvar_30 = ((unity_SpecCube_BoxMax1.xyz - xlv_TEXCOORD8) / tmpvar_29);
+      vec3 tmpvar_31;
+      tmpvar_31 = ((unity_SpecCube_BoxMin1.xyz - xlv_TEXCOORD8) / tmpvar_29);
+      bvec3 tmpvar_32;
+      tmpvar_32 = greaterThan (tmpvar_29, vec3(0.0, 0.0, 0.0));
+      float tmpvar_33;
+      if (tmpvar_32.x) {
+        tmpvar_33 = tmpvar_30.x;
+      } else {
+        tmpvar_33 = tmpvar_31.x;
+      };
+      float tmpvar_34;
+      if (tmpvar_32.y) {
+        tmpvar_34 = tmpvar_30.y;
+      } else {
+        tmpvar_34 = tmpvar_31.y;
+      };
+      float tmpvar_35;
+      if (tmpvar_32.z) {
+        tmpvar_35 = tmpvar_30.z;
+      } else {
+        tmpvar_35 = tmpvar_31.z;
+      };
+      vec3 tmpvar_36;
+      tmpvar_36 = ((unity_SpecCube_BoxMax1.xyz + unity_SpecCube_BoxMin1.xyz) * 0.5);
+      worldNormal_28 = (((
+        (tmpvar_36 - unity_SpecCube_ProbePosition1.xyz)
+       + xlv_TEXCOORD8) + (tmpvar_29 * 
+        min (min (tmpvar_33, tmpvar_34), tmpvar_35)
+      )) - tmpvar_36);
+    };
+    vec4 tmpvar_37;
+    tmpvar_37.xyz = worldNormal_28;
+    tmpvar_37.w = (pow ((1.0 - _Glossiness), 0.75) * 7.0);
+    vec4 tmpvar_38;
+    tmpvar_38 = textureCubeLod (unity_SpecCube1, worldNormal_28, tmpvar_37.w);
+    tmpvar_12 = mix (((unity_SpecCube_HDR1.x * 
+      pow (tmpvar_38.w, unity_SpecCube_HDR1.y)
+    ) * tmpvar_38.xyz), tmpvar_27, unity_SpecCube_BoxMin.www);
+  } else {
+    tmpvar_12 = tmpvar_27;
+  };
+  tmpvar_12 = (tmpvar_12 * tmpvar_8);
+  vec3 viewDir_39;
+  viewDir_39 = -(tmpvar_3);
+  float tmpvar_40;
+  tmpvar_40 = (1.0 - _Glossiness);
+  vec3 tmpvar_41;
+  tmpvar_41 = normalize((_WorldSpaceLightPos0.xyz + viewDir_39));
+  float tmpvar_42;
+  tmpvar_42 = max (0.0, dot (tmpvar_2, viewDir_39));
+  float tmpvar_43;
+  tmpvar_43 = max (0.0, dot (_WorldSpaceLightPos0.xyz, tmpvar_41));
+  float tmpvar_44;
+  tmpvar_44 = ((tmpvar_40 * tmpvar_40) * 0.797885);
+  float tmpvar_45;
+  float tmpvar_46;
+  tmpvar_46 = (10.0 / log2((
+    ((1.0 - tmpvar_40) * 0.968)
+   + 0.03)));
+  tmpvar_45 = (tmpvar_46 * tmpvar_46);
+  float tmpvar_47;
+  tmpvar_47 = (0.5 + ((
+    (2.0 * tmpvar_43)
+   * tmpvar_43) * tmpvar_40));
+  vec3 tmpvar_48;
+  tmpvar_48 = (((tmpvar_5 * 
+    (tmpvar_11 + (tmpvar_10 * ((
+      (1.0 + ((tmpvar_47 - 1.0) * pow ((1.0001 - tmpvar_9), 5.0)))
+     * 
+      (1.0 + ((tmpvar_47 - 1.0) * pow ((1.0001 - tmpvar_42), 5.0)))
+    ) * tmpvar_9)))
+  ) + (
+    ((max (0.0, (
+      (((1.0/((
+        ((tmpvar_9 * (1.0 - tmpvar_44)) + tmpvar_44)
+       * 
+        ((tmpvar_42 * (1.0 - tmpvar_44)) + tmpvar_44)
+      ))) * (pow (
+        max (0.0, dot (tmpvar_2, tmpvar_41))
+      , tmpvar_45) * (
+        (tmpvar_45 + 1.0)
+       / 6.28319))) * tmpvar_9)
+     / 4.0)) * 3.14159) * tmpvar_10)
+   * 
+    (tmpvar_6 + ((1.0 - tmpvar_6) * pow (abs(
+      (1.0 - max (0.0, dot (viewDir_39, tmpvar_41)))
+    ), 5.0)))
+  )) + (tmpvar_12 * mix (tmpvar_6, vec3(
+    clamp ((_Glossiness + (1.0 - tmpvar_7)), 0.0, 1.0)
+  ), vec3(
+    pow (abs((1.0 - tmpvar_42)), 5.0)
+  ))));
+  vec4 tmpvar_49;
+  tmpvar_49.w = 1.0;
+  tmpvar_49.xyz = tmpvar_48;
+  c_1.w = tmpvar_49.w;
+  c_1.xyz = tmpvar_48;
+  c_1.xyz = c_1.xyz;
+  vec4 xlat_varoutput_50;
+  xlat_varoutput_50.xyz = c_1.xyz;
+  xlat_varoutput_50.w = 1.0;
+  gl_FragData[0] = xlat_varoutput_50;
+}
+

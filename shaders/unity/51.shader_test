@@ -1,0 +1,174 @@
+# Built-in shader from Unity 5.0.0b19:
+# Hidden/SSAO
+# internal variant: 
+# This shader GLSL dump is put under MIT license
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+uniform vec4 _CameraDepthNormalsTexture_ST;
+varying vec2 xlv_TEXCOORD0;
+void main ()
+{
+  gl_Position = (gl_ModelViewProjectionMatrix * gl_Vertex);
+  xlv_TEXCOORD0 = ((gl_MultiTexCoord0.xy * _CameraDepthNormalsTexture_ST.xy) + _CameraDepthNormalsTexture_ST.zw);
+}
+
+[fragment shader]
+uniform vec4 _ProjectionParams;
+uniform sampler2D _CameraDepthNormalsTexture;
+uniform sampler2D _SSAO;
+uniform vec3 _TexelOffsetScale;
+varying vec2 xlv_TEXCOORD0;
+void main ()
+{
+  vec4 geom_1;
+  float denom_2;
+  float sum_3;
+  sum_3 = (texture2D (_SSAO, xlv_TEXCOORD0).x * 5.0);
+  geom_1 = texture2D (_CameraDepthNormalsTexture, xlv_TEXCOORD0);
+  vec2 tmpvar_4;
+  tmpvar_4 = (xlv_TEXCOORD0 + _TexelOffsetScale.xy);
+  vec4 tmpvar_5;
+  tmpvar_5 = texture2D (_CameraDepthNormalsTexture, tmpvar_4);
+  vec2 tmpvar_6;
+  tmpvar_6 = abs((geom_1.xy - tmpvar_5.xy));
+  float tmpvar_7;
+  tmpvar_7 = (4.0 * (float(
+    ((tmpvar_6.x + tmpvar_6.y) < 0.1)
+  ) * float(
+    ((abs((
+      dot (geom_1.zw, vec2(1.0, 0.00392157))
+     - 
+      dot (tmpvar_5.zw, vec2(1.0, 0.00392157))
+    )) * _ProjectionParams.z) < 0.2)
+  )));
+  sum_3 = (sum_3 + (texture2D (_SSAO, tmpvar_4).x * tmpvar_7));
+  denom_2 = (5.0 + tmpvar_7);
+  vec2 tmpvar_8;
+  vec2 cse_9;
+  cse_9 = (_TexelOffsetScale.xy * 2.0);
+  tmpvar_8 = (xlv_TEXCOORD0 + cse_9);
+  vec4 tmpvar_10;
+  tmpvar_10 = texture2D (_CameraDepthNormalsTexture, tmpvar_8);
+  vec2 tmpvar_11;
+  tmpvar_11 = abs((geom_1.xy - tmpvar_10.xy));
+  float tmpvar_12;
+  tmpvar_12 = (3.0 * (float(
+    ((tmpvar_11.x + tmpvar_11.y) < 0.1)
+  ) * float(
+    ((abs((
+      dot (geom_1.zw, vec2(1.0, 0.00392157))
+     - 
+      dot (tmpvar_10.zw, vec2(1.0, 0.00392157))
+    )) * _ProjectionParams.z) < 0.2)
+  )));
+  sum_3 = (sum_3 + (texture2D (_SSAO, tmpvar_8).x * tmpvar_12));
+  denom_2 = (denom_2 + tmpvar_12);
+  vec2 tmpvar_13;
+  vec2 cse_14;
+  cse_14 = (_TexelOffsetScale.xy * 3.0);
+  tmpvar_13 = (xlv_TEXCOORD0 + cse_14);
+  vec4 tmpvar_15;
+  tmpvar_15 = texture2D (_CameraDepthNormalsTexture, tmpvar_13);
+  vec2 tmpvar_16;
+  tmpvar_16 = abs((geom_1.xy - tmpvar_15.xy));
+  float tmpvar_17;
+  tmpvar_17 = (2.0 * (float(
+    ((tmpvar_16.x + tmpvar_16.y) < 0.1)
+  ) * float(
+    ((abs((
+      dot (geom_1.zw, vec2(1.0, 0.00392157))
+     - 
+      dot (tmpvar_15.zw, vec2(1.0, 0.00392157))
+    )) * _ProjectionParams.z) < 0.2)
+  )));
+  sum_3 = (sum_3 + (texture2D (_SSAO, tmpvar_13).x * tmpvar_17));
+  denom_2 = (denom_2 + tmpvar_17);
+  vec2 tmpvar_18;
+  vec2 cse_19;
+  cse_19 = (_TexelOffsetScale.xy * 4.0);
+  tmpvar_18 = (xlv_TEXCOORD0 + cse_19);
+  vec4 tmpvar_20;
+  tmpvar_20 = texture2D (_CameraDepthNormalsTexture, tmpvar_18);
+  vec2 tmpvar_21;
+  tmpvar_21 = abs((geom_1.xy - tmpvar_20.xy));
+  float tmpvar_22;
+  tmpvar_22 = (float((
+    (tmpvar_21.x + tmpvar_21.y)
+   < 0.1)) * float((
+    (abs((dot (geom_1.zw, vec2(1.0, 0.00392157)) - dot (tmpvar_20.zw, vec2(1.0, 0.00392157)))) * _ProjectionParams.z)
+   < 0.2)));
+  sum_3 = (sum_3 + (texture2D (_SSAO, tmpvar_18).x * tmpvar_22));
+  denom_2 = (denom_2 + tmpvar_22);
+  vec2 tmpvar_23;
+  tmpvar_23 = (xlv_TEXCOORD0 - _TexelOffsetScale.xy);
+  vec4 tmpvar_24;
+  tmpvar_24 = texture2D (_CameraDepthNormalsTexture, tmpvar_23);
+  vec2 tmpvar_25;
+  tmpvar_25 = abs((geom_1.xy - tmpvar_24.xy));
+  float tmpvar_26;
+  tmpvar_26 = (4.0 * (float(
+    ((tmpvar_25.x + tmpvar_25.y) < 0.1)
+  ) * float(
+    ((abs((
+      dot (geom_1.zw, vec2(1.0, 0.00392157))
+     - 
+      dot (tmpvar_24.zw, vec2(1.0, 0.00392157))
+    )) * _ProjectionParams.z) < 0.2)
+  )));
+  sum_3 = (sum_3 + (texture2D (_SSAO, tmpvar_23).x * tmpvar_26));
+  denom_2 = (denom_2 + tmpvar_26);
+  vec2 tmpvar_27;
+  tmpvar_27 = (xlv_TEXCOORD0 - cse_9);
+  vec4 tmpvar_28;
+  tmpvar_28 = texture2D (_CameraDepthNormalsTexture, tmpvar_27);
+  vec2 tmpvar_29;
+  tmpvar_29 = abs((geom_1.xy - tmpvar_28.xy));
+  float tmpvar_30;
+  tmpvar_30 = (3.0 * (float(
+    ((tmpvar_29.x + tmpvar_29.y) < 0.1)
+  ) * float(
+    ((abs((
+      dot (geom_1.zw, vec2(1.0, 0.00392157))
+     - 
+      dot (tmpvar_28.zw, vec2(1.0, 0.00392157))
+    )) * _ProjectionParams.z) < 0.2)
+  )));
+  sum_3 = (sum_3 + (texture2D (_SSAO, tmpvar_27).x * tmpvar_30));
+  denom_2 = (denom_2 + tmpvar_30);
+  vec2 tmpvar_31;
+  tmpvar_31 = (xlv_TEXCOORD0 - cse_14);
+  vec4 tmpvar_32;
+  tmpvar_32 = texture2D (_CameraDepthNormalsTexture, tmpvar_31);
+  vec2 tmpvar_33;
+  tmpvar_33 = abs((geom_1.xy - tmpvar_32.xy));
+  float tmpvar_34;
+  tmpvar_34 = (2.0 * (float(
+    ((tmpvar_33.x + tmpvar_33.y) < 0.1)
+  ) * float(
+    ((abs((
+      dot (geom_1.zw, vec2(1.0, 0.00392157))
+     - 
+      dot (tmpvar_32.zw, vec2(1.0, 0.00392157))
+    )) * _ProjectionParams.z) < 0.2)
+  )));
+  sum_3 = (sum_3 + (texture2D (_SSAO, tmpvar_31).x * tmpvar_34));
+  denom_2 = (denom_2 + tmpvar_34);
+  vec2 tmpvar_35;
+  tmpvar_35 = (xlv_TEXCOORD0 - cse_19);
+  vec4 tmpvar_36;
+  tmpvar_36 = texture2D (_CameraDepthNormalsTexture, tmpvar_35);
+  vec2 tmpvar_37;
+  tmpvar_37 = abs((geom_1.xy - tmpvar_36.xy));
+  float tmpvar_38;
+  tmpvar_38 = (float((
+    (tmpvar_37.x + tmpvar_37.y)
+   < 0.1)) * float((
+    (abs((dot (geom_1.zw, vec2(1.0, 0.00392157)) - dot (tmpvar_36.zw, vec2(1.0, 0.00392157)))) * _ProjectionParams.z)
+   < 0.2)));
+  sum_3 = (sum_3 + (texture2D (_SSAO, tmpvar_35).x * tmpvar_38));
+  denom_2 = (denom_2 + tmpvar_38);
+  gl_FragData[0] = vec4((sum_3 / denom_2));
+}
+
