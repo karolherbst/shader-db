@@ -329,9 +329,12 @@ main(int argc, char **argv)
 
             if (unlikely(extension_string + len + 1 >= end_extension_string)) {
                 extension_string_size *= 2;
+                size_t extension_string_offset = extension_string -
+                                                 core.extension_string;
                 core.extension_string = realloc(core.extension_string,
                                                 extension_string_size);
-                extension_string = core.extension_string;
+                extension_string = core.extension_string +
+                                   extension_string_offset;
                 end_extension_string = core.extension_string +
                                        extension_string_size;
             }
