@@ -114,12 +114,16 @@ def main():
     if len(gained) > 0:
         print("")
 
-    print("total instructions in shared programs: {0}\n"
-          "instructions in affected programs:     {1}\n"
-          "GAINED:                                {2}\n"
-          "LOST:                                  {3}".format(
+    print("total instructions in shared programs: {}\n"
+          "instructions in affected programs:     {}\n"
+          "helped:                                {}\n"
+          "HURT:                                  {}\n"
+          "GAINED:                                {}\n"
+          "LOST:                                  {}".format(
               change(total_before, total_after),
               change(affected_before, affected_after),
+              len(helped),
+              len(hurt),
               len(gained),
               len(lost)))
 
