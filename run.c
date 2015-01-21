@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <signal.h>
 /* for memmem(). The man page doesn't say __USE_GNU... */
 #define __USE_GNU
 #include <string.h>
@@ -232,6 +233,26 @@ gather_shader_test(const char *fpath, const struct stat *sb, int typeflag)
     return 0;
 }
 
+const char **current_shader_names;
+int max_threads;
+
+#define sigputs(str) write(STDERR_FILENO, str, strlen(str))
+
+static void
+abort_handler(int signo)
+{
+    sigputs("\n => CRASHED <= while processing these shaders:\n\n");
+    for (int i = 0; i < max_threads; i++) {
+        if (current_shader_names[i]) {
+            sigputs("    ");
+            sigputs(current_shader_names[i]);
+            sigputs("\n");
+        }
+    }
+    sigputs("\n");
+    _exit(-1);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -394,6 +415,14 @@ main(int argc, char **argv)
         ftw(argv[i], gather_shader_test, 100);
     }
 
+    max_threads = omp_get_max_threads();
+    current_shader_names = calloc(max_threads, sizeof(const char *));
+
+    if (signal(SIGABRT, abort_handler) == SIG_ERR)
+        fprintf(stderr, "WARNING: could not install SIGABRT handler.\n");
+    if (signal(SIGSEGV, abort_handler) == SIG_ERR)
+        fprintf(stderr, "WARNING: could not install SIGSEGV handler.\n");
+
     #pragma omp parallel if(shader_test_length > omp_get_max_threads())
     {
         const char *current_shader_name;
@@ -444,6 +473,7 @@ main(int argc, char **argv)
         #pragma omp for schedule(dynamic)
         for (int i = 0; i < shader_test_length; i++) {
             current_shader_name = shader_test[i].filename;
+            current_shader_names[omp_get_thread_num()] = current_shader_name;
 
             int fd = open(current_shader_name, O_RDONLY);
             if (unlikely(fd == -1)) {
@@ -544,6 +574,7 @@ main(int argc, char **argv)
                shaders_compiled, ctx_switches);
     }
 
+    free(current_shader_names);
     free(shader_test);
     free(core.extension_string);
 
