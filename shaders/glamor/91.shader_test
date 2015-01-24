@@ -1,0 +1,23 @@
+[require]
+GLSL >= 1.30
+
+[vertex shader]
+#version 130
+attribute vec4 primitive;
+uniform vec4 v_matrix;
+void main() {
+       vec2 pos = primitive.zw * vec2(gl_VertexID&1, (gl_VertexID&2)>>1);
+       gl_Position.xy = (primitive.xy + pos).xy * v_matrix.xz + v_matrix.yw;
+       gl_Position.zw = vec2(0.0,1.0);
+}
+
+[fragment shader]
+#version 130
+#ifdef GL_ES
+precision mediump float;
+#endif
+uniform vec4 fg;
+void main() {
+       gl_FragColor = fg;
+}
+

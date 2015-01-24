@@ -1,0 +1,114 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+#ifdef GL_ES
+precision mediump float;
+#endif
+attribute vec4 v_position;
+attribute vec4 v_texcoord;
+varying vec2 source_texture;
+
+void main()
+{
+    gl_Position = v_position;
+    source_texture = v_texcoord.xy;
+}
+
+[fragment shader]
+#ifdef GL_ES
+precision mediump float;
+#endif
+uniform mat3 transform_mat;
+uniform int repeat_type;
+uniform int hor_ver;
+uniform float pt_slope;
+uniform float cos_val;
+uniform float p1_distance;
+uniform float pt_distance;
+varying vec2 source_texture;
+
+vec4 get_color(float stop_len);
+
+float get_stop_len()
+{
+    vec3 tmp = vec3(source_texture.x, source_texture.y, 1.0);
+    float len_percentage;
+    float distance;
+    float _p1_distance;
+    float _pt_distance;
+    float y_dist;
+    float stop_after;
+    float stop_before;
+    vec4 stop_color_before;
+    vec4 stop_color_after;
+    float new_alpha; 
+    vec4 gradient_color;
+    float percentage; 
+    vec3 source_texture_trans = transform_mat * tmp;
+    
+    if(hor_ver == 0) { 
+        y_dist = source_texture_trans.y - source_texture_trans.x*pt_slope;
+        distance = y_dist * cos_val;
+        _p1_distance = p1_distance * source_texture_trans.z;
+        _pt_distance = pt_distance * source_texture_trans.z;
+        
+    } else if (hor_ver == 1) {
+        distance = source_texture_trans.x;
+        _p1_distance = p1_distance * source_texture_trans.z;
+        _pt_distance = pt_distance * source_texture_trans.z;
+    } 
+    
+    distance = distance - _p1_distance; 
+    
+    if(repeat_type == 1){
+        distance = mod(distance, _pt_distance);
+    }
+    
+    if(repeat_type == 3) {
+        distance = abs(mod(distance + _pt_distance, 2.0 * _pt_distance) - _pt_distance);
+    }
+    
+    len_percentage = distance/(_pt_distance);
+    
+    return len_percentage;
+}
+
+void main()
+{
+    float stop_len = get_stop_len();
+    gl_FragColor = get_color(stop_len);
+}
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+uniform int n_stop;
+uniform float stops[18];
+uniform vec4 stop_colors[18];
+vec4 get_color(float stop_len)
+{
+    int i = 0;
+    float new_alpha; 
+    vec4 gradient_color;
+    float percentage; 
+    for(i = 0; i < n_stop - 1; i++) {
+        if(stop_len < stops[i])
+            break; 
+    }
+    
+    if(stops[i] - stops[i-1] > 2.0)
+        percentage = 0.0;
+    else if(stops[i] - stops[i-1] < 0.000001)
+        percentage = 0.0;
+    else 
+        percentage = (stop_len - stops[i-1])/(stops[i] - stops[i-1]);
+    new_alpha = percentage * stop_colors[i].a + 
+                       (1.0-percentage) * stop_colors[i-1].a; 
+    gradient_color = vec4((percentage * stop_colors[i].rgb 
+                          + (1.0-percentage) * stop_colors[i-1].rgb)*new_alpha, 
+                          new_alpha);
+    
+    return gradient_color;
+}
+

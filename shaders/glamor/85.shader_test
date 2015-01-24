@@ -1,0 +1,195 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+#ifdef GL_ES
+precision mediump float;
+#endif
+attribute vec4 v_position;
+attribute vec4 v_texcoord;
+varying vec2 source_texture;
+
+void main()
+{
+    gl_Position = v_position;
+    source_texture = v_texcoord.xy;
+}
+
+[fragment shader]
+#ifdef GL_ES
+precision mediump float;
+#endif
+uniform mat3 transform_mat;
+uniform int repeat_type;
+uniform float A_value;
+uniform vec2 c1;
+uniform float r1;
+uniform vec2 c2;
+uniform float r2;
+varying vec2 source_texture;
+
+vec4 get_color(float stop_len);
+
+int t_invalid;
+
+float get_stop_len()
+{
+    float t = 0.0;
+    float sqrt_value;
+    t_invalid = 0;
+    
+    vec3 tmp = vec3(source_texture.x, source_texture.y, 1.0);
+    vec3 source_texture_trans = transform_mat * tmp;
+    source_texture_trans.xy = source_texture_trans.xy/source_texture_trans.z;
+    float B_value = (source_texture_trans.x - c1.x) * (c2.x - c1.x)
+                     + (source_texture_trans.y - c1.y) * (c2.y - c1.y)
+                     + r1 * (r2 - r1);
+    float C_value = (source_texture_trans.x - c1.x) * (source_texture_trans.x - c1.x)
+                     + (source_texture_trans.y - c1.y) * (source_texture_trans.y - c1.y)
+                     - r1*r1;
+    if(abs(A_value) < 0.00001) {
+        if(B_value == 0.0) {
+            t_invalid = 1;
+            return t;
+        }
+        t = 0.5 * C_value / B_value;    } else {
+        sqrt_value = B_value * B_value - A_value * C_value;
+        if(sqrt_value < 0.0) {
+            t_invalid = 1;
+            return t;
+        }
+        sqrt_value = sqrt(sqrt_value);
+        t = (B_value + sqrt_value) / A_value;
+    }
+    if(repeat_type == 0) {
+        if((t <= 0.0) || (t > 1.0))
+            t = (B_value - sqrt_value) / A_value;
+        
+        if((t <= 0.0) || (t > 1.0)) {
+            t_invalid = 1;
+            return t;
+        }
+    } else {
+        if(t * (r2 - r1) <= -1.0 * r1)
+            t = (B_value - sqrt_value) / A_value;
+        
+        if(t * (r2 -r1) <= -1.0 * r1) {
+            t_invalid = 1;
+            return t;
+        }
+    }
+    
+    if(repeat_type == 1){
+        t = fract(t);
+    }
+    
+    if(repeat_type == 3) {
+        t = abs(fract(t * 0.5 + 0.5) * 2.0 - 1.0);
+    }
+    
+    return t;
+}
+
+void main()
+{
+    float stop_len = get_stop_len();
+    if(t_invalid == 1) {
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+    } else {
+        gl_FragColor = get_color(stop_len);
+    }
+}
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+uniform int n_stop;
+uniform float stop0;
+uniform float stop1;
+uniform float stop2;
+uniform float stop3;
+uniform float stop4;
+uniform float stop5;
+uniform float stop6;
+uniform float stop7;
+uniform vec4 stop_color0;
+uniform vec4 stop_color1;
+uniform vec4 stop_color2;
+uniform vec4 stop_color3;
+uniform vec4 stop_color4;
+uniform vec4 stop_color5;
+uniform vec4 stop_color6;
+uniform vec4 stop_color7;
+
+vec4 get_color(float stop_len)
+{
+    float stop_after;
+    float stop_before;
+    vec4 stop_color_before;
+    vec4 stop_color_after;
+    float new_alpha; 
+    vec4 gradient_color;
+    float percentage; 
+    
+    if((stop_len < stop0) && (n_stop >= 1)) {
+        stop_color_before = stop_color0;
+        stop_color_after = stop_color0;
+        stop_after = stop0;
+        stop_before = stop0;
+    } else if((stop_len < stop1) && (n_stop >= 2)) {
+        stop_color_before = stop_color0;
+        stop_color_after = stop_color1;
+        stop_after = stop1;
+        stop_before = stop0;
+    } else if((stop_len < stop2) && (n_stop >= 3)) {
+        stop_color_before = stop_color1;
+        stop_color_after = stop_color2;
+        stop_after = stop2;
+        stop_before = stop1;
+    } else if((stop_len < stop3) && (n_stop >= 4)){
+        stop_color_before = stop_color2;
+        stop_color_after = stop_color3;
+        stop_after = stop3;
+        stop_before = stop2;
+    } else if((stop_len < stop4) && (n_stop >= 5)){
+        stop_color_before = stop_color3;
+        stop_color_after = stop_color4;
+        stop_after = stop4;
+        stop_before = stop3;
+    } else if((stop_len < stop5) && (n_stop >= 6)){
+        stop_color_before = stop_color4;
+        stop_color_after = stop_color5;
+        stop_after = stop5;
+        stop_before = stop4;
+    } else if((stop_len < stop6) && (n_stop >= 7)){
+        stop_color_before = stop_color5;
+        stop_color_after = stop_color6;
+        stop_after = stop6;
+        stop_before = stop5;
+    } else if((stop_len < stop7) && (n_stop >= 8)){
+        stop_color_before = stop_color6;
+        stop_color_after = stop_color7;
+        stop_after = stop7;
+        stop_before = stop6;
+    } else {
+        stop_color_before = stop_color7;
+        stop_color_after = stop_color7;
+        stop_after = stop7;
+        stop_before = stop7;
+    }
+    if(stop_after - stop_before > 2.0)
+        percentage = 0.0;
+    else if(stop_after - stop_before < 0.000001)
+        percentage = 0.0;
+    else 
+        percentage = (stop_len - stop_before)/(stop_after - stop_before);
+    new_alpha = percentage * stop_color_after.a + 
+                       (1.0-percentage) * stop_color_before.a; 
+    gradient_color = vec4((percentage * stop_color_after.rgb 
+                          + (1.0-percentage) * stop_color_before.rgb)*new_alpha, 
+                          new_alpha);
+    
+    return gradient_color;
+}
+
+

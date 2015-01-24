@@ -1,0 +1,174 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+#ifdef GL_ES
+precision mediump float;
+#endif
+attribute vec4 v_position;
+attribute vec4 v_texcoord;
+varying vec2 source_texture;
+
+void main()
+{
+    gl_Position = v_position;
+    source_texture = v_texcoord.xy;
+}
+
+[fragment shader]
+#ifdef GL_ES
+precision mediump float;
+#endif
+uniform mat3 transform_mat;
+uniform int repeat_type;
+uniform int hor_ver;
+uniform float pt_slope;
+uniform float cos_val;
+uniform float p1_distance;
+uniform float pt_distance;
+varying vec2 source_texture;
+
+vec4 get_color(float stop_len);
+
+float get_stop_len()
+{
+    vec3 tmp = vec3(source_texture.x, source_texture.y, 1.0);
+    float len_percentage;
+    float distance;
+    float _p1_distance;
+    float _pt_distance;
+    float y_dist;
+    float stop_after;
+    float stop_before;
+    vec4 stop_color_before;
+    vec4 stop_color_after;
+    float new_alpha; 
+    vec4 gradient_color;
+    float percentage; 
+    vec3 source_texture_trans = transform_mat * tmp;
+    
+    if(hor_ver == 0) { 
+        y_dist = source_texture_trans.y - source_texture_trans.x*pt_slope;
+        distance = y_dist * cos_val;
+        _p1_distance = p1_distance * source_texture_trans.z;
+        _pt_distance = pt_distance * source_texture_trans.z;
+        
+    } else if (hor_ver == 1) {
+        distance = source_texture_trans.x;
+        _p1_distance = p1_distance * source_texture_trans.z;
+        _pt_distance = pt_distance * source_texture_trans.z;
+    } 
+    
+    distance = distance - _p1_distance; 
+    
+    if(repeat_type == 1){
+        distance = mod(distance, _pt_distance);
+    }
+    
+    if(repeat_type == 3) {
+        distance = abs(mod(distance + _pt_distance, 2.0 * _pt_distance) - _pt_distance);
+    }
+    
+    len_percentage = distance/(_pt_distance);
+    
+    return len_percentage;
+}
+
+void main()
+{
+    float stop_len = get_stop_len();
+    gl_FragColor = get_color(stop_len);
+}
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+uniform int n_stop;
+uniform float stop0;
+uniform float stop1;
+uniform float stop2;
+uniform float stop3;
+uniform float stop4;
+uniform float stop5;
+uniform float stop6;
+uniform float stop7;
+uniform vec4 stop_color0;
+uniform vec4 stop_color1;
+uniform vec4 stop_color2;
+uniform vec4 stop_color3;
+uniform vec4 stop_color4;
+uniform vec4 stop_color5;
+uniform vec4 stop_color6;
+uniform vec4 stop_color7;
+
+vec4 get_color(float stop_len)
+{
+    float stop_after;
+    float stop_before;
+    vec4 stop_color_before;
+    vec4 stop_color_after;
+    float new_alpha; 
+    vec4 gradient_color;
+    float percentage; 
+    
+    if((stop_len < stop0) && (n_stop >= 1)) {
+        stop_color_before = stop_color0;
+        stop_color_after = stop_color0;
+        stop_after = stop0;
+        stop_before = stop0;
+    } else if((stop_len < stop1) && (n_stop >= 2)) {
+        stop_color_before = stop_color0;
+        stop_color_after = stop_color1;
+        stop_after = stop1;
+        stop_before = stop0;
+    } else if((stop_len < stop2) && (n_stop >= 3)) {
+        stop_color_before = stop_color1;
+        stop_color_after = stop_color2;
+        stop_after = stop2;
+        stop_before = stop1;
+    } else if((stop_len < stop3) && (n_stop >= 4)){
+        stop_color_before = stop_color2;
+        stop_color_after = stop_color3;
+        stop_after = stop3;
+        stop_before = stop2;
+    } else if((stop_len < stop4) && (n_stop >= 5)){
+        stop_color_before = stop_color3;
+        stop_color_after = stop_color4;
+        stop_after = stop4;
+        stop_before = stop3;
+    } else if((stop_len < stop5) && (n_stop >= 6)){
+        stop_color_before = stop_color4;
+        stop_color_after = stop_color5;
+        stop_after = stop5;
+        stop_before = stop4;
+    } else if((stop_len < stop6) && (n_stop >= 7)){
+        stop_color_before = stop_color5;
+        stop_color_after = stop_color6;
+        stop_after = stop6;
+        stop_before = stop5;
+    } else if((stop_len < stop7) && (n_stop >= 8)){
+        stop_color_before = stop_color6;
+        stop_color_after = stop_color7;
+        stop_after = stop7;
+        stop_before = stop6;
+    } else {
+        stop_color_before = stop_color7;
+        stop_color_after = stop_color7;
+        stop_after = stop7;
+        stop_before = stop7;
+    }
+    if(stop_after - stop_before > 2.0)
+        percentage = 0.0;
+    else if(stop_after - stop_before < 0.000001)
+        percentage = 0.0;
+    else 
+        percentage = (stop_len - stop_before)/(stop_after - stop_before);
+    new_alpha = percentage * stop_color_after.a + 
+                       (1.0-percentage) * stop_color_before.a; 
+    gradient_color = vec4((percentage * stop_color_after.rgb 
+                          + (1.0-percentage) * stop_color_before.rgb)*new_alpha, 
+                          new_alpha);
+    
+    return gradient_color;
+}
+

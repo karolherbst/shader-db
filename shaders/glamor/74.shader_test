@@ -1,0 +1,49 @@
+[require]
+GLSL >= 1.10
+
+[vertex shader]
+attribute vec4 v_position;
+attribute vec4 v_texcoord0;
+varying vec2 source_texture;
+void main()
+{
+	gl_Position = v_position;
+	source_texture = v_texcoord0.xy;
+}
+
+[fragment shader]
+#ifdef GL_ES
+precision mediump float;
+#endif
+varying vec2 source_texture;
+uniform sampler2D sampler;
+uniform int revert;
+uniform int swap_rb;
+#define REVERT_NONE       			0
+#define REVERT_NORMAL     			1
+#define SWAP_NONE_DOWNLOADING  		0
+#define SWAP_DOWNLOADING  			1
+#define SWAP_UPLOADING	  		2
+#define SWAP_NONE_UPLOADING		3
+void main()
+{
+   if (revert == REVERT_NONE) 
+    { 
+     if ((swap_rb != SWAP_NONE_DOWNLOADING) && (swap_rb != SWAP_NONE_UPLOADING))   
+	  	gl_FragColor = vec4(texture2D(sampler, source_texture).bgr, 1);
+     else 
+	  	gl_FragColor = vec4(texture2D(sampler, source_texture).rgb, 1);
+    } 
+   else 
+    { 
+     if (swap_rb == SWAP_DOWNLOADING)   
+	  	gl_FragColor = vec4(1, texture2D(sampler, source_texture).rgb);
+     else if (swap_rb == SWAP_NONE_DOWNLOADING)
+	  	gl_FragColor = vec4(1, texture2D(sampler, source_texture).bgr);
+     else if (swap_rb == SWAP_UPLOADING)
+	  	gl_FragColor = vec4(texture2D(sampler, source_texture).gba, 1);
+     else if (swap_rb == SWAP_NONE_UPLOADING)
+	  	gl_FragColor = vec4(texture2D(sampler, source_texture).abg, 1);
+    } 
+}
+
