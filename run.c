@@ -258,7 +258,7 @@ struct platform {
     const char *pci_id;
 };
 
-struct const platform platforms[] = {
+const struct platform platforms[] = {
     "i965", "0x2A02",
     "g4x",  "0x2A42",
     "ilk",  "0x0042",
@@ -273,7 +273,7 @@ int
 main(int argc, char **argv)
 {
     if (argc >= 2 && strcmp(argv[1], "-p") == 0) {
-        struct platform *platform;
+        const struct platform *platform;
         for (unsigned i = 0; i < ARRAY_SIZE(platforms); i++) {
             if (strcmp(argv[2], platforms[i].name) == 0) {
                 platform = platforms + i;
