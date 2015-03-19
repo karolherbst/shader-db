@@ -253,11 +253,50 @@ abort_handler(int signo)
     _exit(-1);
 }
 
+struct platform {
+    const char *name;
+    const char *pci_id;
+};
+
+struct const platform platforms[] = {
+    "i965", "0x2A02",
+    "g4x",  "0x2A42",
+    "ilk",  "0x0042",
+    "snb",  "0x0126",
+    "ivb",  "0x016a",
+    "hsw",  "0x0D2E",
+    "byt",  "0x0F33",
+    "bdw",  "0x162E",
+};
+
 int
 main(int argc, char **argv)
 {
+    if (argc >= 2 && strcmp(argv[1], "-p") == 0) {
+        struct platform *platform;
+        for (unsigned i = 0; i < ARRAY_SIZE(platforms); i++) {
+            if (strcmp(argv[2], platforms[i].name) == 0) {
+                platform = platforms + i;
+                break;
+            }
+        }
+
+        if (platform == NULL) {
+            fprintf(stderr, "Invalid platform.\nValid platforms are:");
+            for (unsigned i = 0; i < ARRAY_SIZE(platforms); i++)
+                fprintf(stderr, " %s", platforms[i].name);
+            fprintf(stderr, "\n");
+            return -1;
+        }
+
+        printf("### Running faked as %s ###\n", platform->name);
+        setenv("INTEL_DEVID_OVERRIDE", platform->pci_id, 1);
+        argv += 2;
+        argc -= 2;
+    }
+
     if (unlikely(argc < 2)) {
-        fprintf(stderr, "Usage: %s <directories and *.shader_test files>\n",
+        fprintf(stderr, "Usage: %s [-p <platform>] <directories and *.shader_test files>\n",
                 argv[0]);
         return -1;
     }
