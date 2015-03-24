@@ -1,10 +1,10 @@
 [require]
-GLSL >= 1.30
+GLSL >= 1.20
 
 [vertex shader]
-#version 130
+#version 120
 #extension GL_ARB_draw_instanced : enable
-#define QF_GLSL_VERSION 130
+#define QF_GLSL_VERSION 120
 #define VERTEX_SHADER
 #if !defined(myhalf)
 //#if !defined(__GLSL_CG_DATA_TYPES)
@@ -1030,9 +1030,9 @@ color = color * diffuse;
 #endif // FRAGMENT_SHADER
 
 [fragment shader]
-#version 130
+#version 120
 
-#define QF_GLSL_VERSION 130
+#define QF_GLSL_VERSION 120
 #define FRAGMENT_SHADER
 #if !defined(myhalf)
 //#if !defined(__GLSL_CG_DATA_TYPES)
