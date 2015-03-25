@@ -457,7 +457,7 @@ main(int argc, char **argv)
         case 'p': {
             const struct platform *platform = NULL;
             for (unsigned i = 0; i < ARRAY_SIZE(platforms); i++) {
-                if (strcmp(optarg, platforms[i].name) == 0) {
+                if (strcasecmp(optarg, platforms[i].name) == 0) {
                     platform = platforms + i;
                     break;
                 }
