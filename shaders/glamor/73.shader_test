@@ -27,23 +27,24 @@ uniform int swap_rb;
 #define SWAP_NONE_UPLOADING		3
 void main()
 {
+   vec4 color = texture2D(sampler, source_texture);
    if (revert == REVERT_NONE) 
     { 
      if ((swap_rb != SWAP_NONE_DOWNLOADING) && (swap_rb != SWAP_NONE_UPLOADING))   
-	  	gl_FragColor = texture2D(sampler, source_texture).bgra;
+		gl_FragColor = color.bgra;
      else 
-	  	gl_FragColor = texture2D(sampler, source_texture).rgba;
+		gl_FragColor = color.rgba;
     } 
    else 
     { 
      if (swap_rb == SWAP_DOWNLOADING)   
-	  	gl_FragColor = texture2D(sampler, source_texture).argb;
+		gl_FragColor = color.argb;
      else if (swap_rb == SWAP_NONE_DOWNLOADING)
-	  	gl_FragColor = texture2D(sampler, source_texture).abgr;
+		gl_FragColor = color.abgr;
      else if (swap_rb == SWAP_UPLOADING)
-	  	gl_FragColor = texture2D(sampler, source_texture).gbar;
+		gl_FragColor = color.gbar;
      else if (swap_rb == SWAP_NONE_UPLOADING)
-	  	gl_FragColor = texture2D(sampler, source_texture).abgr;
+		gl_FragColor = color.abgr;
     } 
 }
 
