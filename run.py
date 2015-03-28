@@ -57,7 +57,7 @@ def run_test(filename):
         raise Exception('Only shader 0 found. {}'.format(filename))
 
     re_search = re.compile(
-        r'(?P<stage>[A-Za-z0-9]+) shader\: (?P<count>\d+) instructions.')
+        r'(?P<stage>[A-Za-z0-9]+) (vec4 )?shader\: (?P<count>\d+) instructions.')
     for line in lines:
         match = re_search.match(line)
         if match is not None:
