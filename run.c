@@ -292,7 +292,7 @@ main(int argc, char **argv)
             return -1;
         }
 
-        printf("### Running faked as %s ###\n", platform->name);
+        printf("### Compiling for %s ###\n", platform->name);
         setenv("INTEL_DEVID_OVERRIDE", platform->pci_id, 1);
         argv += 2;
         argc -= 2;
