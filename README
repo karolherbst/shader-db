@@ -4,6 +4,8 @@ A giant pile of shaders from various apps, for whatever purpose.  In
 particular, we use it to capture assembly output of the shader
 compiler for analysis of regressions in compiler behavior.
 
+Currently it supports Mesa's i965 driver only.
+
 === Capturing shaders ===
 env MESA_GLSL=dump appname |& tee log
 ./split-to-files.py appname log
@@ -12,15 +14,29 @@ env MESA_GLSL=dump appname |& tee log
 $EDITOR shaders/appname/*
 
 === Running shaders ===
-# We rely on piglit binaries to actually execute the shader code.
-# Replace this path with wherever you actually built piglit.
-ln -s $HOME/src/piglit/bin ./
-
-# this relies on i965 driver debug output, hack it up for anything else.
-./run.py |& tee new-run
+./run shaders 2> err | tee new-run
 
 # To run just a subset:
-./run.py shaders/supertuxkart |& tee new-run
+./run shaders/supertuxkart 2> err | tee new-run
+
+Make sure to check the contents of 'err' after your run.
+
+To compile shaders for an i965 PCI ID different from your system, pass
+
+	-p {i965,g4x,ilk,snb,ivb,hsw,byt,bdw}
+
+to run.
 
 === Analysis ===
-./result.py old-run new-run
+./report.py old-run new-run
+
+=== Dependencies ===
+run requires some GNU C extensions, render nodes (/dev/dri/renderD128),
+libepoxy, OpenMP, and Mesa configured with --with-egl-platforms=x11,drm
+
+=== jemalloc ===
+Since run compiles shaders in different threads, malloc/free locking overhead
+from inside Mesa can be expensive. Preloading jemalloc can cut significant
+amounts of time:
+
+LD_PRELOAD=/usr/lib64/libjemalloc.so.1 ./run shaders 2> err | tee new-run
