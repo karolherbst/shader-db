@@ -58,6 +58,8 @@ sub wanted {
 
 finddepth(\&wanted,  @ARGV);
 
+my $fail = 0;
+
 foreach my $shader_test (@shader_test) {
 	my $expected;
 	my $actual;
@@ -91,11 +93,15 @@ foreach my $shader_test (@shader_test) {
 	close($fh);
 
 	if ($actual != undef && $expected != $actual) {
-		print "$shader_test requested $expected, but requires $actual\n"
+		print "$shader_test requested $expected, but requires $actual\n";
+		$fail = 1;
 	}
 
 	my @extension = array_diff(@expected_ext, @actual_ext);
 	foreach my $extension (@extension) {
 		print "$shader_test extension $extension mismatch\n";
+		$fail = 1;
 	}
 }
+
+exit($fail);
