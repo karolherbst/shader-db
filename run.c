@@ -307,6 +307,18 @@ main(int argc, char **argv)
     setenv("allow_glsl_extension_directive_midshader", "true", 1);
     setenv("shader_precompile", "true", 1);
 
+    const char *client_extensions = eglQueryString(EGL_NO_DISPLAY,
+                                                   EGL_EXTENSIONS);
+    if (!client_extensions) {
+        fprintf(stderr, "ERROR: Missing EGL_EXT_client_extensions\n");
+        return -1;
+    }
+
+    if (!strstr(client_extensions, "EGL_MESA_platform_gbm")) {
+        fprintf(stderr, "ERROR: Missing EGL_MESA_platform_gbm\n");
+        return -1;
+    }
+
     int ret = 0;
 
     int fd = open("/dev/dri/renderD128", O_RDWR);
@@ -322,7 +334,8 @@ main(int argc, char **argv)
         goto close_fd;
     }
 
-    EGLDisplay egl_dpy = eglGetDisplay(gbm);
+    EGLDisplay egl_dpy = eglGetPlatformDisplayEXT(EGL_PLATFORM_GBM_MESA,
+                                                  gbm, NULL);
     if (unlikely(egl_dpy == EGL_NO_DISPLAY)) {
         fprintf(stderr, "ERROR: eglGetDisplay() failed\n");
         ret = -1;
@@ -342,8 +355,7 @@ main(int argc, char **argv)
     char *extension_string = eglQueryString(egl_dpy, EGL_EXTENSIONS);
     for (int i = 0; i < ARRAY_SIZE(egl_extension); i++) {
         if (strstr(extension_string, egl_extension[i]) == NULL) {
-            fprintf(stderr, "ERROR: Missing necessary %s extension\n",
-                    egl_extension[i]);
+            fprintf(stderr, "ERROR: Missing %s\n", egl_extension[i]);
             ret = -1;
             goto egl_terminate;
         }
