@@ -238,6 +238,8 @@ int max_threads;
 
 #define sigputs(str) write(STDERR_FILENO, str, strlen(str))
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
 static void
 abort_handler(int signo)
 {
@@ -252,6 +254,7 @@ abort_handler(int signo)
     sigputs("\n");
     _exit(-1);
 }
+#pragma GCC diagnostic pop
 
 struct platform {
     const char *name;
