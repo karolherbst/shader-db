@@ -4,7 +4,7 @@ A giant pile of shaders from various apps, for whatever purpose.  In
 particular, we use it to capture assembly output of the shader
 compiler for analysis of regressions in compiler behavior.
 
-Currently it supports Mesa's i965 driver only.
+Currently it supports Mesa's i965 and radeonsi drivers.
 
 === Capturing shaders ===
 env MESA_GLSL=dump appname |& tee log
@@ -12,6 +12,8 @@ env MESA_GLSL=dump appname |& tee log
 # clean up resulting files, as the parsing is just an assist, not actually
 # complete.
 $EDITOR shaders/appname/*
+
+=== i965 Usage ===
 
 === Running shaders ===
 ./run shaders 2> err | tee new-run
@@ -29,6 +31,19 @@ to run.
 
 === Analysis ===
 ./report.py old-run new-run
+
+
+=== radeonsi Usage ===
+
+=== Running shaders ===
+
+ST_DEBUG=precompile R600_DEBUG=ps,vs,gs,precompile ./run shaders -1 2> new-run
+
+-1 option for disabling multi-threading is required to avoid garbled shader dumps.
+
+=== Analysis ===
+./si-report.py old-run new-run
+
 
 === Dependencies ===
 run requires some GNU C extensions, render nodes (/dev/dri/renderD128),
