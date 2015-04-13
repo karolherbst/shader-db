@@ -477,7 +477,7 @@ main(int argc, char **argv)
     if (signal(SIGSEGV, abort_handler) == SIG_ERR)
         fprintf(stderr, "WARNING: could not install SIGSEGV handler.\n");
 
-    #pragma omp parallel if(shader_test_length > omp_get_max_threads())
+    #pragma omp parallel if(shader_test_length > max_threads)
     {
         const char *current_shader_name;
         unsigned shaders_compiled = 0;
