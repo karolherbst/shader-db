@@ -1,6 +1,7 @@
 /* vim: set expandtab tabstop=4 softtabstop=4 shiftwidth=4: */
 /*
  * Copyright © 2014 Intel Corporation
+ * Copyright © 2015 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -272,35 +273,52 @@ const struct platform platforms[] = {
     "bdw",  "0x162E",
 };
 
+void print_usage(const char *prog_name)
+{
+    fprintf(stderr,
+            "Usage: %s [-p <platform>] <directories and *.shader_test files>\n",
+            prog_name);
+}
+
 int
 main(int argc, char **argv)
 {
-    if (argc >= 2 && strcmp(argv[1], "-p") == 0) {
-        const struct platform *platform;
-        for (unsigned i = 0; i < ARRAY_SIZE(platforms); i++) {
-            if (strcmp(argv[2], platforms[i].name) == 0) {
-                platform = platforms + i;
-                break;
-            }
-        }
 
-        if (platform == NULL) {
-            fprintf(stderr, "Invalid platform.\nValid platforms are:");
-            for (unsigned i = 0; i < ARRAY_SIZE(platforms); i++)
-                fprintf(stderr, " %s", platforms[i].name);
-            fprintf(stderr, "\n");
+    int opt;
+
+    while((opt = getopt(argc, argv, "p:")) != -1) {
+        switch(opt) {
+        case 'p': {
+            const struct platform *platform = NULL;
+            for (unsigned i = 0; i < ARRAY_SIZE(platforms); i++) {
+                if (strcmp(optarg, platforms[i].name) == 0) {
+                    platform = platforms + i;
+                    break;
+                }
+            }
+
+            if (platform == NULL) {
+                fprintf(stderr, "Invalid platform.\nValid platforms are:");
+                for (unsigned i = 0; i < ARRAY_SIZE(platforms); i++)
+                    fprintf(stderr, " %s", platforms[i].name);
+                fprintf(stderr, "\n");
+                return -1;
+            }
+
+            printf("### Compiling for %s ###\n", platform->name);
+            setenv("INTEL_DEVID_OVERRIDE", platform->pci_id, 1);
+            break;
+        }
+        default:
+            fprintf(stderr, "Unknown option: %x\n", opt);
+            print_usage(argv[0]);
             return -1;
         }
-
-        printf("### Compiling for %s ###\n", platform->name);
-        setenv("INTEL_DEVID_OVERRIDE", platform->pci_id, 1);
-        argv += 2;
-        argc -= 2;
     }
 
-    if (unlikely(argc < 2)) {
-        fprintf(stderr, "Usage: %s [-p <platform>] <directories and *.shader_test files>\n",
-                argv[0]);
+    if (unlikely(optind >= argc)) {
+        fprintf(stderr, "No directories specified\n");
+        print_usage(argv[0]);
         return -1;
     }
 
@@ -465,7 +483,7 @@ main(int argc, char **argv)
     }
 
     shader_test = malloc(shader_test_size * sizeof(struct shader_test));
-    for (int i = 1; i < argc; i++) {
+    for (int i = optind; i < argc; i++) {
         ftw(argv[i], gather_shader_test, 100);
     }
 
