@@ -276,7 +276,9 @@ const struct platform platforms[] = {
 void print_usage(const char *prog_name)
 {
     fprintf(stderr,
-            "Usage: %s [-p <platform>] <directories and *.shader_test files>\n",
+            "Usage: %s [-p <platform>] <directories and *.shader_test files>\n"
+            "Other options: \n"
+            " -1    Disable multi-threading\n",
             prog_name);
 }
 
@@ -286,7 +288,9 @@ main(int argc, char **argv)
 
     int opt;
 
-    while((opt = getopt(argc, argv, "p:")) != -1) {
+    max_threads = omp_get_max_threads();
+
+    while((opt = getopt(argc, argv, "1p:")) != -1) {
         switch(opt) {
         case 'p': {
             const struct platform *platform = NULL;
@@ -309,6 +313,9 @@ main(int argc, char **argv)
             setenv("INTEL_DEVID_OVERRIDE", platform->pci_id, 1);
             break;
         }
+    case '1':
+        max_threads = 1;
+        break;
         default:
             fprintf(stderr, "Unknown option: %x\n", opt);
             print_usage(argv[0]);
@@ -487,7 +494,6 @@ main(int argc, char **argv)
         ftw(argv[i], gather_shader_test, 100);
     }
 
-    max_threads = omp_get_max_threads();
     current_shader_names = calloc(max_threads, sizeof(const char *));
 
     if (signal(SIGABRT, abort_handler) == SIG_ERR)
@@ -495,7 +501,7 @@ main(int argc, char **argv)
     if (signal(SIGSEGV, abort_handler) == SIG_ERR)
         fprintf(stderr, "WARNING: could not install SIGSEGV handler.\n");
 
-    #pragma omp parallel if(shader_test_length > max_threads)
+    #pragma omp parallel if(max_threads > 1 && shader_test_length > max_threads)
     {
         const char *current_shader_name;
         unsigned shaders_compiled = 0;
