@@ -285,7 +285,6 @@ void print_usage(const char *prog_name)
 int
 main(int argc, char **argv)
 {
-
     int opt;
 
     max_threads = omp_get_max_threads();
@@ -313,9 +312,9 @@ main(int argc, char **argv)
             setenv("INTEL_DEVID_OVERRIDE", platform->pci_id, 1);
             break;
         }
-    case '1':
-        max_threads = 1;
-        break;
+        case '1':
+            max_threads = 1;
+            break;
         default:
             fprintf(stderr, "Unknown option: %x\n", opt);
             print_usage(argv[0]);
