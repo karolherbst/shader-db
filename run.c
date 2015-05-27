@@ -618,7 +618,7 @@ main(int argc, char **argv)
                 for (unsigned i = 0; i < num_shaders; i++) {
                     GLuint prog;
                     glGenProgramsARB(1, &prog);
-                    glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, prog);
+                    glBindProgramARB(shader[i].type, prog);
                     glProgramStringARB(shader[i].type, GL_PROGRAM_FORMAT_ASCII_ARB,
                                        shader[i].length, shader[i].text);
                     glDeleteProgramsARB(1, &prog);
