@@ -86,6 +86,7 @@ def main():
 
     os.environ["shader_precompile"] = "true"
     os.environ["allow_glsl_extension_directive_midshader"] = "true"
+    os.environ["PIGLIT_PLATFORM"] = "gbm"
     if "INTEL_DEBUG" in os.environ:
         print("Warning: INTEL_DEBUG environment variable set!", file=sys.stderr)
         os.environ["INTEL_DEBUG"] += ",vs,gs,fs"
