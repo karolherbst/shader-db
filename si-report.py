@@ -145,7 +145,13 @@ class si_stats:
                 self.__dict__[name] += 1
 
     def is_empty(self):
-        return sum(map(lambda x : x[0] if type(x) == tuple else x, self.__dict__.values())) == 0
+        for name in self.__dict__.keys():
+            x = self.__dict__[name]
+            if type(x) == tuple and x[0] is not 0:
+                return False
+            if type(x) != tuple and x is not 0:
+                return False
+        return True
 
 def get_results(filename):
     file = open(filename, "r")
