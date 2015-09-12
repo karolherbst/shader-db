@@ -73,12 +73,14 @@ static struct shader *
 get_shaders(const struct context_info *core, const struct context_info *compat,
             const char *text, size_t text_size,
             enum shader_type *type, unsigned *num_shaders,
+            bool *use_separate_shader_objects,
             const char *shader_name)
 {
     static const char *req = "[require]";
     static const char *glsl_req = "\nGLSL >= ";
     static const char *fp_req = "\nGL_ARB_fragment_program";
     static const char *vp_req = "\nGL_ARB_vertex_program";
+    static const char *sso_req = "SSO ENABLED";
     static const char *gs = "geometry shader]\n";
     static const char *fs = "fragment ";
     static const char *vs = "vertex ";
@@ -89,6 +91,8 @@ get_shaders(const struct context_info *core, const struct context_info *compat,
     static const char *program = "program]\n";
     static const char *test = "test]\n";
     const char *end_text = text + text_size;
+
+    *use_separate_shader_objects = false;
 
     /* Find the [require] block and parse it first. */
     text = memmem(text, end_text - text, req, strlen(req)) + strlen(req);
@@ -136,6 +140,9 @@ get_shaders(const struct context_info *core, const struct context_info *compat,
             fprintf(stderr, "SKIP: %s requires unavailable extension %.*s\n",
                     shader_name, (int)(newline - extension_text), extension_text);
             return NULL;
+        }
+        if (memcmp(extension_text, sso_req, strlen(sso_req)) == 0) {
+            *use_separate_shader_objects = true;
         }
     }
 
@@ -606,9 +613,11 @@ main(int argc, char **argv)
 
             enum shader_type type;
             unsigned num_shaders;
+            bool use_separate_shader_objects;
             struct shader *shader = get_shaders(&core, &compat,
                                                 text, shader_test[i].filesize,
                                                 &type, &num_shaders,
+                                                &use_separate_shader_objects,
                                                 current_shader_name);
             if (unlikely(shader == NULL)) {
                 continue;
@@ -626,6 +635,9 @@ main(int argc, char **argv)
 
             if (type == TYPE_CORE || type == TYPE_COMPAT) {
                 GLuint prog = glCreateProgram();
+
+                if (use_separate_shader_objects)
+                    glProgramParameteri(prog, GL_PROGRAM_SEPARABLE, GL_TRUE);
 
                 for (unsigned i = 0; i < num_shaders; i++) {
                     GLuint s = glCreateShader(shader[i].type);
