@@ -10,7 +10,7 @@ def get_results(filename):
 
     results = {}
 
-    re_match = re.compile(r"(\S+) - (.S \S+) shader: (\S*)")
+    re_match = re.compile(r"(\S+) - (.S \S+) shader: (\S*) inst, (\S*) loops")
     for line in lines:
         match = re.search(re_match, line)
         if match is None:
@@ -18,8 +18,9 @@ def get_results(filename):
 
         groups = match.groups()
         count = int(groups[2])
+        loop = int(groups[3])
         if count != 0:
-            results[(groups[0], groups[1])] = count
+            results[(groups[0], groups[1])] = count, loop
 
     return results
 
@@ -51,6 +52,8 @@ def main():
 
     total_before = 0
     total_after = 0
+    total_before_loop = 0
+    total_after_loop = 0
     affected_before = 0
     affected_after = 0
 
@@ -58,22 +61,31 @@ def main():
     hurt = []
     lost = []
     gained = []
+    loop_change = []
     for p in args.before:
         (name, type) = p
         namestr = name + " " + type
-        before_count = args.before[p]
+        before_count = args.before[p][0]
+        before_loop = args.before[p][1]
 
         if args.after.get(p) is not None:
-            after_count = args.after[p]
+            after_count = args.after[p][0]
+            after_loop = args.after[p][1]
 
-            total_before += before_count
-            total_after += after_count
+            total_before_loop += before_loop
+            total_after_loop += after_loop
+
+            if before_loop == after_loop:
+                total_before += before_count
+                total_after += after_count
 
             if before_count != after_count:
                 affected_before += before_count
                 affected_after += after_count
 
-                if after_count > before_count:
+                if after_loop != before_loop:
+                    loop_change.append(p);
+                elif after_count > before_count:
                     hurt.append(p)
                 else:
                     helped.append(p)
@@ -85,21 +97,28 @@ def main():
             gained.append(p[0] + " " + p[1])
 
     helped.sort(
-        key=lambda k: float(args.before[k] - args.after[k]) / args.before[k])
+        key=lambda k: float(args.before[k][0] - args.after[k][0]) / args.before[k][0])
     for p in helped:
         namestr = p[0] + " " + p[1]
         print("helped:   " + get_result_string(
-            namestr, args.before[p], args.after[p]))
+            namestr, args.before[p][0], args.after[p][0]))
     if len(helped) > 0:
         print("")
 
     hurt.sort(
-        key=lambda k: float(args.after[k] - args.before[k]) / args.before[k])
+        key=lambda k: float(args.after[k][0] - args.before[k][0]) / args.before[k][0])
     for p in hurt:
         namestr = p[0] + " " + p[1]
         print("HURT:   " + get_result_string(
-            namestr, args.before[p], args.after[p]))
+            namestr, args.before[p][0], args.after[p][0]))
     if len(hurt) > 0:
+        print("")
+
+    for p in loop_change:
+        namestr = p[0] + " " + p[1]
+        print("LOOP CHANGE (" + str(args.before[p][1]) + " -> " + str(args.after[p][1]) +
+        "): " + get_result_string(namestr, args.before[p][0], args.after[p][0]))
+    if len(loop_change) > 0:
         print("")
 
     lost.sort()
@@ -116,12 +135,14 @@ def main():
 
     print("total instructions in shared programs: {}\n"
           "instructions in affected programs:     {}\n"
+          "total loops in shared programs:        {}\n"
           "helped:                                {}\n"
           "HURT:                                  {}\n"
           "GAINED:                                {}\n"
           "LOST:                                  {}".format(
               change(total_before, total_after),
               change(affected_before, affected_after),
+              change(total_before_loop, total_after_loop),
               len(helped),
               len(hurt),
               len(gained),
