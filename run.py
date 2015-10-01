@@ -94,7 +94,7 @@ def main():
         os.environ["INTEL_DEBUG"] = "vs,gs,fs"
 
     try:
-        os.stat("bin/glslparsertest")
+        os.stat("bin/shader_runner")
     except OSError:
         print("./bin must be a symlink to a built piglit bin directory")
         sys.exit(1)
