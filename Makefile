@@ -21,7 +21,7 @@
 
 CFLAGS ?= -g -O2 -march=native -pipe
 CFLAGS += -std=gnu99 -fopenmp
-LDFLAGS = -lepoxy -lgbm
+LDLIBS = -lepoxy -lgbm
 
 run:
 
