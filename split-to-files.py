@@ -68,17 +68,33 @@ def write_shader_test(filename, shaders):
     print("Writing {0}".format(filename))
     out = open(filename, 'w')
 
+    min_version = 110
+    for stage, num in shaders:
+        shader = shaders[(stage, num)]
+        m = re.match(r"^#version (\d\d\d)", shader)
+        if m:
+            version = int(m.group(1), 10)
+            if version > min_version:
+                min_version = version
+
     out.write("[require]\n")
-    out.write("GLSL >= 1.10\n")
+    out.write("GLSL >= %.2f\n" % (min_version / 100.))
     out.write("\n")
 
     for stage, num in shaders:
         if stage == "vertex":
             out.write("[vertex shader]\n")
-            out.write(shaders[(stage, num)])
-        if stage == "fragment":
+        elif stage == "fragment":
             out.write("[fragment shader]\n")
-            out.write(shaders[(stage, num)])
+        elif stage == "geometry":
+            out.write("[geometry shader]\n")
+        elif stage == "tess ctrl":
+            out.write("[tessellation control shader]\n")
+        elif stage == "tess eval":
+            out.write("[tessellation evaluation shader]\n")
+        else:
+            assert False, stage
+        out.write(shaders[(stage, num)])
 
     out.close()
 
