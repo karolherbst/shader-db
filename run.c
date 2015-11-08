@@ -80,6 +80,8 @@ get_shaders(const struct context_info *core, const struct context_info *compat,
     static const char *gs = "geometry shader]\n";
     static const char *fs = "fragment ";
     static const char *vs = "vertex ";
+    static const char *tcs = "tessellation control shader]\n";
+    static const char *tes = "tessellation evaluation shader]\n";
     static const char *shder = "shader]\n";
     static const char *program = "program]\n";
     static const char *test = "test]\n";
@@ -168,6 +170,14 @@ get_shaders(const struct context_info *core, const struct context_info *compat,
         } else if (memcmp(text, gs, strlen(gs)) == 0) {
             text += strlen(gs);
             shader[i].type = GL_GEOMETRY_SHADER;
+            shader[i].text = text;
+        } else if (memcmp(text, tcs, strlen(tcs)) == 0) {
+            text += strlen(tcs);
+            shader[i].type = GL_TESS_CONTROL_SHADER;
+            shader[i].text = text;
+        } else if (memcmp(text, tes, strlen(tes)) == 0) {
+            text += strlen(tes);
+            shader[i].type = GL_TESS_EVALUATION_SHADER;
             shader[i].text = text;
         } else if (memcmp(text, test, strlen(test)) == 0) {
             shader[i - 1].length = save_text + 1 - shader[i - 1].text;
