@@ -209,7 +209,7 @@ callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
     assert(severity == GL_DEBUG_SEVERITY_NOTIFICATION);
 
     const char *const *shader_name = userParam;
-    printf("%s - %s", *shader_name, message);
+    printf("%s - %s\n", *shader_name, message);
 }
 
 static unsigned shader_test_size = 1 << 15; /* next-pow-2(num shaders in db) */
