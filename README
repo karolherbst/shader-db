@@ -39,6 +39,8 @@ to run.
 
 ST_DEBUG=precompile R600_DEBUG=ps,vs,gs,precompile ./run shaders -1 2> new-run
 
+Note that a debug mesa build required (ie. --enable-debug)
+
 -1 option for disabling multi-threading is required to avoid garbled shader dumps.
 
 === Analysis ===
