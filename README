@@ -46,6 +46,18 @@ Note that a debug mesa build required (ie. --enable-debug)
 === Analysis ===
 ./si-report.py old-run new-run
 
+=== freedreno Usage ===
+
+=== Running shaders ===
+
+FD_MESA_DEBUG=shaderdb ST_DEBUG=precompile ./run -1 shaders 2> new-run
+
+Note that a debug mesa build required (ie. --enable-debug)
+
+-1 option for disabling multi-threading is required to avoid garbled shader dumps.
+
+=== Analysis ===
+./fd-report.py old-run new-run
 
 === Dependencies ===
 run requires some GNU C extensions, render nodes (/dev/dri/renderD128),
