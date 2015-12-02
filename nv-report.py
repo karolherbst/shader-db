@@ -70,7 +70,7 @@ def main(argv):
     before = analyze(argv[1])
     after = analyze(argv[2])
     keys = before.stats.keys()
-    assert after.stats.keys() == keys
+    assert set(after.stats.keys()) == set(keys)
 
     helped = Stat()
     hurt = Stat()
