@@ -37,7 +37,7 @@ to run.
 
 === Running shaders ===
 
-ST_DEBUG=precompile R600_DEBUG=ps,vs,gs,precompile ./run shaders -1 2> new-run
+./run shaders -1 2> new-run
 
 Note that a debug mesa build required (ie. --enable-debug)
 
@@ -50,7 +50,7 @@ Note that a debug mesa build required (ie. --enable-debug)
 
 === Running shaders ===
 
-FD_MESA_DEBUG=shaderdb ST_DEBUG=precompile ./run -1 shaders 2> new-run
+./run -1 shaders 2> new-run
 
 Note that a debug mesa build required (ie. --enable-debug)
 

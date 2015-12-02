@@ -23,13 +23,15 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+/* for memmem(). The man page doesn't say __USE_GNU... */
+/* also for asprintf() */
+#define _GNU_SOURCE
+
 #include <time.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <assert.h>
 #include <signal.h>
-/* for memmem(). The man page doesn't say __USE_GNU... */
-#define __USE_GNU
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -292,6 +294,19 @@ void print_usage(const char *prog_name)
             prog_name);
 }
 
+static void addenv(const char *name, const char *value)
+{
+    const char *orig = getenv(name);
+    if (orig) {
+        char *newval;
+        asprintf(&newval, "%s,%s", orig, value);
+        setenv(name, newval, 1);
+        free(newval);
+    } else {
+        setenv(name, value, 1);
+    }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -340,6 +355,9 @@ main(int argc, char **argv)
 
     setenv("allow_glsl_extension_directive_midshader", "true", 1);
     setenv("shader_precompile", "true", 1);
+    addenv("ST_DEBUG", "precompile");
+    addenv("R600_DEBUG", "ps,vs,gs,precompile");
+    addenv("FD_MESA_DEBUG", "shaderdb");
 
     const char *client_extensions = eglQueryString(EGL_NO_DISPLAY,
                                                    EGL_EXTENSIONS);
