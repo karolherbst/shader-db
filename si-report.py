@@ -23,6 +23,8 @@
 # DEALINGS IN THE SOFTWARE.
 #
 
+from collections import defaultdict
+import itertools
 import re
 import sys
 
@@ -65,6 +67,10 @@ def get_scratch_str(value, suffixes = True):
         suffix = 'bytes per wave'
     return get_value_str(value, 'Scratch', suffix)
 
+def get_waitstates_str(value, suffixes = True):
+    suffix = ''
+    return get_value_str(value, 'Wait states', suffix)
+
 def calculate_percent_change(b, a):
     if b == 0:
         return 0
@@ -89,15 +95,17 @@ class si_stats:
         self.code_size = 0
         self.lds = 0
         self.scratch = 0
+        self.waitstates = 0
 
 
     def to_string(self, suffixes = True):
-        return "{}{}{}{}{}".format(
+        return "{}{}{}{}{}{}".format(
                 get_sgpr_str(self.sgprs, suffixes),
                 get_vgpr_str(self.vgprs, suffixes),
                 get_code_size_str(self.code_size, suffixes),
                 get_lds_str(self.lds, suffixes),
-                get_scratch_str(self.scratch, suffixes))
+                get_scratch_str(self.scratch, suffixes),
+                get_waitstates_str(self.waitstates, suffixes))
 
 
     def __str__(self):
@@ -109,6 +117,7 @@ class si_stats:
         self.code_size += other.code_size
         self.lds += other.lds
         self.scratch += other.scratch
+        self.waitstates += other.waitstates
 
     def update(self, comp, cmp_fn):
         for name in self.__dict__.keys():
@@ -153,56 +162,76 @@ class si_stats:
                 return False
         return True
 
+
+class si_parser(object):
+    re_stats = re.compile(
+        r"^Shader Stats: SGPRS: ([0-9]+) VGPRS: ([0-9]+) Code Size: ([0-9]+) "+
+        r"LDS: ([0-9]+) Scratch: ([0-9]+)$")
+    re_nop = re.compile("^\ts_nop ([0-9]+)")
+
+    def __init__(self):
+        self._stats = None
+        self._in_disasm = False
+
+    def finish(self):
+        return self._stats
+
+    def parse(self, msg):
+        if not self._in_disasm:
+            if msg == "Shader Disassembly Begin":
+                old_stats = self._stats
+                self._stats = si_stats()
+                self._in_disasm = True
+                return old_stats
+
+            match = si_parser.re_stats.match(msg)
+            if match is not None:
+                self._stats.sgprs = int(match.group(1))
+                self._stats.vgprs = int(match.group(2))
+                self._stats.code_size = int(match.group(3))
+                self._stats.lds = int(match.group(4))
+                self._stats.scratch = int(match.group(5))
+                old_stats = self._stats
+                self._stats = None
+                return old_stats
+        else:
+            if msg == "Shader Disassembly End":
+                self._in_disasm = False
+                return None
+
+            match = si_parser.re_nop.match(msg)
+            if match:
+                self._stats.waitstates += 1 + int(match.groups()[0])
+                return None
+
 def get_results(filename):
-    file = open(filename, "r")
-    lines = file.read().split('\n')
+    """
+    Returns a dictionary that maps shader_test names to lists of si_stats
+    (corresponding to the different shaders within the test's programs).
+    """
+    results = defaultdict(list)
+    parsers = defaultdict(si_parser)
 
-    results = []
-    current_stats = si_stats()
+    with open(filename, "r") as file:
+        re_line = re.compile(r"^(.+\.shader_test) - (.*)$")
 
-    for line in lines:
-        re_start = re.compile("^\*\*\* SHADER STATS \*\*\*$")
-        re_sgprs = re.compile("^SGPRS: ([0-9]+)$")
-        re_vgprs = re.compile("^VGPRS: ([0-9]+)$")
-        re_code_size = re.compile("^Code Size: ([0-9]+) bytes$")
-        re_lds = re.compile("^LDS: ([0-9]+) blocks$")
-        re_scratch = re.compile("^Scratch: ([0-9]+) bytes per wave$")
-        re_end = re.compile("^\*+$")
+        for line in file:
+            match = re_line.match(line)
+            if match is None:
+                continue
 
-        # First line of stats
-        match = re.search(re_start, line)
-        if match:
-            continue
+            name = match.group(1)
+            message = match.group(2)
 
-        match = re.search(re_sgprs, line)
-        if match:
-            current_stats.sgprs = int(match.groups()[0])
-            continue
+            stats = parsers[name].parse(message)
+            if stats is not None:
+                results[name].append(stats)
 
-        match = re.search(re_vgprs, line)
-        if match:
-            current_stats.vgprs = int(match.groups()[0])
-            continue
-
-        match = re.search(re_code_size, line)
-        if match:
-            current_stats.code_size = int(match.groups()[0])
-            continue
-
-        match = re.search(re_lds, line)
-        if match:
-            current_stats.lds = int(match.groups()[0])
-            continue
-
-        match = re.search(re_scratch, line)
-        if match:
-            current_stats.scratch = int(match.groups()[0])
-            continue
-
-        match = re.search(re_end, line)
-        if match:
-            results.append(current_stats)
-            current_stats = si_stats()
+    for name, parser in parsers.items():
+        stats = parser.finish()
+        if stats is not None:
+            print "Results for", name, "not fully parsed!"
+            results[name].append(stats)
 
     return results
 
@@ -263,7 +292,7 @@ def print_count(stats, divisor):
         result.__dict__[name] = '{} ({})'.format(get_str(count,''), get_str(percent))
     print result.to_string(False)
 
-def compare_results(before_results, after_results):
+def compare_results(before_all_results, after_all_results):
     total_before = si_stats()
     total_after = si_stats()
     total_affected_before = si_stats()
@@ -276,36 +305,57 @@ def compare_results(before_results, after_results):
     max_decrease_unit = si_stats()
 
     num_affected = 0
-    assert len(before_results) == len(after_results)
+    num_tests = 0
+    num_shaders = 0
 
-    for i in range(0, len(before_results)):
-        before = before_results[i]
-        after = after_results[i]
+    all_names = set(itertools.chain(before_all_results.keys(), after_all_results.keys()))
 
-        total_before.add(before)
-        total_after.add(after)
+    only_after_names = []
+    only_before_names = []
+    count_mismatch_names = []
 
-        comp = compare_stats(before, after)
-        if not comp.is_empty():
-            num_affected += 1
-            total_affected_before.add(before)
-            total_affected_after.add(after)
-            increases.update_increase(comp)
-            decreases.update_decrease(comp)
-            max_increase_per.update(comp, cmp_max_per)
-            max_decrease_per.update(comp, cmp_min_per)
-            max_increase_unit.update(comp, cmp_max_unit)
-            max_decrease_unit.update(comp, cmp_min_unit)
+    for name in all_names:
+        before_test_results = before_all_results.get(name)
+        after_test_results = after_all_results.get(name)
 
-    print '{} shaders'.format(len(before_results))
+        if before_test_results is None:
+            only_after_names.append(name)
+            continue
+        if after_test_results is None:
+            only_before_names.append(name)
+            continue
+
+        if len(before_test_results) != len(after_test_results):
+            count_mismatch_names.append(name)
+
+        num_tests += 1
+
+        for before, after in zip(before_test_results, after_test_results):
+            total_before.add(before)
+            total_after.add(after)
+            num_shaders += 1
+
+            comp = compare_stats(before, after)
+            if not comp.is_empty():
+                num_affected += 1
+                total_affected_before.add(before)
+                total_affected_after.add(after)
+                increases.update_increase(comp)
+                decreases.update_decrease(comp)
+                max_increase_per.update(comp, cmp_max_per)
+                max_decrease_per.update(comp, cmp_min_per)
+                max_increase_unit.update(comp, cmp_max_unit)
+                max_decrease_unit.update(comp, cmp_min_unit)
+
+    print '{} shaders in {} tests'.format(num_shaders, num_tests)
     print "Totals:"
     print_before_after_stats(total_before, total_after)
     print "Totals from affected shaders:"
     print_before_after_stats(total_affected_before, total_affected_after)
     print "Increases:"
-    print_count(increases, len(before_results))
+    print_count(increases, num_shaders)
     print "Decreases:"
-    print_count(decreases, len(after_results))
+    print_count(decreases, num_shaders)
 
     print "*** BY PERCENTAGE ***\n"
     print "Max Increase:\n"
@@ -318,6 +368,18 @@ def compare_results(before_results, after_results):
     print_cmp_stats(max_increase_unit)
     print "Max Decrease:\n"
     print_cmp_stats(max_decrease_unit)
+
+    def report_ignored(names, what):
+        if names:
+            print "*** Tests {} are ignored:".format(what)
+            s = ', '.join(names[:5])
+            if len(names) > 5:
+                s += ', and {} more'.format(len(names) - 5)
+            print s
+
+    report_ignored(only_after_names, "only in 'after' results")
+    report_ignored(only_before_names, "only in 'before' results")
+    report_ignored(count_mismatch_names, "with different number of shaders")
 
 
 def main():

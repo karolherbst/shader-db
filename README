@@ -37,11 +37,9 @@ to run.
 
 === Running shaders ===
 
-./run shaders -1 2> new-run
+./run shaders > new-run 2> /dev/null
 
 Note that a debug mesa build required (ie. --enable-debug)
-
--1 option for disabling multi-threading is required to avoid garbled shader dumps.
 
 === Analysis ===
 ./si-report.py old-run new-run
