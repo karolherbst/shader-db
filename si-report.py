@@ -37,12 +37,6 @@ def get_str(value, suffix = ' %'):
     else:
         return value
 
-def get_value_str(value, prefix, suffix):
-    space = ' '
-    if len(suffix) == 0:
-        space = ''
-    return "{}: {}{}{}\n".format(prefix, get_str(value), space, suffix)
-
 def calculate_percent_change(b, a):
     if b == 0:
         return 0
@@ -76,12 +70,32 @@ class si_stats:
         for name in self.get_metrics():
             self.__dict__[name] = 0
 
+        self._minmax_testname = {}
+
+    def copy(self):
+        copy = si_stats()
+        copy.error = self.error
+
+        for name in self.get_metrics():
+            copy.__dict__[name] = self.__dict__[name]
+
+        copy._minmax_testname = self._minmax_testname.copy()
+
+        return copy
+
     def to_string(self, suffixes = True):
         strings = []
         for name, printname, suffix in si_stats.metrics:
-            if not suffixes:
-                suffix = ''
-            strings.append(get_value_str(self.__dict__[name], printname, suffix))
+            string = "{}: {}".format(printname, get_str(self.__dict__[name]))
+
+            if suffixes and len(suffix) > 0:
+                string += ' ' + suffix
+
+            minmax_testname = self._minmax_testname.get(name)
+            if minmax_testname is not None:
+                string += ' (in {})'.format(minmax_testname)
+
+            strings.append(string + '\n')
         return ''.join(strings)
 
     def get_metrics(self):
@@ -94,13 +108,14 @@ class si_stats:
         for name in self.get_metrics():
             self.__dict__[name] += other.__dict__[name]
 
-    def update(self, comp, cmp_fn):
+    def update(self, comp, cmp_fn, testname):
         for name in self.get_metrics():
             current = self.__dict__[name]
             if type(current) != tuple:
                 current = (0, 0, 0)
             if cmp_fn(current, comp.__dict__[name]):
                 self.__dict__[name] = comp.__dict__[name]
+                self._minmax_testname[name] = testname
 
     def update_max(self, comp):
         for name in self.get_metrics():
@@ -251,14 +266,14 @@ def print_before_after_stats(before, after, divisor = 1):
     print result
 
 def print_cmp_stats(comp):
-    result = si_stats()
+    result = comp.copy()
     for name in result.get_metrics():
-        if type(comp.__dict__[name]) != tuple:
+        if type(result.__dict__[name]) != tuple:
             a = 0
             b = 0
         else:
-            b = comp.__dict__[name][1]
-            a = comp.__dict__[name][2]
+            b = result.__dict__[name][1]
+            a = result.__dict__[name][2]
         if b == 0:
             percent = format_float(0.0)
         else:
@@ -338,10 +353,10 @@ def compare_results(before_all_results, after_all_results):
                 total_affected_after.add(after)
                 increases.update_increase(comp)
                 decreases.update_decrease(comp)
-                max_increase_per.update(comp, cmp_max_per)
-                max_decrease_per.update(comp, cmp_min_per)
-                max_increase_unit.update(comp, cmp_max_unit)
-                max_decrease_unit.update(comp, cmp_min_unit)
+                max_increase_per.update(comp, cmp_max_per, name)
+                max_decrease_per.update(comp, cmp_min_per, name)
+                max_increase_unit.update(comp, cmp_max_unit, name)
+                max_decrease_unit.update(comp, cmp_min_unit, name)
 
         if have_error:
             errors_names.append(name)
