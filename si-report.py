@@ -43,34 +43,6 @@ def get_value_str(value, prefix, suffix):
         space = ''
     return "{}: {}{}{}\n".format(prefix, get_str(value), space, suffix)
 
-def get_sgpr_str(value, suffixes = True):
-    return get_value_str(value, 'SGPRS', '')
-
-def get_vgpr_str(value, suffixes = True):
-    return get_value_str(value, 'VGPRS', '')
-
-def get_code_size_str(value, suffixes = True):
-    suffix = ''
-    if suffixes:
-        suffix = 'bytes'
-    return get_value_str(value, 'Code Size', suffix)
-
-def get_lds_str(value, suffixes = True):
-    suffix = ''
-    if suffixes:
-        suffix = 'blocks'
-    return get_value_str(value, 'LDS', suffix)
-
-def get_scratch_str(value, suffixes = True):
-    suffix = ''
-    if suffixes:
-        suffix = 'bytes per wave'
-    return get_value_str(value, 'Scratch', suffix)
-
-def get_waitstates_str(value, suffixes = True):
-    suffix = ''
-    return get_value_str(value, 'Wait states', suffix)
-
 def calculate_percent_change(b, a):
     if b == 0:
         return 0
@@ -89,39 +61,41 @@ def cmp_min_per(current, comp):
     return calculate_percent_change(comp[1], comp[2]) < calculate_percent_change(current[1], current[2])
 
 class si_stats:
+    metrics = [
+        ('sgprs', 'SGPRS', ''),
+        ('vgprs', 'VGPRS', ''),
+        ('code_size', 'Code Size', 'bytes'),
+        ('lds', 'LDS', 'blocks'),
+        ('scratch', 'Scratch', 'bytes per wave'),
+        ('waitstates', 'Wait states', ''),
+    ]
+
     def __init__(self):
         self.error = False
-        self.sgprs = 0
-        self.vgprs = 0
-        self.code_size = 0
-        self.lds = 0
-        self.scratch = 0
-        self.waitstates = 0
 
+        for name in self.get_metrics():
+            self.__dict__[name] = 0
 
     def to_string(self, suffixes = True):
-        return "{}{}{}{}{}{}".format(
-                get_sgpr_str(self.sgprs, suffixes),
-                get_vgpr_str(self.vgprs, suffixes),
-                get_code_size_str(self.code_size, suffixes),
-                get_lds_str(self.lds, suffixes),
-                get_scratch_str(self.scratch, suffixes),
-                get_waitstates_str(self.waitstates, suffixes))
+        strings = []
+        for name, printname, suffix in si_stats.metrics:
+            if not suffixes:
+                suffix = ''
+            strings.append(get_value_str(self.__dict__[name], printname, suffix))
+        return ''.join(strings)
 
+    def get_metrics(self):
+        return [m[0] for m in si_stats.metrics]
 
     def __str__(self):
         return self.to_string()
 
     def add(self, other):
-        self.sgprs += other.sgprs
-        self.vgprs += other.vgprs
-        self.code_size += other.code_size
-        self.lds += other.lds
-        self.scratch += other.scratch
-        self.waitstates += other.waitstates
+        for name in self.get_metrics():
+            self.__dict__[name] += other.__dict__[name]
 
     def update(self, comp, cmp_fn):
-        for name in self.__dict__.keys():
+        for name in self.get_metrics():
             current = self.__dict__[name]
             if type(current) != tuple:
                 current = (0, 0, 0)
@@ -129,7 +103,7 @@ class si_stats:
                 self.__dict__[name] = comp.__dict__[name]
 
     def update_max(self, comp):
-        for name in self.__dict__.keys():
+        for name in self.get_metrics():
             current = self.__dict__[name]
             if type(current) == tuple:
                 current = self.__dict__[name][0]
@@ -137,7 +111,7 @@ class si_stats:
                 self.__dict__[name] = comp.__dict__[name]
 
     def update_min(self, comp):
-        for name in self.__dict__.keys():
+        for name in self.get_metrics():
             current = self.__dict__[name]
             if type(current) == tuple:
                 current = self.__dict__[name][0]
@@ -145,17 +119,17 @@ class si_stats:
                 self.__dict__[name] = comp.__dict__[name]
 
     def update_increase(self, comp):
-        for name in self.__dict__.keys():
+        for name in self.get_metrics():
             if comp.__dict__[name][0] > 0:
                 self.__dict__[name] += 1
 
     def update_decrease(self, comp):
-        for name in self.__dict__.keys():
+        for name in self.get_metrics():
             if comp.__dict__[name][0] < 0:
                 self.__dict__[name] += 1
 
     def is_empty(self):
-        for name in self.__dict__.keys():
+        for name in self.get_metrics():
             x = self.__dict__[name]
             if type(x) == tuple and x[0] is not 0:
                 return False
@@ -248,7 +222,7 @@ def get_results(filename):
 
 def compare_stats(before, after):
     result = si_stats()
-    for name in result.__dict__.keys():
+    for name in result.get_metrics():
         b = before.__dict__[name]
         a = after.__dict__[name]
         result.__dict__[name] = (a - b, b, a)
@@ -256,7 +230,7 @@ def compare_stats(before, after):
 
 def divide_stats(num, div):
     result = si_stats()
-    for name in result.__dict__.keys():
+    for name in result.get_metrics():
         if div.__dict__[name] == 0:
             result.__dict__[name] = num.__dict__[name]
         else:
@@ -265,7 +239,7 @@ def divide_stats(num, div):
 
 def print_before_after_stats(before, after, divisor = 1):
     result = si_stats()
-    for name in result.__dict__.keys():
+    for name in result.get_metrics():
         b = before.__dict__[name] / divisor
         a = after.__dict__[name] / divisor
         if b == 0:
@@ -278,7 +252,7 @@ def print_before_after_stats(before, after, divisor = 1):
 
 def print_cmp_stats(comp):
     result = si_stats()
-    for name in result.__dict__.keys():
+    for name in result.get_metrics():
         if type(comp.__dict__[name]) != tuple:
             a = 0
             b = 0
@@ -296,7 +270,7 @@ def print_cmp_stats(comp):
 
 def print_count(stats, divisor):
     result = si_stats()
-    for name in result.__dict__.keys():
+    for name in result.get_metrics():
         count = stats.__dict__[name]
         percent = float(count) / float(divisor)
         result.__dict__[name] = '{} ({})'.format(get_str(count,''), get_str(percent))
