@@ -90,6 +90,7 @@ def cmp_min_per(current, comp):
 
 class si_stats:
     def __init__(self):
+        self.error = False
         self.sgprs = 0
         self.vgprs = 0
         self.code_size = 0
@@ -193,6 +194,15 @@ class si_parser(object):
                 self._stats.scratch = int(match.group(5))
                 old_stats = self._stats
                 self._stats = None
+                return old_stats
+
+            if msg == "LLVM compile failed":
+                old_stats = self._stats
+                self._stats = None
+
+                if old_stats is None:
+                    old_stats = si_stats()
+                old_stats.error = True
                 return old_stats
         else:
             if msg == "Shader Disassembly End":
@@ -307,12 +317,15 @@ def compare_results(before_all_results, after_all_results):
     num_affected = 0
     num_tests = 0
     num_shaders = 0
+    num_after_errors = 0
+    num_before_errors = 0
 
     all_names = set(itertools.chain(before_all_results.keys(), after_all_results.keys()))
 
     only_after_names = []
     only_before_names = []
     count_mismatch_names = []
+    errors_names = []
 
     for name in all_names:
         before_test_results = before_all_results.get(name)
@@ -329,8 +342,17 @@ def compare_results(before_all_results, after_all_results):
             count_mismatch_names.append(name)
 
         num_tests += 1
+        have_error = False
 
         for before, after in zip(before_test_results, after_test_results):
+            if before.error:
+                num_before_errors += 1
+            if after.error:
+                num_after_errors += 1
+            if after.error or before.error:
+                have_error = True
+                continue
+
             total_before.add(before)
             total_after.add(after)
             num_shaders += 1
@@ -346,6 +368,9 @@ def compare_results(before_all_results, after_all_results):
                 max_decrease_per.update(comp, cmp_min_per)
                 max_increase_unit.update(comp, cmp_max_unit)
                 max_decrease_unit.update(comp, cmp_min_unit)
+
+        if have_error:
+            errors_names.append(name)
 
     print '{} shaders in {} tests'.format(num_shaders, num_tests)
     print "Totals:"
@@ -371,16 +396,19 @@ def compare_results(before_all_results, after_all_results):
 
     def report_ignored(names, what):
         if names:
-            print "*** Tests {} are ignored:".format(what)
+            print "*** {} are ignored:".format(what)
             s = ', '.join(names[:5])
             if len(names) > 5:
                 s += ', and {} more'.format(len(names) - 5)
             print s
 
-    report_ignored(only_after_names, "only in 'after' results")
-    report_ignored(only_before_names, "only in 'before' results")
-    report_ignored(count_mismatch_names, "with different number of shaders")
-
+    report_ignored(only_after_names, "Tests only in 'after' results")
+    report_ignored(only_before_names, "Tests only in 'before' results")
+    report_ignored(count_mismatch_names, "Tests with different number of shaders")
+    report_ignored(errors_names, "Shaders with compilation errors")
+    if num_after_errors > 0 or num_before_errors > 0:
+        print "*** Compile errors encountered! (before: {}, after: {})".format(
+            num_before_errors, num_after_errors)
 
 def main():
     before = sys.argv[1]
