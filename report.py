@@ -10,7 +10,7 @@ def get_results(filename):
 
     results = {}
 
-    re_match = re.compile(r"(\S+) - (.S \S+) shader: (\S*) inst, (\S*) loops, (\S*) cycles")
+    re_match = re.compile(r"(\S+) - (\S+ \S+) shader: (\S*) inst, (\S*) loops, (\S*) cycles")
     for line in lines:
         match = re.search(re_match, line)
         if match is None:
