@@ -73,7 +73,7 @@ def main():
         affected_before[m] = 0
         affected_after[m] = 0
 
-        print m
+        print(m)
 
         helped = []
         hurt = []
