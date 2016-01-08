@@ -48,7 +48,7 @@ def run_test(filename):
 
     lines = (line for line in results.splitlines())
     re_number = re.compile(
-        r'Native code for (unnamed )?(fragment|vertex|geometry|tessellation control|tessellation evaluation) shader (GLSL|ARB)(?P<number>\d+)')
+        r'Native code for (unnamed )?(fragment|vertex|geometry|tessellation control|tessellation evaluation|compute) shader (GLSL|ARB)(?P<number>\d+)')
     for line in lines:
         shader = re_number.match(line)
         if shader and int(shader.group('number')) > 0:
@@ -89,9 +89,9 @@ def main():
     os.environ["PIGLIT_PLATFORM"] = "gbm"
     if "INTEL_DEBUG" in os.environ:
         print("Warning: INTEL_DEBUG environment variable set!", file=sys.stderr)
-        os.environ["INTEL_DEBUG"] += ",vs,gs,fs,tcs,tes"
+        os.environ["INTEL_DEBUG"] += ",vs,gs,fs,tcs,tes,cs"
     else:
-        os.environ["INTEL_DEBUG"] = "vs,gs,fs,tcs,tes"
+        os.environ["INTEL_DEBUG"] = "vs,gs,fs,tcs,tes,cs"
 
     try:
         os.stat("bin/shader_runner")
