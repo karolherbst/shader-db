@@ -176,6 +176,8 @@ class si_parser(object):
 
             match = si_parser.re_stats.match(msg)
             if match is not None:
+                if self._stats == None:
+                    self._stats = si_stats()
                 self._stats.sgprs = int(match.group(1))
                 self._stats.vgprs = int(match.group(2))
                 self._stats.code_size = int(match.group(3))
