@@ -61,6 +61,7 @@ class si_stats:
         ('code_size', 'Code Size', 'bytes'),
         ('lds', 'LDS', 'blocks'),
         ('scratch', 'Scratch', 'bytes per wave'),
+        ('maxwaves', 'Max Waves', ''),
         ('waitstates', 'Wait states', ''),
     ]
 
@@ -156,7 +157,7 @@ class si_stats:
 class si_parser(object):
     re_stats = re.compile(
         r"^Shader Stats: SGPRS: ([0-9]+) VGPRS: ([0-9]+) Code Size: ([0-9]+) "+
-        r"LDS: ([0-9]+) Scratch: ([0-9]+)$")
+        r"LDS: ([0-9]+) Scratch: ([0-9]+) Max Waves: ([0-9]+)")
     re_nop = re.compile("^\ts_nop ([0-9]+)")
 
     def __init__(self):
@@ -183,6 +184,7 @@ class si_parser(object):
                 self._stats.code_size = int(match.group(3))
                 self._stats.lds = int(match.group(4))
                 self._stats.scratch = int(match.group(5))
+                self._stats.maxwaves = int(match.group(6))
                 old_stats = self._stats
                 self._stats = None
                 return old_stats
