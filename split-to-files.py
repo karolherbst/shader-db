@@ -88,9 +88,9 @@ def write_shader_test(filename, shaders):
             out.write("[fragment shader]\n")
         elif stage == "geometry":
             out.write("[geometry shader]\n")
-        elif stage == "tess ctrl":
+        elif stage == "tess ctrl" or stage == "tessellation control":
             out.write("[tessellation control shader]\n")
-        elif stage == "tess eval":
+        elif stage == "tess eval" or stage == "tessellation evaluation":
             out.write("[tessellation evaluation shader]\n")
         else:
             assert False, stage
