@@ -362,7 +362,7 @@ main(int argc, char **argv)
     setenv("allow_glsl_extension_directive_midshader", "true", 1);
     setenv("shader_precompile", "true", 1);
     addenv("ST_DEBUG", "precompile");
-    addenv("R600_DEBUG", "vs,tcs,tes,gs,ps,cs,precompile,noir,notgsi");
+    addenv("R600_DEBUG", "precompile");
     addenv("FD_MESA_DEBUG", "shaderdb");
 
     const char *client_extensions = eglQueryString(EGL_NO_DISPLAY,
