@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 """
 We're matching lines like
@@ -114,9 +114,11 @@ def main(argv):
                 if aa == ba:
                     continue
                 if aa < ba:
+                    print "helped", attr, key, "%s -> %s" % (ba, aa)
                     setattr(helped, attr,
                             getattr(helped, attr) + 1)
                 else:
+                    print "hurt", attr, key, "%s -> %s" % (ba, aa)
                     setattr(hurt, attr,
                             getattr(hurt, attr) + 1)
 
@@ -124,6 +126,7 @@ def main(argv):
     print "total gprs used in shared programs    :", diff(before.gpr, after.gpr)
     print "total shared used in shared programs  :", diff(before.shared, after.shared)
     print "total local used in shared programs   :", diff(before.local, after.local)
+    print "total bytes used in shared programs   :", diff(before.bytes, after.bytes)
     print
     print "%10s %10s %10s %10s %10s %10s " % ("", "local", "shared", "gpr", "inst", "bytes")
     print "%10s " % "helped",
