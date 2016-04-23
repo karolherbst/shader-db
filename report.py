@@ -10,7 +10,7 @@ def get_results(filename):
 
     results = {}
 
-    re_match = re.compile(r"(\S+) - (\S+ \S+) shader: (\S*) inst, (\S*) loops, (\S*) cycles")
+    re_match = re.compile(r"(\S+) - (\S+ \S+) shader: (\S*) inst, (\S*) loops, (\S*) cycles, (\S*):(\S*) spills:fills")
     for line in lines:
         match = re.search(re_match, line)
         if match is None:
@@ -20,9 +20,13 @@ def get_results(filename):
         inst_count = int(groups[2])
         loop_count = int(groups[3])
         cycle_count = int(groups[4])
+        spill_count = int(groups[5])
+        fill_count = int(groups[6])
         if inst_count != 0:
             results[(groups[0], groups[1])] = {
                 "instructions": inst_count,
+                "spills": spill_count,
+                "fills": fill_count,
                 "cycles": cycle_count,
                 "loops": loop_count
             }
@@ -54,7 +58,7 @@ def split_list(string):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--measurements", "-m", type=split_list,
-                        default=["instructions", "cycles", "loops"],
+                        default=["instructions", "cycles", "loops", "spills", "fills"],
                         help="comma-separated list of measurements to report")
     parser.add_argument("before", type=get_results, help="the output of the original code")
     parser.add_argument("after", type=get_results, help="the output of the new code")
