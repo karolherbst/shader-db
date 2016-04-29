@@ -77,8 +77,6 @@ def main():
         affected_before[m] = 0
         affected_after[m] = 0
 
-        print(m)
-
         helped = []
         hurt = []
         for p in args.before:
@@ -107,7 +105,7 @@ def main():
                     helped.append(p)
 
         helped.sort(
-            key=lambda k: float(args.before[k][m] - args.after[k][m]) / args.before[k][m])
+            key=lambda k: args.after[k][m] if args.before[k][m] == 0 else float(args.before[k][m] - args.after[k][m]) / args.before[k][m])
         for p in helped:
             namestr = p[0] + " " + p[1]
             print(m + " helped:   " + get_result_string(
@@ -116,7 +114,7 @@ def main():
             print("")
 
         hurt.sort(
-            key=lambda k: float(args.after[k][m] - args.before[k][m]) / args.before[k][m])
+            key=lambda k: args.after[k][m] if args.before[k][m] == 0 else float(args.after[k][m] - args.before[k][m]) / args.before[k][m])
         for p in hurt:
             namestr = p[0] + " " + p[1]
             print(m + " HURT:   " + get_result_string(
