@@ -366,6 +366,9 @@ def compare_results(before_all_results, after_all_results):
             errors_names.append(name)
 
     print '{} shaders in {} tests'.format(num_shaders, num_tests)
+    if num_shaders == 0:
+        return
+
     print "Totals:"
     print_before_after_stats(total_before, total_after)
     print "Totals from affected shaders:"
