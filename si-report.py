@@ -60,9 +60,9 @@ class si_stats:
         ('vgprs', 'VGPRS', ''),
         ('spilled_sgprs', 'Spilled SGPRs', ''),
         ('spilled_vgprs', 'Spilled VGPRs', ''),
+        ('scratch_vgprs', 'Scratch VGPRs', 'dwords per thread'),
         ('code_size', 'Code Size', 'bytes'),
         ('lds', 'LDS', 'blocks'),
-        ('scratch', 'Scratch', 'bytes per wave'),
         ('maxwaves', 'Max Waves', ''),
         ('waitstates', 'Wait states', ''),
     ]
@@ -188,7 +188,7 @@ class si_parser(object):
                 self._stats.spilled_vgprs = int(match.group(8))
                 self._stats.code_size = int(match.group(3))
                 self._stats.lds = int(match.group(4))
-                self._stats.scratch = int(match.group(5))
+                self._stats.scratch_vgprs = int(match.group(5)) / (64 * 4)
                 self._stats.maxwaves = int(match.group(6))
                 old_stats = self._stats
                 self._stats = None
