@@ -39,7 +39,7 @@ def get_str(value, suffix = ' %'):
 
 def calculate_percent_change(b, a):
     if b == 0:
-        return 0
+        return 0 if a == 0 else float("inf")
     return 100 * float(a - b) / float(b)
 
 def cmp_max_unit(current, comp):
