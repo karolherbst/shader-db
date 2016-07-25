@@ -633,6 +633,12 @@ main(int argc, char **argv)
             }
             ctx_is_core = type == TYPE_CORE;
 
+            /* If there's only one GLSL shader, mark it separable so
+             * inputs and outputs aren't eliminated.
+             */
+            if (num_shaders == 1 && type != TYPE_VP && type != TYPE_FP)
+                use_separate_shader_objects = true;
+
             if (use_separate_shader_objects) {
                 for (unsigned i = 0; i < num_shaders; i++) {
                     glCreateShaderProgramv(shader[i].type, 1, &shader[i].text);
