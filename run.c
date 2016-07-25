@@ -633,6 +633,12 @@ main(int argc, char **argv)
             }
             ctx_is_core = type == TYPE_CORE;
 
+            /* If there's only one shader, mark it separable so inputs
+             * and outputs aren't eliminated.
+             */
+            if (num_shaders == 1)
+                use_separate_shader_objects = true;
+
             if (type == TYPE_CORE || type == TYPE_COMPAT) {
                 GLuint prog = glCreateProgram();
 
