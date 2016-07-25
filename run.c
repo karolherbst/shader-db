@@ -240,7 +240,7 @@ gather_shader_test(const char *fpath, const struct stat *sb, int typeflag)
 
         if (unlikely(shader_test_size < shader_test_length)) {
             shader_test_size *= 2;
-            shader_test = realloc(shader_test, shader_test_size * sizeof(char *));
+            shader_test = realloc(shader_test, shader_test_size * sizeof(struct shader_test));
         }
         shader_test[shader_test_length].filename = malloc(strlen(fpath) + 1);
         memcpy(shader_test[shader_test_length].filename, fpath, strlen(fpath) + 1);
