@@ -245,7 +245,7 @@ gather_shader_test(const char *fpath, const struct stat *sb, int typeflag)
             return -1;
         }
 
-        if (unlikely(shader_test_size < shader_test_length)) {
+        if (unlikely(shader_test_size <= shader_test_length)) {
             shader_test_size *= 2;
             shader_test = realloc(shader_test, shader_test_size * sizeof(struct shader_test));
         }
