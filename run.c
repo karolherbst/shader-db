@@ -641,7 +641,15 @@ main(int argc, char **argv)
 
             if (use_separate_shader_objects) {
                 for (unsigned i = 0; i < num_shaders; i++) {
-                    glCreateShaderProgramv(shader[i].type, 1, &shader[i].text);
+                    const char *const_text;
+                    char *text = alloca(shader[i].length + 1);
+
+                    /* Make it zero-terminated. */
+                    memcpy(text, shader[i].text, shader[i].length);
+                    text[shader[i].length] = 0;
+
+                    const_text = text;
+                    glCreateShaderProgramv(shader[i].type, 1, &const_text);
                 }
             } else if (type == TYPE_CORE || type == TYPE_COMPAT) {
                 GLuint prog = glCreateProgram();
