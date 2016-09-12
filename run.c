@@ -301,7 +301,7 @@ const struct platform platforms[] = {
 void print_usage(const char *prog_name)
 {
     fprintf(stderr,
-            "Usage: %s [-p <platform>] <directories and *.shader_test files>\n"
+            "Usage: %s [-d <device>] [-p <platform>] <directories and *.shader_test files>\n"
             "Other options: \n"
             " -1    Disable multi-threading\n",
             prog_name);
@@ -323,12 +323,24 @@ static void addenv(const char *name, const char *value)
 int
 main(int argc, char **argv)
 {
+    char device_path[64];
+    int device_id = 0;
     int opt;
 
     max_threads = omp_get_max_threads();
 
-    while((opt = getopt(argc, argv, "1p:")) != -1) {
+    while((opt = getopt(argc, argv, "1d:p:")) != -1) {
         switch(opt) {
+        case 'd': {
+            char *endptr;
+
+            device_id = strtol(optarg, &endptr, 10);
+            if (endptr == optarg) {
+                fprintf(stderr, "Invalid device ID.\n");
+                return -1;
+            }
+            break;
+        }
         case 'p': {
             const struct platform *platform = NULL;
             for (unsigned i = 0; i < ARRAY_SIZE(platforms); i++) {
@@ -386,9 +398,12 @@ main(int argc, char **argv)
 
     int ret = 0;
 
-    int fd = open("/dev/dri/renderD128", O_RDWR);
+    snprintf(device_path, sizeof(device_path),
+             "/dev/dri/renderD%d", device_id + 128);
+
+    int fd = open(device_path, O_RDWR);
     if (unlikely(fd < 0)) {
-        fprintf(stderr, "ERROR: Couldn't open /dev/dri/renderD128\n");
+        fprintf(stderr, "ERROR: Couldn't open %s\n", device_path);
         return -1;
     }
 
