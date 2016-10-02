@@ -77,6 +77,7 @@ get_shaders(const struct context_info *core, const struct context_info *compat,
             const char *shader_name)
 {
     static const char *req = "[require]";
+    static const char *gl_req = "\nGL >= ";
     static const char *glsl_req = "\nGLSL >= ";
     static const char *fp_req = "\nGL_ARB_fragment_program";
     static const char *vp_req = "\nGL_ARB_vertex_program";
@@ -96,6 +97,11 @@ get_shaders(const struct context_info *core, const struct context_info *compat,
 
     /* Find the [require] block and parse it first. */
     text = memmem(text, end_text - text, req, strlen(req)) + strlen(req);
+
+    /* Skip the GL >= x.y line if present. */
+    if (memcmp(text, gl_req, strlen(gl_req)) == 0) {
+        text += strlen(gl_req) + 3; /* for x.y */
+    }
 
     if (memcmp(text, glsl_req, strlen(glsl_req)) == 0) {
         text += strlen(glsl_req);
