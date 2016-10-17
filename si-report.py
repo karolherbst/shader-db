@@ -542,6 +542,7 @@ def print_yellow(str):
 def print_tables(before_all_results, after_all_results):
     re_app = re.compile(r"^.*/([^/]+)/[^/]+$")
 
+    num_listed = 20
     apps = defaultdict(grouped_stats)
     shaders = defaultdict(grouped_stats)
     total = grouped_stats()
@@ -594,7 +595,7 @@ def print_tables(before_all_results, after_all_results):
                          "VGPRs SpillVGPR ScratchVGPR")
         stats.print_one_shader_vgpr_spill(name)
         num += 1
-        if num == 10:
+        if num == num_listed:
             break
     if num > 0:
         print
@@ -614,7 +615,7 @@ def print_tables(before_all_results, after_all_results):
                          "SGPRs SpillSGPR")
         stats.print_one_shader_sgpr_spill(name)
         num += 1
-        if num == 10:
+        if num == num_listed:
             break
     if num > 0:
         print
@@ -650,7 +651,7 @@ def print_tables(before_all_results, after_all_results):
                              "Before     After     Delta Percentage")
             stats.print_regression(name, field)
             num += 1
-            if num == 10:
+            if num == num_listed:
                 break
         if num > 0:
             print
