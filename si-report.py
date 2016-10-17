@@ -513,12 +513,15 @@ class grouped_stats:
             format_percent_change(self.before.waitstates, self.after.waitstates))
 
     def print_regression(self, name, field):
+        more_is_better = field == "maxwaves"
         print " {:65}{:10}{:10}{}{}".format(
             name,
             self.before.__dict__[field],
             self.after.__dict__[field],
-            format_table_cell(self.after.__dict__[field] - self.before.__dict__[field]),
-            format_percent_change(self.before.__dict__[field], self.after.__dict__[field]))
+            format_table_cell(self.after.__dict__[field] - self.before.__dict__[field],
+                              more_is_better = more_is_better),
+            format_percent_change(self.before.__dict__[field], self.after.__dict__[field],
+                                  more_is_better = more_is_better))
 
 """
 Return "filename [index]", because files can contain multiple shaders.
@@ -625,17 +628,22 @@ def print_tables(before_all_results, after_all_results):
     # worst regressions
     metrics = si_stats().metrics
     for i in range(len(metrics)):
-        # maxwaves regressions aren't reported (see vgprs/sgprs instead)
-        if metrics[i][0] == 'maxwaves':
-            continue
-
         field = metrics[i][0]
         num = 0
-        sort_key = lambda v: -v[1].diff.__dict__[field]
+        more_is_better = metrics[i][0] == 'maxwaves'
+
+        if more_is_better:
+            sort_key = lambda v: v[1].diff.__dict__[field]
+        else:
+            sort_key = lambda v: -v[1].diff.__dict__[field]
 
         for name, stats in sorted(shaders.items(), key = sort_key):
-            if stats.diff.__dict__[field] <= 0:
-                continue
+            if more_is_better:
+                if stats.diff.__dict__[field] >= 0:
+                    continue
+            else:
+                if stats.diff.__dict__[field] <= 0:
+                    continue
 
             if num == 0:
                 print_yellow(" WORST REGRESSIONS - {:49}".format(metrics[i][1]) +
