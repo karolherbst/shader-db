@@ -542,7 +542,7 @@ def print_yellow(str):
 def print_tables(before_all_results, after_all_results):
     re_app = re.compile(r"^.*/([^/]+)/[^/]+$")
 
-    num_listed = 20
+    num_listed = 40
     apps = defaultdict(grouped_stats)
     shaders = defaultdict(grouped_stats)
     total = grouped_stats()
