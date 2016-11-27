@@ -82,7 +82,7 @@ class si_stats:
         ('vgprs', 'VGPRS', ''),
         ('spilled_sgprs', 'Spilled SGPRs', ''),
         ('spilled_vgprs', 'Spilled VGPRs', ''),
-        ('scratch_vgprs', 'Scratch VGPRs', 'dwords per thread'),
+        ('scratch_size', 'Scratch size', 'dwords per thread'),
         ('code_size', 'Code Size', 'bytes'),
         ('lds', 'LDS', 'blocks'),
         ('maxwaves', 'Max Waves', ''),
@@ -210,7 +210,7 @@ class si_parser(object):
                 self._stats.spilled_vgprs = int(match.group(8))
                 self._stats.code_size = int(match.group(3))
                 self._stats.lds = int(match.group(4))
-                self._stats.scratch_vgprs = int(match.group(5)) / (64 * 4)
+                self._stats.scratch_size = int(match.group(5)) / (64 * 4)
                 self._stats.maxwaves = int(match.group(6))
                 old_stats = self._stats
                 self._stats = None
@@ -468,21 +468,21 @@ class grouped_stats:
 
     def print_vgpr_spilling_app(self, name):
         if (self.after.spilled_vgprs > 0 or
-            self.after.scratch_vgprs > 0):
+            self.after.scratch_size > 0):
             print " {:22}{:6}{:10}{:10}".format(
                 name,
                 self.num_shaders,
                 self.after.spilled_vgprs,
-                self.after.scratch_vgprs)
+                self.after.scratch_size)
 
     def print_one_shader_vgpr_spill(self, name):
         if (self.after.spilled_vgprs > 0 or
-            self.after.scratch_vgprs > 0):
+            self.after.scratch_size > 0):
             print " {:65}{:10}{:10}{:10}".format(
                 name,
                 self.after.vgprs,
                 self.after.spilled_vgprs,
-                self.after.scratch_vgprs)
+                self.after.scratch_size)
 
     def print_sgpr_spilling_app(self, name):
         if self.after.spilled_sgprs > 0:
@@ -507,7 +507,7 @@ class grouped_stats:
             format_percent_change(self.before.vgprs, self.after.vgprs),
             format_percent_change(self.before.spilled_sgprs, self.after.spilled_sgprs),
             format_percent_change(self.before.spilled_vgprs, self.after.spilled_vgprs),
-            format_percent_change(self.before.scratch_vgprs, self.after.scratch_vgprs),
+            format_percent_change(self.before.scratch_size, self.after.scratch_size),
             format_percent_change(self.before.code_size, self.after.code_size),
             format_percent_change(self.before.maxwaves, self.after.maxwaves, more_is_better = True),
             format_percent_change(self.before.waitstates, self.after.waitstates))
@@ -580,7 +580,7 @@ def print_tables(before_all_results, after_all_results):
             # we don't have to add all shaders, just those that we may need
             # to display
             if (is_regression(before, after) or
-                after.scratch_vgprs > 0 or
+                after.scratch_size > 0 or
                 after.spilled_vgprs > 0 or
                 after.spilled_sgprs > 0):
                 name = get_shader_name(shaders, file)
@@ -588,11 +588,11 @@ def print_tables(before_all_results, after_all_results):
 
     # worst VGPR spills
     num = 0
-    sort_key = lambda v: -v[1].after.scratch_vgprs
+    sort_key = lambda v: -v[1].after.scratch_size
     for name, stats in sorted(shaders.items(), key = sort_key):
         if num == 0:
             print_yellow(" WORST VGPR SPILLS (not deltas)" + (" " * 40) +
-                         "VGPRs SpillVGPR ScratchVGPR")
+                         "VGPRs SpillVGPR ScratchSize")
         stats.print_one_shader_vgpr_spill(name)
         num += 1
         if num == num_listed:
@@ -601,7 +601,7 @@ def print_tables(before_all_results, after_all_results):
         print
 
     # VGPR spilling apps
-    print_yellow(" VGPR SPILLING APPS   Shaders SpillVGPR ScratchVGPR")
+    print_yellow(" VGPR SPILLING APPS   Shaders SpillVGPR ScratchSize")
     for name, stats in sorted(apps.items()):
         stats.print_vgpr_spilling_app(name)
     print
