@@ -663,7 +663,10 @@ main(int argc, char **argv)
             if (use_separate_shader_objects) {
                 for (unsigned i = 0; i < num_shaders; i++) {
                     const char *const_text;
-                    char *text = alloca(shader[i].length + 1);
+                    unsigned size = shader[i].length + 1;
+                    /* Using alloca crashes in the GLSL compiler.  */
+                    char *text = malloc(size);
+                    memset(text, 0, size);
 
                     /* Make it zero-terminated. */
                     memcpy(text, shader[i].text, shader[i].length);
@@ -673,6 +676,7 @@ main(int argc, char **argv)
                     GLuint prog = glCreateShaderProgramv(shader[i].type, 1,
                                                          &const_text);
                     glDeleteProgram(prog);
+                    free(text);
                 }
             } else if (type == TYPE_CORE || type == TYPE_COMPAT) {
                 GLuint prog = glCreateProgram();
