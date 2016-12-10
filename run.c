@@ -670,7 +670,9 @@ main(int argc, char **argv)
                     text[shader[i].length] = 0;
 
                     const_text = text;
-                    glCreateShaderProgramv(shader[i].type, 1, &const_text);
+                    GLuint prog = glCreateShaderProgramv(shader[i].type, 1,
+                                                         &const_text);
+                    glDeleteProgram(prog);
                 }
             } else if (type == TYPE_CORE || type == TYPE_COMPAT) {
                 GLuint prog = glCreateProgram();
