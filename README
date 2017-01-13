@@ -1,6 +1,6 @@
 === What ===
 
-A giant pile of shaders from various apps, for whatever purpose.  In
+A giant pile of shaders from various apps, for whatever purpose. In
 particular, we use it to capture assembly output of the shader
 compiler for analysis of regressions in compiler behavior.
 
@@ -16,10 +16,16 @@ MESA_SHADER_CAPTURE_PATH=dirpath executable
 
 # "fdupes" can be used to remove duplicates
 
+=== Compiling ===
+
+Some libraries are required when building. See section "Dependencies" below.
+To build the binary, do:
+make
 
 === i965 Usage ===
 
 === Running shaders ===
+
 ./run shaders 2> err | tee new-run
 
 # To run just a subset:
@@ -34,8 +40,8 @@ To compile shaders for an i965 PCI ID different from your system, pass
 to run.
 
 === Analysis ===
-./report.py old-run new-run
 
+./report.py old-run new-run
 
 === radeonsi Usage ===
 
@@ -46,6 +52,7 @@ to run.
 Note that a debug mesa build required (ie. --enable-debug)
 
 === Analysis ===
+
 ./si-report.py old-run new-run
 
 === freedreno Usage ===
@@ -59,15 +66,22 @@ Note that a debug mesa build required (ie. --enable-debug)
 -1 option for disabling multi-threading is required to avoid garbled shader dumps.
 
 === Analysis ===
+
 ./fd-report.py old-run new-run
 
 === Dependencies ===
+
 run requires some GNU C extensions, render nodes (/dev/dri/renderD128),
 libepoxy, OpenMP, and Mesa configured with --with-egl-platforms=x11,drm
 
 === jemalloc ===
+
 Since run compiles shaders in different threads, malloc/free locking overhead
 from inside Mesa can be expensive. Preloading jemalloc can cut significant
 amounts of time:
 
 LD_PRELOAD=/usr/lib64/libjemalloc.so.1 ./run shaders 2> err | tee new-run
+
+=== Deprecated ===
+
+run.py is obsolete. Use the 'run' binary instead.
