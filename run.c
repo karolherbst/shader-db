@@ -307,9 +307,7 @@ const struct platform platforms[] = {
 void print_usage(const char *prog_name)
 {
     fprintf(stderr,
-            "Usage: %s [-d <device>] [-p <platform>] <directories and *.shader_test files>\n"
-            "Other options: \n"
-            " -1    Disable multi-threading\n",
+            "Usage: %s [-d <device>] [-j <max_threads>] [-p <platform>] <directories and *.shader_test files>\n",
             prog_name);
 }
 
@@ -335,7 +333,7 @@ main(int argc, char **argv)
 
     max_threads = omp_get_max_threads();
 
-    while((opt = getopt(argc, argv, "1d:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "d:j:p:")) != -1) {
         switch(opt) {
         case 'd': {
             char *endptr;
@@ -368,8 +366,8 @@ main(int argc, char **argv)
             setenv("INTEL_DEVID_OVERRIDE", platform->pci_id, 1);
             break;
         }
-        case '1':
-            max_threads = 1;
+        case 'j':
+            max_threads = atoi(optarg);
             break;
         default:
             fprintf(stderr, "Unknown option: %x\n", opt);
