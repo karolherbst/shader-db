@@ -307,7 +307,7 @@ const struct platform platforms[] = {
 void print_usage(const char *prog_name)
 {
     fprintf(stderr,
-            "Usage: %s [-d <device>] [-j <max_threads>] [-p <platform>] <directories and *.shader_test files>\n",
+            "Usage: %s [-d <device>] [-j <max_threads>] [-o <driver>] [-p <platform>] <directories and *.shader_test files>\n",
             prog_name);
 }
 
@@ -333,7 +333,7 @@ main(int argc, char **argv)
 
     max_threads = omp_get_max_threads();
 
-    while ((opt = getopt(argc, argv, "d:j:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "d:j:o:p:")) != -1) {
         switch(opt) {
         case 'd': {
             char *endptr;
@@ -345,6 +345,10 @@ main(int argc, char **argv)
             }
             break;
         }
+        case 'o':
+            printf("### Overriding driver for %s ###\n", optarg);
+            setenv("MESA_LOADER_DRIVER_OVERRIDE", optarg, 1);
+            break;
         case 'p': {
             const struct platform *platform = NULL;
             for (unsigned i = 0; i < ARRAY_SIZE(platforms); i++) {
