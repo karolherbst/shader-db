@@ -720,6 +720,8 @@ main(int argc, char **argv)
             }
             shaders_compiled += num_shaders;
 
+            current_shader_names[omp_get_thread_num()] = NULL;
+
             free(shader);
             free(shader_test[i].filename);
 
