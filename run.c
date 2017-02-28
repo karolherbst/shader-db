@@ -274,13 +274,17 @@ int max_threads;
 static void
 abort_handler(int signo)
 {
-    sigputs("\n => CRASHED <= while processing these shaders:\n\n");
-    for (int i = 0; i < max_threads; i++) {
-        if (current_shader_names[i]) {
-            sigputs("    ");
-            sigputs(current_shader_names[i]);
-            sigputs("\n");
+    if (current_shader_names) {
+        sigputs("\n => CRASHED <= while processing these shaders:\n\n");
+        for (int i = 0; i < max_threads; i++) {
+            if (current_shader_names[i]) {
+                sigputs("    ");
+                sigputs(current_shader_names[i]);
+                sigputs("\n");
+            }
         }
+    } else {
+       sigputs("\n => CRASHED <= during final teardown.\n");
     }
     sigputs("\n");
     _exit(-1);
@@ -746,6 +750,7 @@ main(int argc, char **argv)
     free(current_shader_names);
     free(shader_test);
     free(core.extension_string);
+    current_shader_names = NULL;
 
  egl_terminate:
     eglTerminate(egl_dpy);
