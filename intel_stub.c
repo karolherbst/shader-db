@@ -200,6 +200,9 @@ ioctl(int fd, unsigned long request, ...)
                         case I915_PARAM_CHIPSET_ID:
                                 *getparam->value = strtod(getenv("INTEL_DEVID_OVERRIDE"), NULL);
                                 break;
+                        case I915_PARAM_CMD_PARSER_VERSION:
+                                *getparam->value = 9;
+                                break;
 			}
 
                         return 0;
