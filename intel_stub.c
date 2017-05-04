@@ -221,6 +221,11 @@ ioctl(int fd, unsigned long request, ...)
                                 MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
                         return 0;
                 }
+
+                case DRM_IOCTL_I915_GEM_CONTEXT_CREATE: {
+                        struct drm_i915_gem_context_create *cc = argp;
+                        cc->ctx_id = 1; /* must be non-zero */
+                }
 		default:
                         return 0;
 		}
