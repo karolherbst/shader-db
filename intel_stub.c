@@ -192,11 +192,14 @@ ioctl(int fd, unsigned long request, ...)
 		case DRM_IOCTL_I915_GETPARAM: {
 			struct drm_i915_getparam *getparam = argp;
 
-                        if (getparam->param == I915_PARAM_HAS_RELAXED_DELTA)
+                        switch (getparam->param) {
+                        case I915_PARAM_HAS_RELAXED_DELTA:
+                        case I915_PARAM_HAS_WAIT_TIMEOUT:
                                 *getparam->value = 1;
-
-                        else if (getparam->param == I915_PARAM_CHIPSET_ID) {
-				*getparam->value = strtod(getenv("INTEL_DEVID_OVERRIDE"), NULL);
+                                break;
+                        case I915_PARAM_CHIPSET_ID:
+                                *getparam->value = strtod(getenv("INTEL_DEVID_OVERRIDE"), NULL);
+                                break;
 			}
 
                         return 0;
