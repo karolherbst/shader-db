@@ -393,10 +393,10 @@ main(int argc, char **argv)
     setenv("allow_glsl_extension_directive_midshader", "true", 1);
     setenv("shader_precompile", "true", 1);
     setenv("MESA_GLSL_CACHE_DISABLE", "true", 1);
+    setenv("GALLIUM_THREAD", "0", 1);
     addenv("ST_DEBUG", "precompile");
     addenv("R600_DEBUG", "precompile");
     addenv("FD_MESA_DEBUG", "shaderdb");
-    addenv("GALLIUM_THREAD", "0");
 
     const char *client_extensions = eglQueryString(EGL_NO_DISPLAY,
                                                    EGL_EXTENSIONS);
