@@ -1,0 +1,1302 @@
+[require]
+GLSL >= 4.00
+
+[vertex shader]
+#version 400
+
+#define FORCE_EARLY_Z layout(early_fragment_tests) in
+
+#extension GL_ARB_shading_language_420pack : enable
+
+#define ATTRIBUTE_LOCATION(x)
+#define FRAGMENT_OUTPUT_LOCATION(x)
+#define FRAGMENT_OUTPUT_LOCATION_INDEXED(x, y)
+#define UBO_BINDING(packing, x) layout(packing, binding = x)
+#define SAMPLER_BINDING(x) layout(binding = x)
+#define SSBO_BINDING(x) layout(binding = x)
+
+#define VARYING_LOCATION(x)
+
+#extension GL_ARB_shader_storage_buffer_object : enable
+
+
+
+
+
+
+
+#extension GL_ARB_shader_image_load_store : enable
+
+
+
+
+
+
+#define float2 vec2
+#define float3 vec3
+#define float4 vec4
+#define uint2 uvec2
+#define uint3 uvec3
+#define uint4 uvec4
+#define int2 ivec2
+#define int3 ivec3
+#define int4 ivec4
+#define frac fract
+#define lerp mix
+// Vertex UberShader
+
+struct Light {
+	int4 color;
+	float4 cosatt;
+	float4 distatt;
+	float4 pos;
+	float4 dir;
+};
+UBO_BINDING(std140, 2) uniform VSBlock {
+	uint    components;
+	uint    xfmem_dualTexInfo;
+	uint    xfmem_numColorChans;
+	float4 cpnmtx[6];
+	float4 cproj[4];
+	int4 cmtrl[4];
+	Light clights[8];
+	float4 ctexmtx[24];
+	float4 ctrmtx[64];
+	float4 cnmtx[32];
+	float4 cpostmtx[64];
+	float4 cpixelcenter;
+	float2 cviewport;
+	uint4   xfmem_pack1[8];
+	#define xfmem_texMtxInfo(i) (xfmem_pack1[(i)].x)
+	#define xfmem_postMtxInfo(i) (xfmem_pack1[(i)].y)
+	#define xfmem_color(i) (xfmem_pack1[(i)].z)
+	#define xfmem_alpha(i) (xfmem_pack1[(i)].w)
+};
+struct VS_OUTPUT {
+	 float4 pos;
+	 float4 colors_0;
+	 float4 colors_1;
+	 float3 tex0;
+	 float3 tex1;
+	 float3 tex2;
+	 float3 tex3;
+	 float3 tex4;
+	 float3 tex5;
+	 float3 tex6;
+	 float4 clipPos;
+	 float clipDist0;
+	 float clipDist1;
+};
+
+int4 CalculateLighting(uint index, uint attnfunc, uint diffusefunc, float3 pos, float3 normal) {
+  float3 ldir, h, cosAttn, distAttn;
+  float dist, dist2, attn;
+
+  switch (attnfunc) {
+  case 0u: // LIGNTATTN_NONE
+  case 2u: // LIGHTATTN_DIR
+    ldir = normalize(clights[index].pos.xyz - pos.xyz);
+    attn = 1.0;
+    if (length(ldir) == 0.0)
+      ldir = normal;
+    break;
+
+  case 1u: // LIGHTATTN_SPEC
+    ldir = normalize(clights[index].pos.xyz - pos.xyz);
+    attn = (dot(normal, ldir) >= 0.0) ? max(0.0, dot(normal, clights[index].dir.xyz)) : 0.0;
+    cosAttn = clights[index].cosatt.xyz;
+    if (diffusefunc == 0u) // LIGHTDIF_NONE
+      distAttn = clights[index].distatt.xyz;
+    else
+      distAttn = normalize(clights[index].distatt.xyz);
+    attn = max(0.0, dot(cosAttn, float3(1.0, attn, attn*attn))) / dot(distAttn, float3(1.0, attn, attn*attn));
+    break;
+
+  case 3u: // LIGHTATTN_SPOT
+    ldir = clights[index].pos.xyz - pos.xyz;
+    dist2 = dot(ldir, ldir);
+    dist = sqrt(dist2);
+    ldir = ldir / dist;
+    attn = max(0.0, dot(ldir, clights[index].dir.xyz));
+    attn = max(0.0, clights[index].cosatt.x + clights[index].cosatt.y * attn + clights[index].cosatt.z * attn * attn) / dot(clights[index].distatt.xyz, float3(1.0, dist, dist2));
+    break;
+
+  default:
+    attn = 1.0;
+    ldir = normal;
+    break;
+  }
+
+  switch (diffusefunc) {
+  case 0u: // LIGHTDIF_NONE
+    return int4(round(attn * float4(clights[index].color)));
+
+  case 1u: // LIGHTDIF_SIGN
+    return int4(round(attn * dot(ldir, normal) * float4(clights[index].color)));
+
+  case 2u: // LIGHTDIF_CLAMP
+    return int4(round(attn * max(0.0, dot(ldir, normal)) * float4(clights[index].color)));
+
+  default:
+    return int4(0, 0, 0, 0);
+  }
+}
+
+ATTRIBUTE_LOCATION(0) in float4 rawpos;
+ATTRIBUTE_LOCATION(1) in uint4 posmtx;
+ATTRIBUTE_LOCATION(2) in float3 rawnorm0;
+ATTRIBUTE_LOCATION(3) in float3 rawnorm1;
+ATTRIBUTE_LOCATION(4) in float3 rawnorm2;
+ATTRIBUTE_LOCATION(5) in float4 rawcolor0;
+ATTRIBUTE_LOCATION(6) in float4 rawcolor1;
+ATTRIBUTE_LOCATION(8) in float3 rawtex0;
+ATTRIBUTE_LOCATION(9) in float3 rawtex1;
+ATTRIBUTE_LOCATION(10) in float3 rawtex2;
+ATTRIBUTE_LOCATION(11) in float3 rawtex3;
+ATTRIBUTE_LOCATION(12) in float3 rawtex4;
+ATTRIBUTE_LOCATION(13) in float3 rawtex5;
+ATTRIBUTE_LOCATION(14) in float3 rawtex6;
+ATTRIBUTE_LOCATION(15) in float3 rawtex7;
+VARYING_LOCATION(0) out VertexData {
+	 float4 pos;
+	 float4 colors_0;
+	 float4 colors_1;
+	 float3 tex0;
+	 float3 tex1;
+	 float3 tex2;
+	 float3 tex3;
+	 float3 tex4;
+	 float3 tex5;
+	 float3 tex6;
+	 float4 clipPos;
+	 float clipDist0;
+	 float clipDist1;
+} vs;
+void main()
+{
+VS_OUTPUT o;
+
+// Position matrix
+float4 P0;
+float4 P1;
+float4 P2;
+
+// Normal matrix
+float3 N0;
+float3 N1;
+float3 N2;
+
+if ((components & 2u) != 0u) {// VB_HAS_POSMTXIDX
+  // Vertex format has a per-vertex matrix
+  int posidx = int(posmtx.r);
+  P0 = ctrmtx[posidx];
+  P1 = ctrmtx[posidx+1];
+  P2 = ctrmtx[posidx+2];
+
+  int normidx = posidx >= 32 ? (posidx - 32) : posidx;
+  N0 = cnmtx[normidx].xyz;
+  N1 = cnmtx[normidx+1].xyz;
+  N2 = cnmtx[normidx+2].xyz;
+} else {
+  // One shared matrix
+  P0 = cpnmtx[0];
+  P1 = cpnmtx[1];
+  P2 = cpnmtx[2];
+  N0 = cpnmtx[3].xyz;
+  N1 = cpnmtx[4].xyz;
+  N2 = cpnmtx[5].xyz;
+}
+
+float4 pos = float4(dot(P0, rawpos), dot(P1, rawpos), dot(P2, rawpos), 1.0);
+o.pos = float4(dot(cproj[0], pos), dot(cproj[1], pos), dot(cproj[2], pos), dot(cproj[3], pos));
+
+// Only the first normal gets normalized (TODO: why?)
+float3 _norm0 = float3(0.0, 0.0, 0.0);
+if ((components & 1024u) != 0u) // VB_HAS_NRM0
+  _norm0 = normalize(float3(dot(N0, rawnorm0), dot(N1, rawnorm0), dot(N2, rawnorm0)));
+
+float3 _norm1 = float3(0.0, 0.0, 0.0);
+if ((components & 2048u) != 0u) // VB_HAS_NRM1
+  _norm1 = float3(dot(N0, rawnorm1), dot(N1, rawnorm1), dot(N2, rawnorm1));
+
+float3 _norm2 = float3(0.0, 0.0, 0.0);
+if ((components & 4096u) != 0u) // VB_HAS_NRM2
+  _norm2 = float3(dot(N0, rawnorm2), dot(N1, rawnorm2), dot(N2, rawnorm2));
+
+// Lighting
+for (uint chan = 0u; chan < xfmem_numColorChans; chan++) {
+  uint colorreg = xfmem_color(chan);
+  uint alphareg = xfmem_alpha(chan);
+  int4 mat = cmtrl[chan + 2u]; 
+  int4 lacc = int4(255, 255, 255, 255);
+
+  if (bitfieldExtract(colorreg, 0, 1) != 0u) {
+    if ((components & (8192u << chan)) != 0u) // VB_HAS_COL0
+      mat.xyz = int3(round(((chan == 0u) ? rawcolor0.xyz : rawcolor1.xyz) * 255.0));
+    else if ((components & 8192u) != 0u) // VB_HAS_COLO0
+      mat.xyz = int3(round(rawcolor0.xyz * 255.0));
+    else
+      mat.xyz = int3(255, 255, 255);
+  }
+
+  if (bitfieldExtract(alphareg, 0, 1) != 0u) {
+    if ((components & (8192u << chan)) != 0u) // VB_HAS_COL0
+      mat.w = int(round(((chan == 0u) ? rawcolor0.w : rawcolor1.w) * 255.0));
+    else if ((components & 8192u) != 0u) // VB_HAS_COLO0
+      mat.w = int(round(rawcolor0.w * 255.0));
+    else
+      mat.w = 255;
+  } else {
+    mat.w = cmtrl [chan + 2u].w;
+  }
+
+  if (bitfieldExtract(colorreg, 1, 1) != 0u) {
+    if (bitfieldExtract(colorreg, 6, 1) != 0u) {
+      if ((components & (8192u << chan)) != 0u) // VB_HAS_COL0
+        lacc.xyz = int3(round(((chan == 0u) ? rawcolor0.xyz : rawcolor1.xyz) * 255.0));
+      else if ((components & 8192u) != 0u) // VB_HAS_COLO0
+        lacc.xyz = int3(round(rawcolor0.xyz * 255.0));
+      else
+        lacc.xyz = int3(255, 255, 255);
+    } else {
+      lacc.xyz = cmtrl [chan].xyz;
+    }
+
+    uint light_mask = bitfieldExtract(colorreg, 2, 4) | (bitfieldExtract(colorreg, 11, 4) << 4u);
+    uint attnfunc = bitfieldExtract(colorreg, 9, 2);
+    uint diffusefunc = bitfieldExtract(colorreg, 7, 2);
+    for (uint light_index = 0u; light_index < 8u; light_index++) {
+      if ((light_mask & (1u << light_index)) != 0u)
+        lacc.xyz += CalculateLighting(light_index, attnfunc, diffusefunc, pos.xyz, _norm0).xyz;
+    }
+  }
+
+  if (bitfieldExtract(alphareg, 1, 1) != 0u) {
+    if (bitfieldExtract(alphareg, 6, 1) != 0u) {
+      if ((components & (8192u << chan)) != 0u) // VB_HAS_COL0
+        lacc.w = int(round(((chan == 0u) ? rawcolor0.w : rawcolor1.w) * 255.0));
+      else if ((components & 8192u) != 0u) // VB_HAS_COLO0
+        lacc.w = int(round(rawcolor0.w * 255.0));
+      else
+        lacc.w = 255;
+    } else {
+      lacc.w = cmtrl [chan].w;
+    }
+
+    uint light_mask = bitfieldExtract(alphareg, 2, 4) | (bitfieldExtract(alphareg, 11, 4) << 4u);
+    uint attnfunc = bitfieldExtract(alphareg, 9, 2);
+    uint diffusefunc = bitfieldExtract(alphareg, 7, 2);
+    for (uint light_index = 0u; light_index < 8u; light_index++) {
+
+      if ((light_mask & (1u << light_index)) != 0u)
+
+        lacc.w += CalculateLighting(light_index, attnfunc, diffusefunc, pos.xyz, _norm0).w;
+    }
+  }
+
+  lacc = clamp(lacc, 0, 255);
+
+  // Hopefully GPUs that can support dynamic indexing will optimize this.
+  float4 lit_color = float4((mat * (lacc + (lacc >> 7))) >> 8) / 255.0;
+  switch (chan) {
+  case 0u: o.colors_0 = lit_color; break;
+  case 1u: o.colors_1 = lit_color; break;
+  }
+}
+
+if (xfmem_numColorChans < 2u && (components & 16384u) == 0u)
+  o.colors_1 = o.colors_0;
+
+o.tex0 = float3(0.0, 0.0, 0.0);
+o.tex1 = float3(0.0, 0.0, 0.0);
+o.tex2 = float3(0.0, 0.0, 0.0);
+o.tex3 = float3(0.0, 0.0, 0.0);
+o.tex4 = float3(0.0, 0.0, 0.0);
+o.tex5 = float3(0.0, 0.0, 0.0);
+o.tex6 = float3(0.0, 0.0, 0.0);
+// Texture coordinate generation
+for (uint texgen = 0u; texgen < 7u; texgen++) {
+  // Texcoord transforms
+  float4 coord = float4(0.0, 0.0, 1.0, 1.0);
+  uint texMtxInfo = xfmem_texMtxInfo(texgen);
+  switch (bitfieldExtract(texMtxInfo, 7, 5)) {
+  case 0u: // XF_SRCGEOM_INROW
+    coord.xyz = rawpos.xyz;
+    break;
+
+  case 1u: // XF_SRCNORMAL_INROW
+    coord.xyz = ((components & 1024u /* VB_HAS_NRM0 */) != 0u) ? rawnorm0.xyz : coord.xyz;    break;
+
+  case 3u: // XF_SRCBINORMAL_T_INROW
+    coord.xyz = ((components & 2048u /* VB_HAS_NRM1 */) != 0u) ? rawnorm1.xyz : coord.xyz;    break;
+
+  case 4u: // XF_SRCBINORMAL_B_INROW
+    coord.xyz = ((components & 4096u /* VB_HAS_NRM2 */) != 0u) ? rawnorm2.xyz : coord.xyz;    break;
+
+  case 5u: // XF_SRCTEX0_INROW
+    coord = ((components & 32768u /* VB_HAS_UV0 */) != 0u) ? float4(rawtex0.x, rawtex0.y, 1.0, 1.0) : coord;
+    break;
+
+  case 6u: // XF_SRCTEX1_INROW
+    coord = ((components & 65536u /* VB_HAS_UV1 */) != 0u) ? float4(rawtex1.x, rawtex1.y, 1.0, 1.0) : coord;
+    break;
+
+  case 7u: // XF_SRCTEX2_INROW
+    coord = ((components & 131072u /* VB_HAS_UV2 */) != 0u) ? float4(rawtex2.x, rawtex2.y, 1.0, 1.0) : coord;
+    break;
+
+  case 8u: // XF_SRCTEX3_INROW
+    coord = ((components & 262144u /* VB_HAS_UV3 */) != 0u) ? float4(rawtex3.x, rawtex3.y, 1.0, 1.0) : coord;
+    break;
+
+  case 9u: // XF_SRCTEX4_INROW
+    coord = ((components & 524288u /* VB_HAS_UV4 */) != 0u) ? float4(rawtex4.x, rawtex4.y, 1.0, 1.0) : coord;
+    break;
+
+  case 10u: // XF_SRCTEX5_INROW
+    coord = ((components & 1048576u /* VB_HAS_UV5 */) != 0u) ? float4(rawtex5.x, rawtex5.y, 1.0, 1.0) : coord;
+    break;
+
+  case 11u: // XF_SRCTEX6_INROW
+    coord = ((components & 2097152u /* VB_HAS_UV6 */) != 0u) ? float4(rawtex6.x, rawtex6.y, 1.0, 1.0) : coord;
+    break;
+
+  case 12u: // XF_SRCTEX7_INROW
+    coord = ((components & 4194304u /* VB_HAS_UV7 */) != 0u) ? float4(rawtex7.x, rawtex7.y, 1.0, 1.0) : coord;
+    break;
+
+  }
+
+  // Input form of AB11 sets z element to 1.0
+  if (bitfieldExtract(texMtxInfo, 2, 1) == 0u) // inputform == XF_TEXINPUT_AB11
+    coord.z = 1.0f;
+
+  // first transformation
+  uint texgentype = bitfieldExtract(texMtxInfo, 4, 3);
+  float3 output_tex;
+  switch (texgentype)
+  {
+  case 1u: // XF_TEXGEN_EMBOSS_MAP
+    {
+      uint light = bitfieldExtract(texMtxInfo, 15, 3);
+      uint source = bitfieldExtract(texMtxInfo, 12, 3);
+      switch (source) {
+      case 0u: output_tex.xyz = o.tex0; break;
+      case 1u: output_tex.xyz = o.tex1; break;
+      case 2u: output_tex.xyz = o.tex2; break;
+      case 3u: output_tex.xyz = o.tex3; break;
+      case 4u: output_tex.xyz = o.tex4; break;
+      case 5u: output_tex.xyz = o.tex5; break;
+      case 6u: output_tex.xyz = o.tex6; break;
+      default: output_tex.xyz = float3(0.0, 0.0, 0.0); break;
+      }
+      if ((components & 6144u) != 0u) { // VB_HAS_NRM1 | VB_HAS_NRM2
+        float3 ldir = normalize(clights[light].pos.xyz - pos.xyz);
+        output_tex.xyz += float3(dot(ldir, _norm1), dot(ldir, _norm2), 0.0);
+      }
+    }
+    break;
+
+  case 2u: // XF_TEXGEN_COLOR_STRGBC0
+    output_tex.xyz = float3(o.colors_0.x, o.colors_0.y, 1.0);
+    break;
+
+  case 3u: // XF_TEXGEN_COLOR_STRGBC1
+    output_tex.xyz = float3(o.colors_1.x, o.colors_1.y, 1.0);
+    break;
+
+  default:  // Also XF_TEXGEN_REGULAR
+    {
+      if ((components & (4u /* VB_HAS_TEXMTXIDX0 */ << texgen)) != 0u) {
+        // This is messy, due to dynamic indexing of the input texture coordinates.
+        // Hopefully the compiler will unroll this whole loop anyway and the switch.
+        int tmp = 0;
+        switch (texgen) {
+        case 0u: tmp = int(rawtex0.z); break;
+        case 1u: tmp = int(rawtex1.z); break;
+        case 2u: tmp = int(rawtex2.z); break;
+        case 3u: tmp = int(rawtex3.z); break;
+        case 4u: tmp = int(rawtex4.z); break;
+        case 5u: tmp = int(rawtex5.z); break;
+        case 6u: tmp = int(rawtex6.z); break;
+        }
+
+        if (bitfieldExtract(texMtxInfo, 1, 1) == 1u) {
+          output_tex.xyz = float3(dot(coord, ctrmtx[tmp]),
+                                  dot(coord, ctrmtx[tmp + 1]),
+                                  dot(coord, ctrmtx[tmp + 2]));
+        } else {
+          output_tex.xyz = float3(dot(coord, ctrmtx[tmp]),
+                                  dot(coord, ctrmtx[tmp + 1]),
+                                  1.0);
+        }
+      } else {
+        if (bitfieldExtract(texMtxInfo, 1, 1) == 1u) {
+          output_tex.xyz = float3(dot(coord, ctexmtx[3u * texgen]),
+                                  dot(coord, ctexmtx[3u * texgen + 1u]),
+                                  dot(coord, ctexmtx[3u * texgen + 2u]));
+        } else {
+          output_tex.xyz = float3(dot(coord, ctexmtx[3u * texgen]),
+                                  dot(coord, ctexmtx[3u * texgen + 1u]),
+                                  1.0);
+        }
+      }
+    }
+    break;
+
+  }
+
+  if (xfmem_dualTexInfo != 0u) {
+    uint postMtxInfo = xfmem_postMtxInfo(texgen);    uint base_index = bitfieldExtract(postMtxInfo, 0, 6);
+    float4 P0 = cpostmtx[base_index & 0x3fu];
+    float4 P1 = cpostmtx[(base_index + 1u) & 0x3fu];
+    float4 P2 = cpostmtx[(base_index + 2u) & 0x3fu];
+
+    if (bitfieldExtract(postMtxInfo, 8, 1) != 0u)
+      output_tex.xyz = normalize(output_tex.xyz);
+
+    // multiply by postmatrix
+    output_tex.xyz = float3(dot(P0.xyz, output_tex.xyz) + P0.w,
+                            dot(P1.xyz, output_tex.xyz) + P1.w,
+                            dot(P2.xyz, output_tex.xyz) + P2.w);
+  }
+
+  if (texgentype == 0u && output_tex.z == 0.0) // XF_TEXGEN_REGULAR
+    output_tex.xy = clamp(output_tex.xy / 2.0f, float2(-1.0f,-1.0f), float2(1.0f,1.0f));
+
+  // Hopefully GPUs that can support dynamic indexing will optimize this.
+  switch (texgen) {
+  case 0u: o.tex0 = output_tex; break;
+  case 1u: o.tex1 = output_tex; break;
+  case 2u: o.tex2 = output_tex; break;
+  case 3u: o.tex3 = output_tex; break;
+  case 4u: o.tex4 = output_tex; break;
+  case 5u: o.tex5 = output_tex; break;
+  case 6u: o.tex6 = output_tex; break;
+  }
+}
+o.clipPos = o.pos;
+float clipDepth = o.pos.z * (1.0 - 1e-7);
+o.clipDist0 = clipDepth + o.pos.w;
+o.clipDist1 = -clipDepth;
+o.pos.z = o.pos.w * cpixelcenter.w - o.pos.z * cpixelcenter.z;
+o.pos.xy *= sign(cpixelcenter.xy * float2(1.0, -1.0));
+o.pos.xy = o.pos.xy - o.pos.w * cpixelcenter.xy;
+	vs.pos = o.pos;
+	vs.colors_0 = o.colors_0;
+	vs.colors_1 = o.colors_1;
+	vs.tex0 = o.tex0;
+	vs.tex1 = o.tex1;
+	vs.tex2 = o.tex2;
+	vs.tex3 = o.tex3;
+	vs.tex4 = o.tex4;
+	vs.tex5 = o.tex5;
+	vs.tex6 = o.tex6;
+	vs.clipPos = o.clipPos;
+	vs.clipDist0 = o.clipDist0;
+	vs.clipDist1 = o.clipDist1;
+gl_ClipDistance[0] = o.clipDist0;
+gl_ClipDistance[1] = o.clipDist1;
+gl_Position = o.pos;
+}
+
+[fragment shader]
+#version 400
+
+#define FORCE_EARLY_Z layout(early_fragment_tests) in
+
+#extension GL_ARB_shading_language_420pack : enable
+
+#define ATTRIBUTE_LOCATION(x)
+#define FRAGMENT_OUTPUT_LOCATION(x)
+#define FRAGMENT_OUTPUT_LOCATION_INDEXED(x, y)
+#define UBO_BINDING(packing, x) layout(packing, binding = x)
+#define SAMPLER_BINDING(x) layout(binding = x)
+#define SSBO_BINDING(x) layout(binding = x)
+
+#define VARYING_LOCATION(x)
+
+#extension GL_ARB_shader_storage_buffer_object : enable
+
+
+
+
+
+
+
+#extension GL_ARB_shader_image_load_store : enable
+
+
+
+
+
+
+#define float2 vec2
+#define float3 vec3
+#define float4 vec4
+#define uint2 uvec2
+#define uint3 uvec3
+#define uint4 uvec4
+#define int2 ivec2
+#define int3 ivec3
+#define int4 ivec4
+#define frac fract
+#define lerp mix
+// Pixel UberShader for 7 texgens, early-depth
+int idot(int3 x, int3 y)
+{
+	int3 tmp = x * y;
+	return tmp.x + tmp.y + tmp.z;
+}
+int idot(int4 x, int4 y)
+{
+	int4 tmp = x * y;
+	return tmp.x + tmp.y + tmp.z + tmp.w;
+}
+
+int  iround(float  x) { return int (round(x)); }
+int2 iround(float2 x) { return int2(round(x)); }
+int3 iround(float3 x) { return int3(round(x)); }
+int4 iround(float4 x) { return int4(round(x)); }
+
+SAMPLER_BINDING(0) uniform sampler2DArray samp[8];
+
+UBO_BINDING(std140, 1) uniform PSBlock {
+	int4 color[4];
+	int4 k[4];
+	int4 alphaRef;
+	float4 texdim[8];
+	int4 czbias[2];
+	int4 cindscale[2];
+	int4 cindmtx[6];
+	int4 cfogcolor;
+	int4 cfogi;
+	float4 cfogf[2];
+	float4 czslope;
+	float2 cefbscale;
+	uint  bpmem_genmode;
+	uint  bpmem_alphaTest;
+	uint  bpmem_fogParam3;
+	uint  bpmem_fogRangeBase;
+	uint  bpmem_dstalpha;
+	uint  bpmem_ztex_op;
+	bool  bpmem_late_ztest;
+	bool  bpmem_rgba6_format;
+	bool  bpmem_dither;
+	bool  bpmem_bounding_box;
+	uint4 bpmem_pack1[16];
+	uint4 bpmem_pack2[8];
+	int4  konstLookup[32];
+};
+
+#define bpmem_combiners(i) (bpmem_pack1[(i)].xy)
+#define bpmem_tevind(i) (bpmem_pack1[(i)].z)
+#define bpmem_iref(i) (bpmem_pack1[(i)].w)
+#define bpmem_tevorder(i) (bpmem_pack2[(i)].x)
+#define bpmem_tevksel(i) (bpmem_pack2[(i)].y)
+
+struct VS_OUTPUT {
+	 float4 pos;
+	 float4 colors_0;
+	 float4 colors_1;
+	 float3 tex0;
+	 float3 tex1;
+	 float3 tex2;
+	 float3 tex3;
+	 float3 tex4;
+	 float3 tex5;
+	 float3 tex6;
+	 float4 clipPos;
+	 float clipDist0;
+	 float clipDist1;
+};
+FRAGMENT_OUTPUT_LOCATION_INDEXED(0, 0) out vec4 ocol0;
+FRAGMENT_OUTPUT_LOCATION_INDEXED(0, 1) out vec4 ocol1;
+VARYING_LOCATION(0) in VertexData {
+	 float4 pos;
+	 float4 colors_0;
+	 float4 colors_1;
+	 float3 tex0;
+	 float3 tex1;
+	 float3 tex2;
+	 float3 tex3;
+	 float3 tex4;
+	 float3 tex5;
+	 float3 tex6;
+	 float4 clipPos;
+	 float clipDist0;
+	 float clipDist1;
+};
+
+float3 selectTexCoord(uint index) {
+  switch (index) {
+  case 0u:
+    return tex0;
+  case 1u:
+    return tex1;
+  case 2u:
+    return tex2;
+  case 3u:
+    return tex3;
+  case 4u:
+    return tex4;
+  case 5u:
+    return tex5;
+  case 6u:
+    return tex6;
+  default:
+    return float3(0.0, 0.0, 0.0);
+  }
+}
+
+int4 sampleTexture(uint sampler_num, float2 uv) {
+  return iround(texture(samp[sampler_num], float3(uv, 0.0)) * 255.0);
+}
+
+int4 Swizzle(uint s, int4 color) {
+  // AKA: Color Channel Swapping
+
+  int4 ret;
+  ret.r = color[bitfieldExtract(bpmem_tevksel(s * 2u), 0, 2)];
+  ret.g = color[bitfieldExtract(bpmem_tevksel(s * 2u), 2, 2)];
+  ret.b = color[bitfieldExtract(bpmem_tevksel(s * 2u + 1u), 0, 2)];
+  ret.a = color[bitfieldExtract(bpmem_tevksel(s * 2u + 1u), 2, 2)];
+  return ret;
+}
+
+int Wrap(int coord, uint mode) {
+  if (mode == 0u) // ITW_OFF
+    return coord;
+  else if (mode < 6u) // ITW_256 to ITW_16
+    return coord & (0xfffe >> mode);
+  else // ITW_0
+    return 0;
+}
+
+// TEV's Linear Interpolate, plus bias, add/subtract and scale
+int tevLerp(int A, int B, int C, int D, uint bias, bool op, bool alpha, uint shift) {
+ // Scale C from 0..255 to 0..256
+  C += C >> 7;
+
+ // Add bias to D
+  if (bias == 1u) D += 128;
+  else if (bias == 2u) D -= 128;
+
+  int lerp = (A << 8) + (B - A)*C;
+  if (shift != 3u) {
+    lerp = lerp << shift;
+    D = D << shift;
+  }
+
+  if ((shift == 3u) == alpha)
+    lerp = lerp + (op ? 127 : 128);
+
+  int result = lerp >> 8;
+
+  // Add/Subtract D
+  if(op) // Subtract
+    result = D - result;
+  else // Add
+    result = D + result;
+
+  // Most of the Shift was moved inside the lerp for improved percision
+  // But we still do the divide by 2 here
+  if (shift == 3u)
+    result = result >> 1;
+  return result;
+}
+
+// TEV's Linear Interpolate, plus bias, add/subtract and scale
+int3 tevLerp3(int3 A, int3 B, int3 C, int3 D, uint bias, bool op, bool alpha, uint shift) {
+ // Scale C from 0..255 to 0..256
+  C += C >> 7;
+
+ // Add bias to D
+  if (bias == 1u) D += 128;
+  else if (bias == 2u) D -= 128;
+
+  int3 lerp = (A << 8) + (B - A)*C;
+  if (shift != 3u) {
+    lerp = lerp << shift;
+    D = D << shift;
+  }
+
+  if ((shift == 3u) == alpha)
+    lerp = lerp + (op ? 127 : 128);
+
+  int3 result = lerp >> 8;
+
+  // Add/Subtract D
+  if(op) // Subtract
+    result = D - result;
+  else // Add
+    result = D + result;
+
+  // Most of the Shift was moved inside the lerp for improved percision
+  // But we still do the divide by 2 here
+  if (shift == 3u)
+    result = result >> 1;
+  return result;
+}
+
+// Implements operations 0-5 of tev's compare mode,
+// which are common to both color and alpha channels
+bool tevCompare(uint op, int3 color_A, int3 color_B) {
+  switch (op) {
+  case 0u: // TEVCMP_R8_GT
+    return (color_A.r > color_B.r);
+  case 1u: // TEVCMP_R8_EQ
+    return (color_A.r == color_B.r);
+  case 2u: // TEVCMP_GR16_GT
+    int A_16 = (color_A.r | (color_A.g << 8));
+    int B_16 = (color_B.r | (color_B.g << 8));
+    return A_16 > B_16;
+  case 3u: // TEVCMP_GR16_EQ
+    return (color_A.r == color_B.r && color_A.g == color_B.g);
+  case 4u: // TEVCMP_BGR24_GT
+    int A_24 = (color_A.r | (color_A.g << 8) | (color_A.b << 16));
+    int B_24 = (color_B.r | (color_B.g << 8) | (color_B.b << 16));
+    return A_24 > B_24;
+  case 5u: // TEVCMP_BGR24_EQ
+    return (color_A.r == color_B.r && color_A.g == color_B.g && color_A.b == color_B.b);
+  default:
+    return false;
+  }
+}
+
+// Helper function for Alpha Test
+bool alphaCompare(int a, int b, uint compare) {
+  switch (compare) {
+  case 0u: // NEVER
+    return false;
+  case 1u: // LESS
+    return a < b;
+  case 2u: // EQUAL
+    return a == b;
+  case 3u: // LEQUAL
+    return a <= b;
+  case 4u: // GREATER
+    return a > b;
+  case 5u: // NEQUAL;
+    return a != b;
+  case 6u: // GEQUAL
+    return a >= b;
+  case 7u: // ALWAYS
+    return true;
+  }
+}
+
+struct State {
+  int4 Reg[4];
+  int4 TexColor;
+  int AlphaBump;
+};
+struct StageState {
+  uint stage;
+  uint order;
+  uint cc;
+  uint ac;
+};
+
+int4 getRasColor(State s, StageState ss, float4 colors_0, float4 colors_1);
+int4 getKonstColor(State s, StageState ss);
+
+int3 selectColorInput(State s, StageState ss, float4 colors_0, float4 colors_1, uint index) {
+  switch (index) {
+  case 0u: // prev.rgb
+    return s.Reg[0].rgb;
+  case 1u: // prev.aaa
+    return s.Reg[0].aaa;
+  case 2u: // c0.rgb
+    return s.Reg[1].rgb;
+  case 3u: // c0.aaa
+    return s.Reg[1].aaa;
+  case 4u: // c1.rgb
+    return s.Reg[2].rgb;
+  case 5u: // c1.aaa
+    return s.Reg[2].aaa;
+  case 6u: // c2.rgb
+    return s.Reg[3].rgb;
+  case 7u: // c2.aaa
+    return s.Reg[3].aaa;
+  case 8u:
+    return s.TexColor.rgb;
+  case 9u:
+    return s.TexColor.aaa;
+  case 10u:
+    return getRasColor(s, ss, colors_0, colors_1).rgb;
+  case 11u:
+    return getRasColor(s, ss, colors_0, colors_1).aaa;
+  case 12u: // One
+    return int3(255, 255, 255);
+  case 13u: // Half
+    return int3(128, 128, 128);
+  case 14u:
+    return getKonstColor(s, ss).rgb;
+  case 15u: // Zero
+    return int3(0, 0, 0);
+  }
+}
+
+int selectAlphaInput(State s, StageState ss, float4 colors_0, float4 colors_1, uint index) {
+  switch (index) {
+  case 0u: // prev.a
+    return s.Reg[0].a;
+  case 1u: // c0.a
+    return s.Reg[1].a;
+  case 2u: // c1.a
+    return s.Reg[2].a;
+  case 3u: // c2.a
+    return s.Reg[3].a;
+  case 4u:
+    return s.TexColor.a;
+  case 5u:
+    return getRasColor(s, ss, colors_0, colors_1).a;
+  case 6u:
+    return getKonstColor(s, ss).a;
+  case 7u: // Zero
+    return 0;
+  }
+}
+
+int4 getTevReg(in State s, uint index) {
+  switch (index) {
+  case 0u: // prev
+    return s.Reg[0];
+  case 1u: // c0
+    return s.Reg[1];
+  case 2u: // c1
+    return s.Reg[2];
+  case 3u: // c2
+    return s.Reg[3];
+  default: // prev
+    return s.Reg[0];
+  }
+}
+
+void setRegColor(inout State s, uint index, int3 color) {
+  switch (index) {
+  case 0u: // prev
+    s.Reg[0].rgb = color;
+    break;
+  case 1u: // c0
+    s.Reg[1].rgb = color;
+    break;
+  case 2u: // c1
+    s.Reg[2].rgb = color;
+    break;
+  case 3u: // c2
+    s.Reg[3].rgb = color;
+    break;
+  }
+}
+
+void setRegAlpha(inout State s, uint index, int alpha) {
+  switch (index) {
+  case 0u: // prev
+    s.Reg[0].a = alpha;
+    break;
+  case 1u: // c0
+    s.Reg[1].a = alpha;
+    break;
+  case 2u: // c1
+    s.Reg[2].a = alpha;
+    break;
+  case 3u: // c2
+    s.Reg[3].a = alpha;
+    break;
+  }
+}
+
+#define getTexCoord(index) selectTexCoord((index))
+
+FORCE_EARLY_Z;
+void main()
+{
+  float4 rawpos = gl_FragCoord;
+  int3 tevcoord = int3(0, 0, 0);
+  State s;
+  s.TexColor = int4(0, 0, 0, 0);
+  s.AlphaBump = 0;
+
+  s.Reg[0] = color[0];
+  s.Reg[1] = color[1];
+  s.Reg[2] = color[2];
+  s.Reg[3] = color[3];
+  uint num_stages = bitfieldExtract(bpmem_genmode, 10, 4);
+
+  // Main tev loop
+  for(uint stage = 0u; stage <= num_stages; stage++)
+  {
+    StageState ss;
+    ss.stage = stage;
+    ss.cc = bpmem_combiners(stage).x;
+    ss.ac = bpmem_combiners(stage).y;
+    ss.order = bpmem_tevorder(stage>>1);
+    if ((stage & 1u) == 1u)
+      ss.order = ss.order >> 12;
+
+    uint tex_coord = bitfieldExtract(ss.order, 3, 3);
+    float3 uv = getTexCoord(tex_coord);
+    int2 fixedPoint_uv = int2((uv.z == 0.0 ? uv.xy : (uv.xy / uv.z)) * texdim[tex_coord].zw);
+
+    bool texture_enabled = (ss.order & 64u) != 0u;
+
+    // Indirect textures
+    uint tevind = bpmem_tevind(stage);
+    if (tevind != 0u)
+    {
+      uint bs = bitfieldExtract(tevind, 7, 2);
+      uint fmt = bitfieldExtract(tevind, 2, 2);
+      uint bias = bitfieldExtract(tevind, 4, 3);
+      uint bt = bitfieldExtract(tevind, 0, 2);
+      uint mid = bitfieldExtract(tevind, 9, 4);
+
+      int3 indcoord;
+{
+  uint iref = bpmem_iref(bt);
+  if ( iref != 0u)
+  {
+    uint texcoord = bitfieldExtract(iref, 0, 3);
+    uint texmap = bitfieldExtract(iref, 8, 3);
+    float3 uv = getTexCoord(texcoord);
+    int2 fixedPoint_uv = int2((uv.z == 0.0 ? uv.xy : (uv.xy / uv.z)) * texdim[texcoord].zw);
+
+    if ((bt & 1u) == 0u)
+      fixedPoint_uv = fixedPoint_uv >> cindscale[bt >> 1].xy;
+    else
+      fixedPoint_uv = fixedPoint_uv >> cindscale[bt >> 1].zw;
+
+    indcoord = sampleTexture(texmap, float2(fixedPoint_uv) * texdim[texmap].xy).abg;
+  }
+  else
+  {
+    indcoord = int3(0, 0, 0);
+  }
+}
+      if (bs != 0u)
+        s.AlphaBump = indcoord[bs - 1u];
+      switch(fmt)
+      {
+      case 0u:
+        indcoord.x = indcoord.x + ((bias & 1u) != 0u ? -128 : 0);
+        indcoord.y = indcoord.y + ((bias & 2u) != 0u ? -128 : 0);
+        indcoord.z = indcoord.z + ((bias & 4u) != 0u ? -128 : 0);
+        s.AlphaBump = s.AlphaBump & 0xf8;
+        break;
+      case 1u:
+        indcoord.x = (indcoord.x & 0x1f) + ((bias & 1u) != 0u ? 1 : 0);
+        indcoord.y = (indcoord.y & 0x1f) + ((bias & 2u) != 0u ? 1 : 0);
+        indcoord.z = (indcoord.z & 0x1f) + ((bias & 4u) != 0u ? 1 : 0);
+        s.AlphaBump = s.AlphaBump & 0xe0;
+        break;
+      case 2u:
+        indcoord.x = (indcoord.x & 0x0f) + ((bias & 1u) != 0u ? 1 : 0);
+        indcoord.y = (indcoord.y & 0x0f) + ((bias & 2u) != 0u ? 1 : 0);
+        indcoord.z = (indcoord.z & 0x0f) + ((bias & 4u) != 0u ? 1 : 0);
+        s.AlphaBump = s.AlphaBump & 0xf0;
+        break;
+      case 3u:
+        indcoord.x = (indcoord.x & 0x07) + ((bias & 1u) != 0u ? 1 : 0);
+        indcoord.y = (indcoord.y & 0x07) + ((bias & 2u) != 0u ? 1 : 0);
+        indcoord.z = (indcoord.z & 0x07) + ((bias & 4u) != 0u ? 1 : 0);
+        s.AlphaBump = s.AlphaBump & 0xf8;
+        break;
+      }
+
+      // Matrix multiply
+      int2 indtevtrans = int2(0, 0);
+      if ((mid & 3u) != 0u)
+      {
+        uint mtxidx = 2u * ((mid & 3u) - 1u);
+        int shift = cindmtx[mtxidx].w;
+
+        switch (mid >> 2)
+        {
+        case 0u: // 3x2 S0.10 matrix
+          indtevtrans = int2(idot(cindmtx[mtxidx].xyz, indcoord), idot(cindmtx[mtxidx + 1u].xyz, indcoord)) >> 3;
+          break;
+        case 1u: // S matrix, S17.7 format
+          indtevtrans = (fixedPoint_uv * indcoord.xx) >> 8;
+          break;
+        case 2u: // T matrix, S17.7 format
+          indtevtrans = (fixedPoint_uv * indcoord.yy) >> 8;
+          break;
+        }
+
+        if (shift >= 0)
+          indtevtrans = indtevtrans >> shift;
+        else
+          indtevtrans = indtevtrans << ((-shift) & 31);
+      }
+
+      // Wrapping
+      uint sw = bitfieldExtract(tevind, 13, 3);
+      uint tw = bitfieldExtract(tevind, 16, 3); 
+      int2 wrapped_coord = int2(Wrap(fixedPoint_uv.x, sw), Wrap(fixedPoint_uv.y, tw));
+
+      if ((tevind & 1048576u) != 0u) // add previous tevcoord
+        tevcoord.xy += wrapped_coord + indtevtrans;
+      else
+        tevcoord.xy = wrapped_coord + indtevtrans;
+
+      // Emulate s24 overflows
+      tevcoord.xy = (tevcoord.xy << 8) >> 8;
+    }
+    else if (texture_enabled)
+    {
+      tevcoord.xy = fixedPoint_uv;
+    }
+
+    // Sample texture for stage
+    if(texture_enabled) {
+      uint sampler_num = bitfieldExtract(ss.order, 0, 3);
+
+      float2 uv = (float2(tevcoord.xy)) * texdim[sampler_num].xy;
+
+      int4 color = sampleTexture(sampler_num, uv);
+
+      uint swap = bitfieldExtract(ss.ac, 2, 2);
+      s.TexColor = Swizzle(swap, color);
+    } else {
+      // Texture is disabled
+      s.TexColor = int4(255, 255, 255, 255);
+    }
+
+    // This is the Meat of TEV
+    {
+      // Color Combiner
+      uint color_a = bitfieldExtract(ss.cc, 12, 4);
+      uint color_b = bitfieldExtract(ss.cc, 8, 4);
+      uint color_c = bitfieldExtract(ss.cc, 4, 4);
+      uint color_d = bitfieldExtract(ss.cc, 0, 4);
+      uint color_bias = bitfieldExtract(ss.cc, 16, 2);
+      bool color_op = bool(bitfieldExtract(ss.cc, 18, 1));
+      bool color_clamp = bool(bitfieldExtract(ss.cc, 19, 1));
+      uint color_shift = bitfieldExtract(ss.cc, 20, 2);
+      uint color_dest = bitfieldExtract(ss.cc, 22, 2);
+      uint color_compare_op = color_shift << 1 | uint(color_op);
+
+      int3 color_A = selectColorInput(s, ss, colors_0, colors_1, color_a) & int3(255, 255, 255);
+      int3 color_B = selectColorInput(s, ss, colors_0, colors_1, color_b) & int3(255, 255, 255);
+      int3 color_C = selectColorInput(s, ss, colors_0, colors_1, color_c) & int3(255, 255, 255);
+      int3 color_D = selectColorInput(s, ss, colors_0, colors_1, color_d);  // 10 bits + sign
+
+      int3 color;
+      if(color_bias != 3u) { // Normal mode
+        color = tevLerp3(color_A, color_B, color_C, color_D, color_bias, color_op, false, color_shift);
+      } else { // Compare mode
+        // op 6 and 7 do a select per color channel
+        if (color_compare_op == 6u) {
+          // TEVCMP_RGB8_GT
+          color.r = (color_A.r > color_B.r) ? color_C.r : 0;
+          color.g = (color_A.g > color_B.g) ? color_C.g : 0;
+          color.b = (color_A.b > color_B.b) ? color_C.b : 0;
+        } else if (color_compare_op == 7u) {
+          // TEVCMP_RGB8_EQ
+          color.r = (color_A.r == color_B.r) ? color_C.r : 0;
+          color.g = (color_A.g == color_B.g) ? color_C.g : 0;
+          color.b = (color_A.b == color_B.b) ? color_C.b : 0;
+        } else {
+          // The remaining ops do one compare which selects all 3 channels
+          color = tevCompare(color_compare_op, color_A, color_B) ? color_C : int3(0, 0, 0);
+        }
+        color = color_D + color;
+      }
+
+      // Clamp result
+      if (color_clamp)
+        color = clamp(color, 0, 255);
+      else
+        color = clamp(color, -1024, 1023);
+
+      // Write result to the correct input register of the next stage
+      setRegColor(s, color_dest, color);
+
+      // Alpha Combiner
+      uint alpha_a = bitfieldExtract(ss.ac, 13, 3);
+      uint alpha_b = bitfieldExtract(ss.ac, 10, 3);
+      uint alpha_c = bitfieldExtract(ss.ac, 7, 3);
+      uint alpha_d = bitfieldExtract(ss.ac, 4, 3);
+      uint alpha_bias = bitfieldExtract(ss.ac, 16, 2);
+      bool alpha_op = bool(bitfieldExtract(ss.ac, 18, 1));
+      bool alpha_clamp = bool(bitfieldExtract(ss.ac, 19, 1));
+      uint alpha_shift = bitfieldExtract(ss.ac, 20, 2);
+      uint alpha_dest = bitfieldExtract(ss.ac, 22, 2);
+      uint alpha_compare_op = alpha_shift << 1 | uint(alpha_op);
+
+      int alpha_A;
+      int alpha_B;
+      if (alpha_bias != 3u || alpha_compare_op > 5u) {
+        // Small optimisation here: alpha_A and alpha_B are unused by compare ops 0-5
+        alpha_A = selectAlphaInput(s, ss, colors_0, colors_1, alpha_a) & 255;
+        alpha_B = selectAlphaInput(s, ss, colors_0, colors_1, alpha_b) & 255;
+      };
+      int alpha_C = selectAlphaInput(s, ss, colors_0, colors_1, alpha_c) & 255;
+      int alpha_D = selectAlphaInput(s, ss, colors_0, colors_1, alpha_d); // 10 bits + sign
+
+
+      int alpha;
+      if(alpha_bias != 3u) { // Normal mode
+        alpha = tevLerp(alpha_A, alpha_B, alpha_C, alpha_D, alpha_bias, alpha_op, true, alpha_shift);
+      } else { // Compare mode
+        if (alpha_compare_op == 6u) {
+          // TEVCMP_A8_GT
+          alpha = (alpha_A > alpha_B) ? alpha_C : 0;
+        } else if (alpha_compare_op == 7u) {
+          // TEVCMP_A8_EQ
+          alpha = (alpha_A == alpha_B) ? alpha_C : 0;
+        } else {
+          // All remaining alpha compare ops actually compare the color channels
+          alpha = tevCompare(alpha_compare_op, color_A, color_B) ? alpha_C : 0;
+        }
+        alpha = alpha_D + alpha;
+      }
+
+      // Clamp result
+      if (alpha_clamp)
+        alpha = clamp(alpha, 0, 255);
+      else
+        alpha = clamp(alpha, -1024, 1023);
+
+      // Write result to the correct input register of the next stage
+      setRegAlpha(s, alpha_dest, alpha);
+    }
+  } // Main tev loop
+
+  int4 TevResult;
+  TevResult.xyz = getTevReg(s, bitfieldExtract(bpmem_combiners(num_stages).x, 22, 2)).xyz;
+  TevResult.w = getTevReg(s, bitfieldExtract(bpmem_combiners(num_stages).y, 22, 2)).w;
+  TevResult &= 255;
+
+  int zCoord = int(rawpos.z * 16777216.0);
+  zCoord = clamp(zCoord, 0, 0xFFFFFF);
+
+  // Depth Texture
+  int early_zCoord = zCoord;
+  if (bpmem_ztex_op != 0u) {
+    int ztex = int(czbias[1].w); // fixed bias
+
+    // Whatever texture was in our last stage, it's now our depth texture
+    ztex += idot(s.TexColor.xyzw, czbias[0].xyzw);
+    ztex += (bpmem_ztex_op == 1u) ? zCoord : 0;
+    zCoord = ztex & 0xFFFFFF;
+  }
+
+  // Alpha Test
+  if (bpmem_alphaTest != 0u) {
+    bool comp0 = alphaCompare(TevResult.a, alphaRef.r, bitfieldExtract(bpmem_alphaTest, 16, 3));
+    bool comp1 = alphaCompare(TevResult.a, alphaRef.g, bitfieldExtract(bpmem_alphaTest, 19, 3));
+
+    // These if statements are written weirdly to work around intel and qualcom bugs with handling booleans.
+    switch (bitfieldExtract(bpmem_alphaTest, 22, 2)) {
+    case 0u: // AND
+      if (comp0 && comp1) break; else discard; break;
+    case 1u: // OR
+      if (comp0 || comp1) break; else discard; break;
+    case 2u: // XOR
+      if (comp0 != comp1) break; else discard; break;
+    case 3u: // XNOR
+      if (comp0 == comp1) break; else discard; break;
+    }
+  }
+
+  if (bpmem_dither) {
+    // Flipper uses a standard 2x2 Bayer Matrix for 6 bit dithering
+    // Here the matrix is encoded into the two factor constants
+    int2 dither = int2(rawpos.xy) & 1;
+    TevResult.rgb = (TevResult.rgb - (TevResult.rgb >> 6)) + abs(dither.y * 3 - dither.x * 2);
+  }
+
+  // Fog
+  uint fog_function = bitfieldExtract(bpmem_fogParam3, 21, 3);
+  if (fog_function != 0u) {
+    // TODO: This all needs to be converted from float to fixed point
+    float ze;
+    if (bitfieldExtract(bpmem_fogParam3, 20, 1) == 0u) {
+      // perspective
+      // ze = A/(B - (Zs >> B_SHF)
+      ze = (cfogf[1].x * 16777216.0) / float(cfogi.y - (zCoord >> cfogi.w));
+    } else {
+      // orthographic
+      // ze = a*Zs    (here, no B_SHF)
+      ze = cfogf[1].x * float(zCoord) / 16777216.0;
+    }
+
+    if (bool(bitfieldExtract(bpmem_fogRangeBase, 10, 1))) {
+      // x_adjust = sqrt((x-center)^2 + k^2)/k
+      // ze *= x_adjust
+      // TODO Instead of this theoretical calculation, we should use the
+      //      coefficient table given in the fog range BP registers!
+      float x_adjust = (2.0 * (rawpos.x / cfogf[0].y)) - 1.0 - cfogf[0].x; 
+      x_adjust = sqrt(x_adjust * x_adjust + cfogf[0].z * cfogf[0].z) / cfogf[0].z;
+      ze *= x_adjust;
+    }
+
+    float fog = clamp(ze - cfogf[1].z, 0.0, 1.0);
+
+    if (fog_function > 3u) {
+      switch (fog_function) {
+      case 4u:
+        fog = 1.0 - exp2(-8.0 * fog);
+        break;
+      case 5u:
+        fog = 1.0 - exp2(-8.0 * fog * fog);
+        break;
+      case 6u:
+        fog = exp2(-8.0 * (1.0 - fog));
+        break;
+      case 7u:
+        fog = 1.0 - fog;
+        fog = exp2(-8.0 * fog * fog);
+        break;
+      }
+    }
+
+    int ifog = iround(fog * 256.0);
+    TevResult.rgb = (TevResult.rgb * (256 - ifog) + cfogcolor.rgb * ifog) >> 8;
+  }
+
+  if (bpmem_rgba6_format)
+    ocol0.rgb = float3(TevResult.rgb >> 2) / 63.0;
+  else
+    ocol0.rgb = float3(TevResult.rgb) / 255.0;
+
+  if (bpmem_dstalpha != 0u)
+    ocol0.a = float(bitfieldExtract(bpmem_dstalpha, 0, 8) >> 2) / 63.0;
+  else
+    ocol0.a = float(TevResult.a >> 2) / 63.0;
+  
+  // Dest alpha override (dual source blending)
+  // Colors will be blended against the alpha from ocol1 and
+  // the alpha from ocol0 will be written to the framebuffer.
+  ocol1 = float4(0.0, 0.0, 0.0, float(TevResult.a) / 255.0);
+}
+
+int4 getRasColor(State s, StageState ss, float4 colors_0, float4 colors_1) {
+  // Select Ras for stage
+  uint ras = bitfieldExtract(ss.order, 7, 3);
+  if (ras < 2u) { // Lighting Channel 0 or 1
+    int4 color = iround(((ras == 0u) ? colors_0 : colors_1) * 255.0);
+    uint swap = bitfieldExtract(ss.ac, 0, 2);
+    return Swizzle(swap, color);
+  } else if (ras == 5u) { // Alpha Bumb
+    return int4(s.AlphaBump, s.AlphaBump, s.AlphaBump, s.AlphaBump);
+  } else if (ras == 6u) { // Normalzied Alpha Bump
+    int normalized = s.AlphaBump | s.AlphaBump >> 5;
+    return int4(normalized, normalized, normalized, normalized);
+  } else {
+    return int4(0, 0, 0, 0);
+  }
+}
+
+int4 getKonstColor(State s, StageState ss) {
+  // Select Konst for stage
+  // TODO: a switch case might be better here than an dynamically  // indexed uniform lookup
+  uint tevksel = bpmem_tevksel(ss.stage>>1);
+  if ((ss.stage & 1u) == 0u)
+    return int4(konstLookup[bitfieldExtract(tevksel, 4, 5)].rgb, konstLookup[bitfieldExtract(tevksel, 9, 5)].a);
+  else
+    return int4(konstLookup[bitfieldExtract(tevksel, 14, 5)].rgb, konstLookup[bitfieldExtract(tevksel, 19, 5)].a);
+}
+
