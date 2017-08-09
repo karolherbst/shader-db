@@ -446,9 +446,9 @@ main(int argc, char **argv)
             "EGL_KHR_create_context",
             "EGL_KHR_surfaceless_context"
     };
-    char *extension_string = eglQueryString(egl_dpy, EGL_EXTENSIONS);
+    const char *egl_extension_string = eglQueryString(egl_dpy, EGL_EXTENSIONS);
     for (int i = 0; i < ARRAY_SIZE(egl_extension); i++) {
-        if (strstr(extension_string, egl_extension[i]) == NULL) {
+        if (strstr(egl_extension_string, egl_extension[i]) == NULL) {
             fprintf(stderr, "ERROR: Missing %s\n", egl_extension[i]);
             ret = -1;
             goto egl_terminate;
@@ -484,11 +484,13 @@ main(int argc, char **argv)
     if (core_ctx != EGL_NO_CONTEXT &&
         eglMakeCurrent(egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, core_ctx)) {
         int num_extensions;
+        char *gl_extension_string;
+
         glGetIntegerv(GL_NUM_EXTENSIONS, &num_extensions);
 
         size_t extension_string_size = num_extensions * 26;
         core.extension_string = malloc(extension_string_size);
-        extension_string = core.extension_string;
+        gl_extension_string = core.extension_string;
         char *end_extension_string = core.extension_string +
                                      extension_string_size;
 
@@ -496,24 +498,24 @@ main(int argc, char **argv)
             const char *ext = glGetStringi(GL_EXTENSIONS, i);
             size_t len = strlen(ext);
 
-            if (unlikely(extension_string + len + 1 >= end_extension_string)) {
+            if (unlikely(gl_extension_string + len + 1 >= end_extension_string)) {
                 extension_string_size *= 2;
-                size_t extension_string_offset = extension_string -
+                size_t extension_string_offset = gl_extension_string -
                                                  core.extension_string;
                 core.extension_string = realloc(core.extension_string,
                                                 extension_string_size);
-                extension_string = core.extension_string +
+                gl_extension_string = core.extension_string +
                                    extension_string_offset;
                 end_extension_string = core.extension_string +
                                        extension_string_size;
             }
 
-            memcpy(extension_string, ext, len);
-            extension_string[len] = ' ';
-            extension_string += len + 1;
+            memcpy(gl_extension_string, ext, len);
+            gl_extension_string[len] = ' ';
+            gl_extension_string += len + 1;
         }
-        extension_string[-1] = '\0';
-        core.extension_string_len = extension_string - 1 -
+        gl_extension_string[-1] = '\0';
+        core.extension_string_len = gl_extension_string - 1 -
                                     core.extension_string;
 
         char *ver = glGetString(GL_SHADING_LANGUAGE_VERSION);
