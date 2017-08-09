@@ -328,6 +328,16 @@ static void addenv(const char *name, const char *value)
     }
 }
 
+static int
+get_glsl_version(void)
+{
+    const char *ver = glGetString(GL_SHADING_LANGUAGE_VERSION);
+    unsigned major = 0, minor = 0;
+
+    sscanf(ver, "%u.%u", &major, &minor);
+    return major * 100 + minor;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -518,10 +528,7 @@ main(int argc, char **argv)
         core.extension_string_len = gl_extension_string - 1 -
                                     core.extension_string;
 
-        char *ver = glGetString(GL_SHADING_LANGUAGE_VERSION);
-        long major = strtol(ver, &ver, 10);
-        long minor = strtol(ver + 1, NULL, 10);
-        core.max_glsl_version = major * 100 + minor;
+        core.max_glsl_version = get_glsl_version();
 
         if (memmem(core.extension_string, core.extension_string_len,
                    "GL_KHR_debug", strlen("GL_KHR_debug")) == NULL) {
@@ -547,10 +554,7 @@ main(int argc, char **argv)
         compat.extension_string = (char *)glGetString(GL_EXTENSIONS);
         compat.extension_string_len = strlen(compat.extension_string);
 
-        char *ver = glGetString(GL_SHADING_LANGUAGE_VERSION);
-        long major = strtol(ver, &ver, 10);
-        long minor = strtol(ver + 1, NULL, 10);
-        compat.max_glsl_version = major * 100 + minor;
+        compat.max_glsl_version = get_glsl_version();
 
         if (memmem(compat.extension_string, compat.extension_string_len,
                    "GL_KHR_debug", strlen("GL_KHR_debug")) == NULL) {
