@@ -69,6 +69,35 @@ struct shader {
     int type;
 };
 
+static bool
+extension_in_string(const char *haystack, const char *needle)
+{
+    const unsigned needle_len = strlen(needle);
+
+    if (needle_len == 0)
+        return false;
+
+    while (true) {
+        const char *const s = strstr(haystack, needle);
+
+        if (s == NULL)
+            return false;
+
+        if (s[needle_len] == ' ' || s[needle_len] == '\0')
+            return true;
+
+        /* strstr found an extension whose name begins with
+         * needle, but whose name is not equal to needle.
+         * Restart the search at s + needle_len so that we
+         * don't just find the same extension again and go
+         * into an infinite loop.
+         */
+        haystack = s + needle_len;
+    }
+
+    return false;
+}
+
 static struct shader *
 get_shaders(const struct context_info *core, const struct context_info *compat,
             const char *text, size_t text_size,
@@ -415,7 +444,7 @@ main(int argc, char **argv)
         return -1;
     }
 
-    if (!strstr(client_extensions, "EGL_MESA_platform_gbm")) {
+    if (!extension_in_string(client_extensions, "EGL_MESA_platform_gbm")) {
         fprintf(stderr, "ERROR: Missing EGL_MESA_platform_gbm\n");
         return -1;
     }
@@ -458,7 +487,7 @@ main(int argc, char **argv)
     };
     const char *egl_extension_string = eglQueryString(egl_dpy, EGL_EXTENSIONS);
     for (int i = 0; i < ARRAY_SIZE(egl_extension); i++) {
-        if (strstr(egl_extension_string, egl_extension[i]) == NULL) {
+        if (!extension_in_string(egl_extension_string, egl_extension[i])) {
             fprintf(stderr, "ERROR: Missing %s\n", egl_extension[i]);
             ret = -1;
             goto egl_terminate;
@@ -530,8 +559,7 @@ main(int argc, char **argv)
 
         core.max_glsl_version = get_glsl_version();
 
-        if (memmem(core.extension_string, core.extension_string_len,
-                   "GL_KHR_debug", strlen("GL_KHR_debug")) == NULL) {
+        if (!extension_in_string(compat.extension_string, "GL_KHR_debug")) {
             fprintf(stderr, "ERROR: Missing GL_KHR_debug\n");
             ret = -1;
             goto egl_terminate;
@@ -556,8 +584,7 @@ main(int argc, char **argv)
 
         compat.max_glsl_version = get_glsl_version();
 
-        if (memmem(compat.extension_string, compat.extension_string_len,
-                   "GL_KHR_debug", strlen("GL_KHR_debug")) == NULL) {
+        if (!extension_in_string(compat.extension_string, "GL_KHR_debug")) {
             fprintf(stderr, "ERROR: Missing GL_KHR_debug\n");
             ret = -1;
             goto egl_terminate;
