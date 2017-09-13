@@ -559,7 +559,7 @@ main(int argc, char **argv)
 
         core.max_glsl_version = get_glsl_version();
 
-        if (!extension_in_string(compat.extension_string, "GL_KHR_debug")) {
+        if (!extension_in_string(core.extension_string, "GL_KHR_debug")) {
             fprintf(stderr, "ERROR: Missing GL_KHR_debug\n");
             ret = -1;
             goto egl_terminate;
