@@ -3,8 +3,8 @@
 """
 We're matching lines like
 
-5.shader_test - type: 1, local: 0, gpr: 4, inst: 7, bytes: 56
-11.shader_test - type: 1, local: 0, gpr: 4, inst: 1, bytes: 8
+5.shader_test - type: 1, local: 0, shared: 0, gpr: 4, inst: 7, bytes: 56
+11.shader_test - type: 1, local: 0, shared: 0, gpr: 4, inst: 1, bytes: 8
 
 although the order of the fields after the dash does not matter, and all
 fields, except for the type, are optional.
@@ -25,17 +25,20 @@ class Stat(object):
     def __init__(self, m=None):
         if m:
             self.local = getgroupvalue(m, "local")
+            self.shared = getgroupvalue(m, "shared")
             self.gpr = getgroupvalue(m, "gpr")
             self.inst = getgroupvalue(m, "inst")
             self.bytes = getgroupvalue(m, "bytes")
         else:
             self.local = 0
+            self.shared = 0
             self.gpr = 0
             self.inst = 0
             self.bytes = 0
 
     def __eq__(self, other):
         return (self.local == other.local and
+                self.shared == other.shared and
                 self.gpr == other.gpr and
                 self.inst == other.inst and
                 self.bytes == other.bytes)
@@ -45,6 +48,7 @@ class Stats(object):
     def __init__(self):
         self.stats = {}
         self.local = 0
+        self.shared = 0
         self.gpr = 0
         self.inst = 0
         self.bytes = 0
@@ -52,13 +56,14 @@ class Stats(object):
     def record(self, name, stat):
         assert name not in self.stats, name
         self.stats[name] = stat
-        for attr in ("local", "gpr", "inst", "bytes"):
+        for attr in ("local", "shared", "gpr", "inst", "bytes"):
             setattr(self, attr, getattr(self, attr) + getattr(stat, attr))
 
 RE = {
         "name":   re.compile(r"^(.*) - "),
         "type":   re.compile(r"type: (\d+)"),
         "local":  re.compile(r"local: (\d+)"),
+        "shared": re.compile(r"shared: (\d+)"),
         "gpr":    re.compile(r"gpr: (\d+)"),
         "inst":   re.compile(r"inst: (\d+)"),
         "bytes":  re.compile(r"bytes: (\d+)")
@@ -71,7 +76,7 @@ def analyze(fname):
             if line.startswith("Thread "):
                 continue
             m = {}
-            for attr in ("name", "type", "local", "gpr", "inst", "bytes"):
+            for attr in ("name", "type", "local", "shared", "gpr", "inst", "bytes"):
                 m[attr] = RE[attr].search(line)
             assert m["name"], line
             assert m["type"], line
@@ -101,7 +106,7 @@ def main(argv):
         a = after.stats[key]
         b = before.stats[key]
         if a != b:
-            for attr in ("local", "gpr", "inst", "bytes"):
+            for attr in ("local", "shared", "gpr", "inst", "bytes"):
                 aa = getattr(a, attr)
                 ba = getattr(b, attr)
                 if aa == ba:
@@ -115,15 +120,16 @@ def main(argv):
 
     print "total instructions in shared programs :", diff(before.inst, after.inst)
     print "total gprs used in shared programs    :", diff(before.gpr, after.gpr)
+    print "total shared used in shared programs  :", diff(before.shared, after.shared)
     print "total local used in shared programs   :", diff(before.local, after.local)
     print
-    print "%10s %10s %10s %10s %10s " % ("", "local", "gpr", "inst", "bytes")
+    print "%10s %10s %10s %10s %10s %10s " % ("", "local", "shared", "gpr", "inst", "bytes")
     print "%10s " % "helped",
-    for attr in ("local", "gpr", "inst", "bytes"):
+    for attr in ("local", "shared", "gpr", "inst", "bytes"):
         print "%10d " % getattr(helped, attr),
     print
     print "%10s " % "hurt",
-    for attr in ("local", "gpr", "inst", "bytes"):
+    for attr in ("local", "shared", "gpr", "inst", "bytes"):
         print "%10d " % getattr(hurt, attr),
 
 
