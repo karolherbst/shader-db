@@ -62,7 +62,12 @@ def analyze(fname):
     return stats
 
 def diff(a, b):
-    return "%d -> %d (%.2f%%)" % (a, b, b * 100. / a - 100.)
+    percentage = 0.
+    if a != 0.:
+        percentage = b * 100. / a - 100.
+    elif b != 0.:
+        percentage = float('inf')
+    return "%d -> %d (%.2f%%)" % (a, b, percentage)
 
 def main(argv):
     # Count up each of the metrics in the before and after, and
