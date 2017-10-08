@@ -5,19 +5,29 @@ We're matching lines like
 
 5.shader_test - type: 1, local: 0, gpr: 4, inst: 7, bytes: 56
 11.shader_test - type: 1, local: 0, gpr: 4, inst: 1, bytes: 8
+
+although the order of the fields after the dash does not matter, and all
+fields, except for the type, are optional.
 """
 
 import re
 import sys
 
+
+def getgroupvalue(m, groupname):
+    if not m[groupname]:
+        return 0
+    else:
+        return int(m[groupname].group(1), 10)
+
 class Stat(object):
 
     def __init__(self, m=None):
         if m:
-            self.local = int(m.group("local"), 10)
-            self.gpr = int(m.group("gpr"), 10)
-            self.inst = int(m.group("inst"), 10)
-            self.bytes = int(m.group("bytes"), 10)
+            self.local = getgroupvalue(m, "local")
+            self.gpr = getgroupvalue(m, "gpr")
+            self.inst = getgroupvalue(m, "inst")
+            self.bytes = getgroupvalue(m, "bytes")
         else:
             self.local = 0
             self.gpr = 0
@@ -45,9 +55,14 @@ class Stats(object):
         for attr in ("local", "gpr", "inst", "bytes"):
             setattr(self, attr, getattr(self, attr) + getattr(stat, attr))
 
-RE = re.compile(r"^(?P<name>.*) - type: (?P<type>\d+), local: (?P<local>\d+), "
-                r"gpr: (?P<gpr>\d+), inst: (?P<inst>\d+), "
-                r"bytes: (?P<bytes>\d+)$")
+RE = {
+        "name":   re.compile(r"^(.*) - "),
+        "type":   re.compile(r"type: (\d+)"),
+        "local":  re.compile(r"local: (\d+)"),
+        "gpr":    re.compile(r"gpr: (\d+)"),
+        "inst":   re.compile(r"inst: (\d+)"),
+        "bytes":  re.compile(r"bytes: (\d+)")
+}
 
 def analyze(fname):
     stats = Stats()
@@ -55,9 +70,12 @@ def analyze(fname):
         for line in f.xreadlines():
             if line.startswith("Thread "):
                 continue
-            m = RE.match(line)
-            assert m, line
-            stats.record(m.group("name") + " - " + m.group("type"), Stat(m))
+            m = {}
+            for attr in ("name", "type", "local", "gpr", "inst", "bytes"):
+                m[attr] = RE[attr].search(line)
+            assert m["name"], line
+            assert m["type"], line
+            stats.record(m["name"].group(1) + " - " + m["type"].group(1), Stat(m))
 
     return stats
 
