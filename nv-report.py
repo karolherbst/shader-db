@@ -97,12 +97,14 @@ def main(argv):
     # produce hurt/helped comparisons.
     before = analyze(argv[1])
     after = analyze(argv[2])
-    keys = before.stats.keys()
-    assert set(after.stats.keys()) == set(keys)
+    keys = set(before.stats.keys()) | set(after.stats.keys())
 
     helped = Stat()
     hurt = Stat()
     for key in keys:
+        if key not in after.stats or key not in before.stats:
+            print "Missing", key
+            continue
         a = after.stats[key]
         b = before.stats[key]
         if a != b:
