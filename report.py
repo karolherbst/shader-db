@@ -62,6 +62,8 @@ def main():
                         help="comma-separated list of measurements to report")
     parser.add_argument("--summary-only", "-s", action="store_true", default=False,
                         help="do not show the per-shader helped / hurt data")
+    parser.add_argument("--changes-only", "-c", action="store_true", default=False,
+                        help="only show measurements that have changes")
     parser.add_argument("before", type=get_results, help="the output of the original code")
     parser.add_argument("after", type=get_results, help="the output of the new code")
     args = parser.parse_args()
@@ -153,21 +155,29 @@ def main():
         if gained:
             print("")
 
+    any_helped_or_hurt = False
     for m in args.measurements:
-        print("total {0} in shared programs: {1}\n"
-              "{0} in affected programs: {2}\n"
-              "helped: {3}\n"
-              "HURT: {4}\n".format(
-	        m,
-	        change(total_before[m], total_after[m]),
-	        change(affected_before[m], affected_after[m]),
-	        num_helped[m],
-	        num_hurt[m]))
+        if num_helped[m] > 0 or num_hurt[m] > 0:
+            any_helped_or_hurt = True
+
+        if num_helped[m] > 0 or num_hurt[m] > 0 or not args.changes_only:
+            print("total {0} in shared programs: {1}\n"
+                  "{0} in affected programs: {2}\n"
+                  "helped: {3}\n"
+                  "HURT: {4}\n".format(
+	              m,
+	              change(total_before[m], total_after[m]),
+	              change(affected_before[m], affected_after[m]),
+	              num_helped[m],
+	              num_hurt[m]))
 
 
-    print("LOST:   " + str(len(lost)))
-    print("GAINED: " + str(len(gained)))
-
+    if lost or gained or not args.changes_only:
+        print("LOST:   " + str(len(lost)))
+        print("GAINED: " + str(len(gained)))
+    else:
+        if not any_helped_or_hurt:
+            print("No changes.")
 
 if __name__ == "__main__":
     main()
