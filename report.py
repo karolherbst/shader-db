@@ -60,6 +60,8 @@ def main():
     parser.add_argument("--measurements", "-m", type=split_list,
                         default=["instructions", "cycles", "loops", "spills", "fills"],
                         help="comma-separated list of measurements to report")
+    parser.add_argument("--summary-only", "-s", action="store_true", default=False,
+                        help="do not show the per-shader helped / hurt data")
     parser.add_argument("before", type=get_results, help="the output of the original code")
     parser.add_argument("after", type=get_results, help="the output of the new code")
     args = parser.parse_args()
@@ -104,23 +106,24 @@ def main():
                 else:
                     helped.append(p)
 
-        helped.sort(
-            key=lambda k: args.after[k][m] if args.before[k][m] == 0 else float(args.before[k][m] - args.after[k][m]) / args.before[k][m])
-        for p in helped:
-            namestr = p[0] + " " + p[1]
-            print(m + " helped:   " + get_result_string(
-                namestr, args.before[p][m], args.after[p][m]))
-        if helped:
-            print("")
+        if not args.summary_only:
+            helped.sort(
+                key=lambda k: args.after[k][m] if args.before[k][m] == 0 else float(args.before[k][m] - args.after[k][m]) / args.before[k][m])
+            for p in helped:
+                namestr = p[0] + " " + p[1]
+                print(m + " helped:   " + get_result_string(
+                    namestr, args.before[p][m], args.after[p][m]))
+            if helped:
+                print("")
 
-        hurt.sort(
-            key=lambda k: args.after[k][m] if args.before[k][m] == 0 else float(args.after[k][m] - args.before[k][m]) / args.before[k][m])
-        for p in hurt:
-            namestr = p[0] + " " + p[1]
-            print(m + " HURT:   " + get_result_string(
-                namestr, args.before[p][m], args.after[p][m]))
-        if hurt:
-            print("")
+            hurt.sort(
+                key=lambda k: args.after[k][m] if args.before[k][m] == 0 else float(args.after[k][m] - args.before[k][m]) / args.before[k][m])
+            for p in hurt:
+                namestr = p[0] + " " + p[1]
+                print(m + " HURT:   " + get_result_string(
+                    namestr, args.before[p][m], args.after[p][m]))
+            if hurt:
+                print("")
 
         num_helped[m] = len(helped)
         num_hurt[m] = len(hurt)
@@ -137,17 +140,18 @@ def main():
         if args.before.get(p) is None:
             gained.append(p[0] + " " + p[1])
 
-    lost.sort()
-    for p in lost:
-        print("LOST:   " + p)
-    if lost:
-        print("")
+    if not args.summary_only:
+        lost.sort()
+        for p in lost:
+            print("LOST:   " + p)
+        if lost:
+            print("")
 
-    gained.sort()
-    for p in gained:
-        print("GAINED: " + p)
-    if gained:
-        print("")
+        gained.sort()
+        for p in gained:
+            print("GAINED: " + p)
+        if gained:
+            print("")
 
     for m in args.measurements:
         print("total {0} in shared programs: {1}\n"
