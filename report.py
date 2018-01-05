@@ -34,10 +34,18 @@ def get_results(filename):
     return results
 
 
+def format_percent(frac):
+    """Converts a factional value (typically 0.0 to 1.0) to a string as a percentage"""
+    if abs(frac) > 0.0 and abs(frac) < 0.0001:
+        return "<.01%"
+    else:
+        return "{:.2f}%".format(frac * 100)
+
+
 def get_delta(b, a):
     if b != 0 and a != 0:
         frac = float(a) / float(b) - 1.0
-        return ' ({:.2f}%)'.format(frac * 100.0)
+        return ' ({})'.format(format_percent(frac))
     else:
         return ''
 
