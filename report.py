@@ -2,6 +2,9 @@
 
 import re
 import argparse
+import statistics
+from scipy import stats
+import numpy as np
 
 
 def get_results(filename):
@@ -63,6 +66,35 @@ def get_result_string(p, b, a):
 def split_list(string):
     return string.split(",")
 
+
+def gather_statistics(changes, before, after, m):
+    stats = (0.0, 0, 0.0, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+    num = len(changes)
+    if num > 0:
+        absolute = [abs(before[p][m] - after[p][m]) for p in changes]
+        relative = [0 if before[p][m] == 0 else abs(before[p][m] - after[p][m]) / before[p][m] for p in changes]
+
+        stats = (statistics.mean(absolute),
+                 statistics.median(absolute),
+                 min(absolute),
+                 max(absolute),
+                 statistics.mean(relative),
+                 statistics.median(relative),
+                 min(relative),
+                 max(relative))
+
+    return stats
+
+
+def mean_confidence_interval(data, confidence=0.95):
+    a = 1.0 * np.array(data)
+    n = len(a)
+    m, se = np.mean(a), stats.sem(a)
+    h = se * stats.t.ppf((1 + confidence) / 2., n - 1)
+    return m, m - h, m + h
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--measurements", "-m", type=split_list,
@@ -82,6 +114,9 @@ def main():
     affected_after = {}
     num_hurt = {}
     num_helped = {}
+    helped_statistics = {}
+    hurt_statistics = {}
+    confidence_interval = {}
 
     for m in args.measurements:
         total_before[m] = 0
@@ -135,9 +170,21 @@ def main():
             if hurt:
                 print("")
 
+        helped_statistics[m] = gather_statistics(helped, args.before, args.after, m)
+        hurt_statistics[m] = gather_statistics(hurt, args.before, args.after, m)
+
         num_helped[m] = len(helped)
         num_hurt[m] = len(hurt)
 
+        # Statistics for spills and fills is usually meaningless.
+        if m in ["spills", "fills"]:
+            continue
+
+        if num_hurt[m] + num_helped[m] > 3:
+            A = [args.after[p][m] - args.before[p][m] for p in helped + hurt]
+            B = [0 if args.before[p][m] == 0 else (args.after[p][m] - args.before[p][m]) / args.before[p][m] for p in helped + hurt]
+
+            confidence_interval[m] = (mean_confidence_interval(A), mean_confidence_interval(B))
 
     lost = []
     gained = []
@@ -172,12 +219,64 @@ def main():
             print("total {0} in shared programs: {1}\n"
                   "{0} in affected programs: {2}\n"
                   "helped: {3}\n"
-                  "HURT: {4}\n".format(
+                  "HURT: {4}".format(
 	              m,
 	              change(total_before[m], total_after[m]),
 	              change(affected_before[m], affected_after[m]),
 	              num_helped[m],
 	              num_hurt[m]))
+
+            # Statistics for spills and fills is usually meaningless.
+            if m in ["spills", "fills"]:
+                print()
+                continue
+
+            if num_helped[m] > 2 or (num_helped[m] > 0 and num_hurt[m] > 0):
+                (avg_abs, med_abs, lo_abs, hi_abs, avg_rel, med_rel, lo_rel, hi_rel) = helped_statistics[m]
+
+                print("helped stats (abs) min: {} max: {} x\u0304: {:.2f} x\u0303: {}".format(
+                    lo_abs, hi_abs, avg_abs, int(med_abs)))
+                print("helped stats (rel) min: {} max: {} x\u0304: {} x\u0303: {}".format(
+                    format_percent(lo_rel),
+                    format_percent(hi_rel),
+                    format_percent(avg_rel),
+                    format_percent(med_rel)))
+
+            if num_hurt[m] > 2 or (num_hurt[m] > 0 and num_helped[m] > 0):
+                (avg_abs, med_abs, lo_abs, hi_abs, avg_rel, med_rel, lo_rel, hi_rel) = hurt_statistics[m]
+
+                print("HURT stats (abs)   min: {} max: {} x\u0304: {:.2f} x\u0303: {}".format(
+                    lo_abs, hi_abs, avg_abs, int(med_abs)))
+                print("HURT stats (rel)   min: {} max: {} x\u0304: {} x\u0303: {}".format(
+                    format_percent(lo_rel),
+                    format_percent(hi_rel),
+                    format_percent(avg_rel),
+                    format_percent(med_rel)))
+
+            if m in confidence_interval:
+                print("95% mean confidence interval for {} value: {:.2f} {:.2f}".format(m,
+                                                                                        confidence_interval[m][0][1],
+                                                                                        confidence_interval[m][0][2]))
+                print("95% mean confidence interval for {} %-change: {} {}".format(m,
+                                                                                   format_percent(confidence_interval[m][1][1]),
+                                                                                   format_percent(confidence_interval[m][1][2])))
+
+                # Be very, very conservative about applying results
+                # based on the confidence intervals.  Neither interval
+                # can include zero, and both intervals must be on the
+                # same side of zero.
+                if confidence_interval[m][0][1] < 0 and confidence_interval[m][0][2] > 0:
+                    print("Inconclusive result (value mean confidence interval includes 0).");
+                elif confidence_interval[m][1][1] < 0 and confidence_interval[m][1][2] > 0:
+                    print("Inconclusive result (%-change mean confidence interval includes 0).");
+                elif (confidence_interval[m][0][1] < 0) != (confidence_interval[m][1][1] < 0):
+                    print("Inconclusive result (value mean confidence interval and %-change mean confidence interval disagree).");
+                elif confidence_interval[m][0][1] < 0:
+                    print("{} are helped.".format(m.capitalize()))
+                else:
+                    print("{} are HURT.".format(m.capitalize()))
+
+            print()
 
 
     if lost or gained or not args.changes_only:
