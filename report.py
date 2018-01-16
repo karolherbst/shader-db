@@ -110,7 +110,7 @@ def main():
             namestr = p[0] + " " + p[1]
             print(m + " helped:   " + get_result_string(
                 namestr, args.before[p][m], args.after[p][m]))
-        if len(helped) > 0:
+        if helped:
             print("")
 
         hurt.sort(
@@ -119,7 +119,7 @@ def main():
             namestr = p[0] + " " + p[1]
             print(m + " HURT:   " + get_result_string(
                 namestr, args.before[p][m], args.after[p][m]))
-        if len(hurt) > 0:
+        if hurt:
             print("")
 
         num_helped[m] = len(helped)
@@ -140,13 +140,13 @@ def main():
     lost.sort()
     for p in lost:
         print("LOST:   " + p)
-    if len(lost) > 0:
+    if lost:
         print("")
 
     gained.sort()
     for p in gained:
         print("GAINED: " + p)
-    if len(gained) > 0:
+    if gained:
         print("")
 
     for m in args.measurements:
