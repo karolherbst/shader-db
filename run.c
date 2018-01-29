@@ -60,6 +60,7 @@ enum shader_type {
     TYPE_NONE,
     TYPE_CORE,
     TYPE_COMPAT,
+    TYPE_ES,
     TYPE_VP,
     TYPE_FP,
 };
@@ -101,6 +102,7 @@ extension_in_string(const char *haystack, const char *needle)
 
 static struct shader *
 get_shaders(const struct context_info *core, const struct context_info *compat,
+            const struct context_info *es,
             const char *text, size_t text_size,
             enum shader_type *type, unsigned *num_shaders,
             bool *use_separate_shader_objects,
@@ -109,6 +111,7 @@ get_shaders(const struct context_info *core, const struct context_info *compat,
     static const char *req = "[require]";
     static const char *gl_req = "\nGL >= ";
     static const char *glsl_req = "\nGLSL >= ";
+    static const char *glsl_es_req = "\nGLSL ES >= ";
     static const char *fp_req = "\nGL_ARB_fragment_program";
     static const char *vp_req = "\nGL_ARB_vertex_program";
     static const char *sso_req = "\nSSO ENABLED";
@@ -154,6 +157,18 @@ get_shaders(const struct context_info *core, const struct context_info *compat,
             }
             *type = TYPE_CORE;
         }
+    } else if (memcmp(text, glsl_es_req, strlen(glsl_es_req)) == 0) {
+        text += strlen(glsl_es_req);
+        long major = strtol(text, (char **)&text, 10);
+        long minor = strtol(text + 1, (char **)&text, 10);
+        long version = major * 100 + minor;
+
+        if (unlikely(version > es->max_glsl_version)) {
+            fprintf(stderr, "SKIP: %s requires GLSL ES %ld\n",
+                    shader_name, version);
+            return NULL;
+        }
+        *type = TYPE_ES;
     } else if (memcmp(text, fp_req, strlen(fp_req)) == 0) {
         *type = TYPE_FP;
     } else if (memcmp(text, vp_req, strlen(vp_req)) == 0) {
@@ -361,8 +376,12 @@ static void addenv(const char *name, const char *value)
 static int
 get_glsl_version(void)
 {
+    const char *es_prefix = "OpenGL ES GLSL ES ";
     const char *ver = glGetString(GL_SHADING_LANGUAGE_VERSION);
     unsigned major = 0, minor = 0;
+
+    if (strstr(ver, es_prefix) == ver)
+        ver += strlen(es_prefix);
 
     sscanf(ver, "%u.%u", &major, &minor);
     return major * 100 + minor;
@@ -402,6 +421,9 @@ create_context(EGLDisplay egl_dpy, EGLConfig cfg, enum shader_type type)
     case TYPE_COMPAT:
         eglBindAPI(EGL_OPENGL_API);
         return eglCreateContext(egl_dpy, cfg, EGL_NO_CONTEXT, &attribs[6]);
+    case TYPE_ES:
+        eglBindAPI(EGL_OPENGL_ES_API);
+        return eglCreateContext(egl_dpy, cfg, EGL_NO_CONTEXT, es_attribs);
     default:
         return NULL;
     }
@@ -548,7 +570,23 @@ main(int argc, char **argv)
         goto egl_terminate;
     }
 
-    static struct context_info core = { 0 }, compat = { 0 };
+    static struct context_info core = { 0 }, compat = { 0 }, es = { 0 };
+
+    EGLContext es_ctx = create_context(egl_dpy, cfg, TYPE_ES);
+    if (es_ctx != EGL_NO_CONTEXT &&
+        eglMakeCurrent(egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, es_ctx)) {
+
+        es.extension_string = (char *)glGetString(GL_EXTENSIONS);
+        es.extension_string_len = strlen(es.extension_string);
+
+        es.max_glsl_version = get_glsl_version();
+
+        if (!extension_in_string(es.extension_string, "GL_KHR_debug")) {
+            fprintf(stderr, "ERROR: Missing GL_KHR_debug\n");
+            ret = -1;
+            goto egl_terminate;
+        }
+    }
 
     EGLContext core_ctx = create_context(egl_dpy, cfg, TYPE_CORE);
 
@@ -642,6 +680,20 @@ main(int argc, char **argv)
         struct timespec start, end;
         clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
 
+        EGLContext es_ctx = create_context(egl_dpy, cfg, TYPE_ES);
+        if (es_ctx != EGL_NO_CONTEXT &&
+            eglMakeCurrent(egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, es_ctx)) {
+            glEnable(GL_DEBUG_OUTPUT);
+            glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+            glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE,
+                                  0, NULL, GL_FALSE);
+            glDebugMessageControl(GL_DEBUG_SOURCE_SHADER_COMPILER,
+                                  GL_DEBUG_TYPE_OTHER,
+                                  GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL,
+                                  GL_TRUE);
+            glDebugMessageCallback(callback, &current_shader_name);
+        }
+
         EGLContext core_ctx = create_context(egl_dpy, cfg, TYPE_CORE);
         if (core_ctx != EGL_NO_CONTEXT &&
             eglMakeCurrent(egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, core_ctx)) {
@@ -703,7 +755,7 @@ main(int argc, char **argv)
             enum shader_type type;
             unsigned num_shaders;
             bool use_separate_shader_objects;
-            struct shader *shader = get_shaders(&core, &compat,
+            struct shader *shader = get_shaders(&core, &compat, &es,
                                                 text, shader_test[i].filesize,
                                                 &type, &num_shaders,
                                                 &use_separate_shader_objects,
@@ -718,6 +770,10 @@ main(int argc, char **argv)
                 ctx_switches++;
 
                 switch (type) {
+                case TYPE_ES:
+                    eglBindAPI(EGL_OPENGL_ES_API);
+                    ctx = es_ctx;
+                    break;
                 case TYPE_CORE:
                     eglBindAPI(EGL_OPENGL_API);
                     ctx = core_ctx;
@@ -760,7 +816,7 @@ main(int argc, char **argv)
                     glDeleteProgram(prog);
                     free(text);
                 }
-            } else if (type == TYPE_CORE || type == TYPE_COMPAT) {
+            } else if (type == TYPE_CORE || type == TYPE_COMPAT || type == TYPE_ES) {
                 GLuint prog = glCreateProgram();
 
                 for (unsigned i = 0; i < num_shaders; i++) {
@@ -813,6 +869,7 @@ main(int argc, char **argv)
 
         eglDestroyContext(egl_dpy, compat_ctx);
         eglDestroyContext(egl_dpy, core_ctx);
+        eglDestroyContext(egl_dpy, es_ctx);
         eglReleaseThread();
 
         clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
