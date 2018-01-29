@@ -57,6 +57,7 @@ struct context_info {
 };
 
 enum shader_type {
+    TYPE_NONE,
     TYPE_CORE,
     TYPE_COMPAT,
     TYPE_VP,
@@ -367,6 +368,32 @@ get_glsl_version(void)
     return major * 100 + minor;
 }
 
+static EGLContext
+create_context(EGLDisplay egl_dpy, EGLConfig cfg, enum shader_type type)
+{
+    static const EGLint attribs[] = {
+        EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR,
+        EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
+        EGL_CONTEXT_MAJOR_VERSION_KHR, 3,
+        EGL_CONTEXT_MINOR_VERSION_KHR, 2,
+        EGL_NONE
+    };
+    static const EGLint es_attribs[] = {
+        EGL_CONTEXT_CLIENT_VERSION, 2,
+        EGL_NONE
+    };
+    switch (type) {
+    case TYPE_CORE:
+        eglBindAPI(EGL_OPENGL_API);
+        return eglCreateContext(egl_dpy, cfg, EGL_NO_CONTEXT, attribs);
+    case TYPE_COMPAT:
+        eglBindAPI(EGL_OPENGL_API);
+        return eglCreateContext(egl_dpy, cfg, EGL_NO_CONTEXT, &attribs[6]);
+    default:
+        return NULL;
+    }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -507,19 +534,11 @@ main(int argc, char **argv)
         ret = -1;
         goto egl_terminate;
     }
-    eglBindAPI(EGL_OPENGL_API);
 
     static struct context_info core = { 0 }, compat = { 0 };
 
-    static const EGLint attribs[] = {
-        EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR,
-        EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
-        EGL_CONTEXT_MAJOR_VERSION_KHR, 3,
-        EGL_CONTEXT_MINOR_VERSION_KHR, 2,
-        EGL_NONE
-    };
-    EGLContext core_ctx = eglCreateContext(egl_dpy, cfg, EGL_NO_CONTEXT,
-                                           attribs);
+    EGLContext core_ctx = create_context(egl_dpy, cfg, TYPE_CORE);
+
     if (core_ctx != EGL_NO_CONTEXT &&
         eglMakeCurrent(egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, core_ctx)) {
         int num_extensions;
@@ -566,8 +585,7 @@ main(int argc, char **argv)
         }
     }
 
-    EGLContext compat_ctx = eglCreateContext(egl_dpy, cfg, EGL_NO_CONTEXT,
-                                             &attribs[6]);
+    EGLContext compat_ctx = create_context(egl_dpy, cfg, TYPE_COMPAT);
     if (compat_ctx == EGL_NO_CONTEXT) {
         fprintf(stderr, "ERROR: eglCreateContext() failed\n");
         ret = -1;
@@ -611,10 +629,7 @@ main(int argc, char **argv)
         struct timespec start, end;
         clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
 
-        eglBindAPI(EGL_OPENGL_API);
-
-        EGLContext core_ctx = eglCreateContext(egl_dpy, cfg, EGL_NO_CONTEXT,
-                                               attribs);
+        EGLContext core_ctx = create_context(egl_dpy, cfg, TYPE_CORE);
         if (core_ctx != EGL_NO_CONTEXT &&
             eglMakeCurrent(egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, core_ctx)) {
             glEnable(GL_DEBUG_OUTPUT);
@@ -628,14 +643,13 @@ main(int argc, char **argv)
             glDebugMessageCallback(callback, &current_shader_name);
         }
 
-        EGLContext compat_ctx = eglCreateContext(egl_dpy, cfg, EGL_NO_CONTEXT,
-                                                 &attribs[6]);
+        EGLContext compat_ctx = create_context(egl_dpy, cfg, TYPE_COMPAT);
         if (compat_ctx == EGL_NO_CONTEXT) {
             fprintf(stderr, "ERROR: eglCreateContext() failed\n");
             exit(-1);
         }
 
-        bool ctx_is_core = false;
+        enum shader_type current_type = TYPE_NONE;
         if (!eglMakeCurrent(egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE,
                             compat_ctx)) {
             fprintf(stderr, "ERROR: eglMakeCurrent() failed\n");
@@ -685,15 +699,29 @@ main(int argc, char **argv)
                 continue;
             }
 
-            if (ctx_is_core != (type == TYPE_CORE)) {
+            if (current_type != type) {
+                EGLContext ctx;
+
                 ctx_switches++;
+
+                switch (type) {
+                case TYPE_CORE:
+                    eglBindAPI(EGL_OPENGL_API);
+                    ctx = core_ctx;
+                    break;
+                default:
+                    eglBindAPI(EGL_OPENGL_API);
+                    ctx = compat_ctx;
+                    break;
+                }
+
                 if (!eglMakeCurrent(egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE,
-                                    type == TYPE_CORE ? core_ctx : compat_ctx)) {
+                                    ctx)) {
                     fprintf(stderr, "ERROR: eglMakeCurrent() failed\n");
                     continue;
                 }
             }
-            ctx_is_core = type == TYPE_CORE;
+            current_type = type;
 
             /* If there's only one GLSL shader, mark it separable so
              * inputs and outputs aren't eliminated.
