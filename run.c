@@ -383,9 +383,22 @@ create_context(EGLDisplay egl_dpy, EGLConfig cfg, enum shader_type type)
         EGL_NONE
     };
     switch (type) {
-    case TYPE_CORE:
+    case TYPE_CORE: {
         eglBindAPI(EGL_OPENGL_API);
-        return eglCreateContext(egl_dpy, cfg, EGL_NO_CONTEXT, attribs);
+        EGLContext core_ctx =
+                eglCreateContext(egl_dpy, cfg, EGL_NO_CONTEXT, attribs);
+
+        if (core_ctx == EGL_NO_CONTEXT) {
+            static const EGLint attribs_31[] = {
+                EGL_CONTEXT_MAJOR_VERSION_KHR, 3,
+                EGL_CONTEXT_MINOR_VERSION_KHR, 1,
+                EGL_NONE
+            };
+            core_ctx = eglCreateContext(egl_dpy, cfg, EGL_NO_CONTEXT, attribs_31);
+        }
+
+        return core_ctx;
+    }
     case TYPE_COMPAT:
         eglBindAPI(EGL_OPENGL_API);
         return eglCreateContext(egl_dpy, cfg, EGL_NO_CONTEXT, &attribs[6]);
