@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -174,6 +175,7 @@ ioctl(int fd, unsigned long request, ...)
 	va_list args;
 	void *argp;
 	struct stat buf;
+	char *pci_id;
 
 	va_start(args, request);
 	argp = va_arg(args, void *);
@@ -199,7 +201,13 @@ ioctl(int fd, unsigned long request, ...)
                                 *getparam->value = 1;
                                 break;
                         case I915_PARAM_CHIPSET_ID:
-                                *getparam->value = strtod(getenv("INTEL_DEVID_OVERRIDE"), NULL);
+                                pci_id = getenv("INTEL_DEVID_OVERRIDE");
+
+                                if (pci_id)
+                                    *getparam->value = strtod(pci_id, NULL);
+                                else
+                                    return -EINVAL;
+
                                 break;
                         case I915_PARAM_CMD_PARSER_VERSION:
                                 *getparam->value = 9;
