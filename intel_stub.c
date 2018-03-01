@@ -198,6 +198,7 @@ ioctl(int fd, unsigned long request, ...)
                         switch (getparam->param) {
                         case I915_PARAM_HAS_RELAXED_DELTA:
                         case I915_PARAM_HAS_WAIT_TIMEOUT:
+                        case I915_PARAM_HAS_EXEC_NO_RELOC:
                                 *getparam->value = 1;
                                 break;
                         case I915_PARAM_CHIPSET_ID:
