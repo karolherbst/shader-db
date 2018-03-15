@@ -356,7 +356,8 @@ const struct platform platforms[] = {
 void print_usage(const char *prog_name)
 {
     fprintf(stderr,
-            "Usage: %s [-d <device>] [-j <max_threads>] [-o <driver>] [-p <platform>] <directories and *.shader_test files>\n",
+            "Usage: %s [-d <device>] [-j <max_threads>] [-o <driver>] [-p <pci"
+            " id or platform name> <directories and *.shader_test files>\n",
             prog_name);
 }
 
@@ -463,17 +464,27 @@ main(int argc, char **argv)
                 }
             }
 
-            if (platform == NULL) {
-                fprintf(stderr, "Invalid platform.\nValid platforms are:");
-                for (unsigned i = 0; i < ARRAY_SIZE(platforms); i++)
-                    fprintf(stderr, " %s", platforms[i].name);
-                fprintf(stderr, "\n");
-                return -1;
+            if (platform) {
+                printf("### Compiling for %s(PCI_ID=%s) ###\n", platform->name,
+                       platform->pci_id);
+                setenv("INTEL_DEVID_OVERRIDE", platform->pci_id, 1);
+                break;
             }
 
-            printf("### Compiling for %s ###\n", platform->name);
-            setenv("INTEL_DEVID_OVERRIDE", platform->pci_id, 1);
-            break;
+            /* Also allow a numeric PCI ID */
+            if (strtol(optarg, NULL, 0) > 0) {
+                setenv("INTEL_DEVID_OVERRIDE", optarg, 1);
+                printf("### Compiling for PCI_ID=%s ###\n", optarg);
+                break;
+            }
+
+            fprintf(stderr, "Invalid platform.\nValid platforms are:");
+            for (unsigned i = 0; i < ARRAY_SIZE(platforms); i++)
+                fprintf(stderr, " %s", platforms[i].name);
+
+            fprintf(stderr, "\n");
+            fprintf(stderr, "Or\nPCI-ID of other supported platform.\n");
+            return -1;
         }
         case 'j':
             max_threads = atoi(optarg);
