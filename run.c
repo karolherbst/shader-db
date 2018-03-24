@@ -357,7 +357,7 @@ void print_usage(const char *prog_name)
 {
     fprintf(stderr,
             "Usage: %s [-d <device>] [-j <max_threads>] [-o <driver>] [-p <pci"
-            " id or platform name> <directories and *.shader_test files>\n",
+            " id or platform name> [-b] <directories and *.shader_test files>\n",
             prog_name);
 }
 
@@ -436,10 +436,11 @@ main(int argc, char **argv)
     char device_path[64];
     int device_id = 0;
     int opt;
+    bool generate_prog_bin = 0;
 
     max_threads = omp_get_max_threads();
 
-    while ((opt = getopt(argc, argv, "d:j:o:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "d:j:o:p:b")) != -1) {
         switch(opt) {
         case 'd': {
             char *endptr;
@@ -488,6 +489,9 @@ main(int argc, char **argv)
         }
         case 'j':
             max_threads = atoi(optarg);
+            break;
+        case 'b':
+            generate_prog_bin = 1;
             break;
         default:
             fprintf(stderr, "Unknown option: %x\n", opt);
@@ -824,18 +828,24 @@ main(int argc, char **argv)
                     const_text = text;
                     GLuint prog = glCreateShaderProgramv(shader[i].type, 1,
                                                          &const_text);
+
+                    if (generate_prog_bin)
+                        fprintf(stderr,
+                                "Currently, program binary generation "
+                                "doesn't support SSO.\n");
+
                     glDeleteProgram(prog);
                     free(text);
                 }
             } else if (type == TYPE_CORE || type == TYPE_COMPAT || type == TYPE_ES) {
                 GLuint prog = glCreateProgram();
+                GLint param;
 
                 for (unsigned i = 0; i < num_shaders; i++) {
                     GLuint s = glCreateShader(shader[i].type);
                     glShaderSource(s, 1, &shader[i].text, &shader[i].length);
                     glCompileShader(s);
 
-                    GLint param;
                     glGetShaderiv(s, GL_COMPILE_STATUS, &param);
                     if (unlikely(!param)) {
                         GLchar log[4096];
@@ -850,6 +860,70 @@ main(int argc, char **argv)
                 }
 
                 glLinkProgram(prog);
+
+                glGetProgramiv(prog, GL_LINK_STATUS, &param);
+                if (unlikely(!param)) {
+                    GLchar log[4096];
+                    GLsizei length;
+                    glGetProgramInfoLog(prog, sizeof(log), &length, log);
+
+                    fprintf(stderr, "ERROR: failed to link progam:\n%s\n",
+                           log);
+                } else if (generate_prog_bin) {
+                    /* generating shader program binary */
+                    char *prog_buf;
+                    GLenum format;
+                    GLsizei length = 0;
+                    FILE *fp;
+
+                    glGetProgramiv(prog, GL_PROGRAM_BINARY_LENGTH, &length);
+
+                    if (glGetError() != GL_NO_ERROR) {
+                        fprintf(stderr,
+                                "ERROR: failed to generate a program binary "
+                                "(invalid program size).\n");
+                        continue;
+                    }
+
+                    prog_buf = (char *)malloc(length);
+
+                    if (!prog_buf) {
+                        fprintf(stderr,
+                                "ERROR: failed to generate a program binary "
+                                "(malloc failed)\n");
+                        continue;
+                    }
+
+                    glGetProgramBinary(prog, length, &length, &format, prog_buf);
+                    if (glGetError() != GL_NO_ERROR) {
+                        fprintf(stderr,
+                                "ERROR: failed to generate a program binary "
+                                "(GetProgramBinary failed)\n");
+                        free(prog_buf);
+                        continue;
+                    }
+
+                    char *out_filename = malloc(strlen(current_shader_name) + 5);
+
+                    strncpy(out_filename, current_shader_name,
+                            strlen(current_shader_name) + 1);
+                    out_filename = strcat(out_filename, ".bin");
+
+                    fp = fopen(out_filename, "wb");
+                    fprintf(stdout,
+                            "\nBinary program has been successfully generated for %s.\n"
+                            "\nWriting it to the file.....\n"
+                            "===============================================\n"
+                            "File Name : %s\nFormat : %d\nSize : %d Byte\n"
+                            "===============================================\n\n",
+                            current_shader_name, out_filename, format, length);
+
+                    fwrite(prog_buf, sizeof(char), length, fp);
+                    fclose(fp);
+                    free(out_filename);
+                    free(prog_buf);
+                }
+
                 glDeleteProgram(prog);
             } else {
                 for (unsigned i = 0; i < num_shaders; i++) {
