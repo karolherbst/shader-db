@@ -71,6 +71,12 @@ struct shader {
     int type;
 };
 
+struct binding_list {
+    char *name;
+    GLint index;
+    struct binding_list *prev;
+};
+
 static bool
 extension_in_string(const char *haystack, const char *needle)
 {
@@ -100,13 +106,15 @@ extension_in_string(const char *haystack, const char *needle)
     return false;
 }
 
+#define SKIP_SPACES(str) while (*(str) == ' ') str++
+
 static struct shader *
 get_shaders(const struct context_info *core, const struct context_info *compat,
             const struct context_info *es,
             const char *text, size_t text_size,
             enum shader_type *type, unsigned *num_shaders,
             bool *use_separate_shader_objects,
-            const char *shader_name)
+            const char *shader_name, struct binding_list *binding)
 {
     static const char *req = "[require]";
     static const char *gl_req = "\nGL >= ";
@@ -115,6 +123,7 @@ get_shaders(const struct context_info *core, const struct context_info *compat,
     static const char *fp_req = "\nGL_ARB_fragment_program";
     static const char *vp_req = "\nGL_ARB_vertex_program";
     static const char *sso_req = "\nSSO ENABLED";
+    static const char *binding_req = "\nBindAttribLoc";
     static const char *gs = "geometry shader]\n";
     static const char *fs = "fragment ";
     static const char *vs = "vertex ";
@@ -181,11 +190,13 @@ get_shaders(const struct context_info *core, const struct context_info *compat,
     const struct context_info *info = *type == TYPE_CORE ? core : compat;
 
     const char *extension_text = text;
+
     while ((extension_text = memmem(extension_text, end_text - extension_text,
                                     "\nGL_", strlen("\nGL_"))) != NULL) {
         extension_text += 1;
         const char *newline = memchr(extension_text, '\n',
                                      end_text - extension_text);
+
         if (memmem(info->extension_string, info->extension_string_len,
                    extension_text, newline - extension_text) == NULL) {
             fprintf(stderr, "SKIP: %s requires unavailable extension %.*s\n",
@@ -195,6 +206,62 @@ get_shaders(const struct context_info *core, const struct context_info *compat,
         if (memcmp(extension_text, sso_req, strlen(sso_req)) == 0) {
             *use_separate_shader_objects = true;
         }
+    }
+
+    /* process binding */
+    struct binding_list *binding_prev = binding = NULL;
+    const char *pre_binding_text = text;
+
+    /* binding = NULL if there's no binding required */
+    binding = NULL;
+    while ((pre_binding_text = memmem(pre_binding_text, end_text - pre_binding_text,
+                                      binding_req, strlen(binding_req))) != NULL) {
+        pre_binding_text += strlen(binding_req);
+
+        const char *newline = memchr(pre_binding_text, '\n', end_text - pre_binding_text);
+
+        SKIP_SPACES(pre_binding_text);
+
+        char *endword = memchr(pre_binding_text, ' ', newline - pre_binding_text);
+
+        /* if there's no more space in the same line */
+        if (!endword) {
+            fprintf(stderr, "SKIP: can't find attr index for this binding\n");
+            continue;
+        }
+
+        char *binding_name = calloc(1, endword - pre_binding_text + 1);
+
+        strncpy(binding_name, pre_binding_text, endword - pre_binding_text);
+
+        pre_binding_text = endword;
+
+        SKIP_SPACES(pre_binding_text);
+        if (*pre_binding_text == '\n') {
+            fprintf(stderr, "SKIP: can't find attr variable name for this binding\n");
+            continue;
+        }
+
+        endword = memchr(pre_binding_text, ' ', newline - pre_binding_text);
+
+        if (!endword)
+            endword = (char *)newline;
+
+        char *index_string = calloc(1, endword - pre_binding_text + 1);
+        strncpy(index_string, pre_binding_text, endword - pre_binding_text);
+
+        struct binding_list *binding_new = malloc(sizeof(struct binding_list));
+
+        binding_new->index = strtol(index_string, NULL, 10);
+        binding_new->name = binding_name;
+        binding_new->prev = binding_prev;
+        binding = binding_prev = binding_new;
+
+        free(index_string);
+
+        fprintf(stdout,
+                "LOG: glBindAttribLocation(prog, %d, \"%s\") will be executed before linking\n",
+                binding_new->index, binding_new->name);
     }
 
     /* Find the shaders. */
@@ -770,11 +837,12 @@ main(int argc, char **argv)
             enum shader_type type;
             unsigned num_shaders;
             bool use_separate_shader_objects;
+            struct binding_list *binding;
             struct shader *shader = get_shaders(&core, &compat, &es,
                                                 text, shader_test[i].filesize,
                                                 &type, &num_shaders,
                                                 &use_separate_shader_objects,
-                                                current_shader_name);
+                                                current_shader_name, binding);
             if (unlikely(shader == NULL)) {
                 continue;
             }
@@ -857,6 +925,15 @@ main(int argc, char **argv)
                     }
                     glAttachShader(prog, s);
                     glDeleteShader(s);
+                }
+
+                /* takes care of pre-bindings */
+                while (binding != NULL) {
+                    struct binding_list *prev = binding->prev;
+                    glBindAttribLocation(prog, binding->index, binding->name);
+                    free(binding->name);
+                    free(binding);
+                    binding = prev;
                 }
 
                 glLinkProgram(prog);
