@@ -40,10 +40,13 @@
 static void *(*libc_mmap)(void *addr, size_t len, int prot, int flags,
                           int fildes, off_t off);
 static int (*libc_open)(const char *pathname, int flags, mode_t mode);
+static int (*libc_open64)(const char *pathname, int flags, mode_t mode);
 static int (*libc_close)(int fd);
 static int (*libc_ioctl)(int fd, unsigned long request, void *argp);
 static int (*libc_fstat)(int fd, struct stat *buf);
+static int (*libc_fstat64)(int fd, struct stat64 *buf);
 static int (*libc__fxstat)(int ver, int fd, struct stat *buf);
+static int (*libc__fxstat64)(int ver, int fd, struct stat64 *buf);
 static int (*libc_fcntl)(int fd, int cmd, int param);
 static ssize_t (*libc_readlink)(const char *pathname, char *buf, size_t bufsiz);
 
@@ -95,6 +98,22 @@ open(const char *path, int flags, ...)
 }
 
 __attribute__ ((visibility ("default"))) int
+open64(const char *path, int flags, ...)
+{
+       va_list args;
+       mode_t mode;
+
+       if (strcmp(path, "/dev/dri/renderD128") == 0)
+	       return drm_fd;
+
+       va_start(args, flags);
+       mode = va_arg(args, int);
+       va_end(args);
+
+       return libc_open64(path, flags, mode);
+}
+
+__attribute__ ((visibility ("default"))) int
 close(int fd)
 {
 	if (fd == drm_fd)
@@ -118,6 +137,20 @@ fstat(int fd, struct stat *buf)
 }
 
 __attribute__ ((visibility ("default"))) int
+fstat64(int fd, struct stat64 *buf)
+{
+	if (fd == drm_fd) {
+		buf->st_mode = S_IFCHR |
+			(S_IRWXG | S_IRGRP |  S_IRWXU | S_IRUSR);
+		buf->st_uid = 0;
+		buf->st_gid = getgid();
+		return 0;
+	}
+
+	return libc_fstat64(fd, buf);
+}
+
+__attribute__ ((visibility ("default"))) int
 __fxstat(int ver, int fd, struct stat *buf)
 {
 	if (fd == drm_fd) {
@@ -130,6 +163,21 @@ __fxstat(int ver, int fd, struct stat *buf)
 	}
 
 	return libc__fxstat(ver, fd, buf);
+}
+
+__attribute__ ((visibility ("default"))) int
+__fxstat64(int ver, int fd, struct stat64 *buf)
+{
+	if (fd == drm_fd) {
+		buf->st_mode = S_IFCHR |
+			(S_IRWXG | S_IRGRP |  S_IRWXU | S_IRUSR);
+		buf->st_rdev = makedev(DRM_MAJOR, 0);
+		buf->st_uid = 0;
+		buf->st_gid = getgid();
+		return 0;
+	}
+
+	return libc__fxstat64(ver, fd, buf);
 }
 
 __attribute__ ((visibility ("default"))) int
@@ -248,10 +296,13 @@ static void __attribute__ ((constructor))
 init(void)
 {
 	libc_open = dlsym(RTLD_NEXT, "open");
+	libc_open64 = dlsym(RTLD_NEXT, "open64");
 	libc_close = dlsym(RTLD_NEXT, "close");
 	libc_fcntl = dlsym(RTLD_NEXT, "fcntl");
 	libc_fstat = dlsym(RTLD_NEXT, "fstat");
+	libc_fstat64 = dlsym(RTLD_NEXT, "fstat64");
 	libc__fxstat = dlsym(RTLD_NEXT, "__fxstat");
+	libc__fxstat64 = dlsym(RTLD_NEXT, "__fxstat64");
 	libc_ioctl = dlsym(RTLD_NEXT, "ioctl");
 	libc_mmap = dlsym(RTLD_NEXT, "mmap");
 	libc_readlink = dlsym(RTLD_NEXT, "readlink");
