@@ -482,39 +482,53 @@ class grouped_stats:
     def print_vgpr_spilling_app(self, name):
         if (self.after.spilled_vgprs > 0 or
             self.after.privmem_vgprs > 0):
-            print " {:22}{:6}{:10}{:10}{:10}".format(
-                name,
+            print " {:6}{:6}     {:6}   {:6}   {:22}".format(
                 self.num_shaders,
                 self.after.spilled_vgprs,
                 self.after.privmem_vgprs,
-                self.after.scratch_size)
+                self.after.scratch_size,
+                name)
 
     def print_one_shader_vgpr_spill(self, name):
         if (self.after.spilled_vgprs > 0 or
             self.after.privmem_vgprs > 0):
-            print " {:65}{:10}{:10}{:10}{:10}".format(
-                name,
+            print " {:6}{:6}{:6}   {:6}    {:22}".format(
                 self.after.vgprs,
                 self.after.spilled_vgprs,
                 self.after.privmem_vgprs,
-                self.after.scratch_size)
+                self.after.scratch_size,
+                name)
 
     def print_sgpr_spilling_app(self, name):
         if self.after.spilled_sgprs > 0:
-            print " {:22}{:6}{:10}{:>9.1f}".format(
-                name,
+            print " {:6} {:6}     {:>5.1f}      {:22}".format(
                 self.num_shaders,
                 self.after.spilled_sgprs,
-                float(self.after.spilled_sgprs) / float(self.num_shaders))
+                float(self.after.spilled_sgprs) / float(self.num_shaders),
+                name)
 
     def print_one_shader_sgpr_spill(self, name):
         if self.after.spilled_sgprs > 0:
-            print " {:65}{:10}{:10}".format(
-                name,
+            print " {:6}{:6}   {:90}".format(
                 self.after.sgprs,
-                self.after.spilled_sgprs)
+                self.after.spilled_sgprs,
+                name)
 
     def print_percentages(self, name):
+        print " {:6}{:6}{}{}{}{}{}{}{}{}{}".format(
+            name,
+            self.num_shaders,
+            format_percent_change(self.before.sgprs, self.after.sgprs),
+            format_percent_change(self.before.vgprs, self.after.vgprs),
+            format_percent_change(self.before.spilled_sgprs, self.after.spilled_sgprs),
+            format_percent_change(self.before.spilled_vgprs, self.after.spilled_vgprs),
+            format_percent_change(self.before.privmem_vgprs, self.after.privmem_vgprs),
+            format_percent_change(self.before.scratch_size, self.after.scratch_size),
+            format_percent_change(self.before.code_size, self.after.code_size),
+            format_percent_change(self.before.maxwaves, self.after.maxwaves, more_is_better = True),
+            format_percent_change(self.before.waitstates, self.after.waitstates))
+
+    def print_percentages_end(self, name):
         print " {:22}{:6}{}{}{}{}{}{}{}{}{}".format(
             name,
             self.num_shaders,
@@ -530,14 +544,14 @@ class grouped_stats:
 
     def print_regression(self, name, field):
         more_is_better = field == "maxwaves"
-        print " {:65}{:10}{:10}{}{}".format(
-            name,
+        print " {:6}{:6}{}{}   {:90}".format(
             self.before.__dict__[field],
             self.after.__dict__[field],
             format_table_cell(self.after.__dict__[field] - self.before.__dict__[field],
                               more_is_better = more_is_better),
             format_percent_change(self.before.__dict__[field], self.after.__dict__[field],
-                                  more_is_better = more_is_better))
+                                  more_is_better = more_is_better),
+            name)
 
 """
 Return "filename [index]", because files can contain multiple shaders.
@@ -608,8 +622,8 @@ def print_tables(before_all_results, after_all_results):
     sort_key = lambda v: -v[1].after.scratch_size
     for name, stats in sorted(shaders.items(), key = sort_key):
         if num == 0:
-            print_yellow(" WORST VGPR SPILLS (not deltas)" + (" " * 40) +
-                         "VGPRs SpillVGPR  PrivVGPR ScratchSize")
+            print_yellow("WORST VGPR SPILLS (not deltas)" + (" " * 64))
+            print_yellow("  VGPRs Spills Private Scratch")
         stats.print_one_shader_vgpr_spill(name)
         num += 1
         if num == num_listed:
@@ -618,7 +632,7 @@ def print_tables(before_all_results, after_all_results):
         print
 
     # VGPR spilling apps
-    print_yellow(" VGPR SPILLING APPS   Shaders SpillVGPR  PrivVGPR ScratchSize")
+    print_yellow("VGPR SPILLING APPS\nShaders SpillVGPR  PrivVGPR ScratchSize")
     for name, stats in sorted(apps.items()):
         stats.print_vgpr_spilling_app(name)
     print
@@ -628,8 +642,8 @@ def print_tables(before_all_results, after_all_results):
     sort_key = lambda v: -v[1].after.spilled_sgprs
     for name, stats in sorted(shaders.items(), key = sort_key):
         if num == 0:
-            print_yellow(" WORST SGPR SPILLS (not deltas)" + (" " * 40) +
-                         "SGPRs SpillSGPR")
+            print_yellow("WORST SGPR SPILLS (not deltas)" + (" " * 64))
+            print_yellow("  SGPRs Spills")
         stats.print_one_shader_sgpr_spill(name)
         num += 1
         if num == num_listed:
@@ -638,7 +652,7 @@ def print_tables(before_all_results, after_all_results):
         print
 
     # SGPR spilling apps
-    print_yellow(" SGPR SPILLING APPS   Shaders SpillSGPR AvgPerSh")
+    print_yellow(" SGPR SPILLING APPS\nShaders SpillSGPR AvgPerSh")
     for name, stats in sorted(apps.items()):
         stats.print_sgpr_spilling_app(name)
     print
@@ -664,8 +678,14 @@ def print_tables(before_all_results, after_all_results):
                     continue
 
             if num == 0:
-                print_yellow(" WORST REGRESSIONS - {:49}".format(metrics[i][1]) +
-                             "Before     After     Delta Percentage")
+                print_yellow(" WORST REGRESSIONS - {:64}".format(metrics[i][1]))
+                print_yellow(" Before After     Delta Percentage")
+            stats.print_regression(name, field)
+            num += 1
+            if num == num_listed:
+                break
+        if num > 0:
+            print
             stats.print_regression(name, field)
             num += 1
             if num == num_listed:
@@ -677,11 +697,11 @@ def print_tables(before_all_results, after_all_results):
     legend = "Shaders     SGPRs     VGPRs SpillSGPR SpillVGPR  PrivVGPR   Scratch  CodeSize  MaxWaves     Waits"
     print_yellow(" PERCENTAGE DELTAS    " + legend)
     for name, stats in sorted(apps.items()):
-        stats.print_percentages(name)
+        stats.print_percentages_end(name)
     print " " + ("-" * (21 + len(legend)))
-    total_affected.print_percentages("All affected")
+    total_affected.print_percentages_end("All affected")
     print " " + ("-" * (21 + len(legend)))
-    total.print_percentages("Total")
+    total.print_percentages_end("Total")
     print
 
 def main():
