@@ -686,6 +686,30 @@ def print_tables(before_all_results, after_all_results):
                 break
         if num > 0:
             print
+
+    # biggest improvements
+    metrics = si_stats().metrics
+    for i in range(len(metrics)):
+        field = metrics[i][0]
+        num = 0
+        more_is_better = metrics[i][0] == 'maxwaves'
+
+        if more_is_better:
+            sort_key = lambda v: -v[1].diff.__dict__[field]
+        else:
+            sort_key = lambda v: v[1].diff.__dict__[field]
+
+        for name, stats in sorted(shaders.items(), key = sort_key):
+            if more_is_better:
+                if stats.diff.__dict__[field] <= 0:
+                    continue
+            else:
+                if stats.diff.__dict__[field] >= 0:
+                    continue
+
+            if num == 0:
+                print_yellow(" BIGGEST IMPROVEMENTS - {:64}".format(metrics[i][1]))
+                print_yellow(" Before After     Delta Percentage")
             stats.print_regression(name, field)
             num += 1
             if num == num_listed:
