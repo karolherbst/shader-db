@@ -39,6 +39,8 @@
 
 static void *(*libc_mmap)(void *addr, size_t len, int prot, int flags,
                           int fildes, off_t off);
+static void *(*libc_mmap64)(void *addr, size_t len, int prot, int flags,
+                            int fildes, off_t off);
 static int (*libc_open)(const char *pathname, int flags, mode_t mode);
 static int (*libc_open64)(const char *pathname, int flags, mode_t mode);
 static int (*libc_close)(int fd);
@@ -208,6 +210,19 @@ mmap(void *addr, size_t len, int prot, int flags,
         }
 }
 
+__attribute__ ((visibility ("default"))) void *
+mmap64(void *addr, size_t len, int prot, int flags,
+       int fildes, off_t off)
+{
+        if (fildes == drm_fd) {
+                return libc_mmap64(NULL, len, prot, flags | MAP_ANONYMOUS,
+                                   -1, 0);
+        } else {
+                return libc_mmap64(addr, len, prot, flags, fildes, off);
+        }
+}
+
+
 __attribute__ ((visibility ("default"))) ssize_t
 readlink(const char *pathname, char *buf, size_t bufsiz)
 {
@@ -305,5 +320,6 @@ init(void)
 	libc__fxstat64 = dlsym(RTLD_NEXT, "__fxstat64");
 	libc_ioctl = dlsym(RTLD_NEXT, "ioctl");
 	libc_mmap = dlsym(RTLD_NEXT, "mmap");
+	libc_mmap64 = dlsym(RTLD_NEXT, "mmap64");
 	libc_readlink = dlsym(RTLD_NEXT, "readlink");
 }
