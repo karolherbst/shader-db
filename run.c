@@ -881,33 +881,12 @@ main(int argc, char **argv)
             if (num_shaders == 1 && type != TYPE_VP && type != TYPE_FP)
                 use_separate_shader_objects = true;
 
-            if (use_separate_shader_objects) {
-                for (unsigned i = 0; i < num_shaders; i++) {
-                    const char *const_text;
-                    unsigned size = shader[i].length + 1;
-                    /* Using alloca crashes in the GLSL compiler.  */
-                    char *text = malloc(size);
-                    memset(text, 0, size);
-
-                    /* Make it zero-terminated. */
-                    memcpy(text, shader[i].text, shader[i].length);
-                    text[shader[i].length] = 0;
-
-                    const_text = text;
-                    GLuint prog = glCreateShaderProgramv(shader[i].type, 1,
-                                                         &const_text);
-
-                    if (generate_prog_bin)
-                        fprintf(stderr,
-                                "Currently, program binary generation "
-                                "doesn't support SSO.\n");
-
-                    glDeleteProgram(prog);
-                    free(text);
-                }
-            } else if (type == TYPE_CORE || type == TYPE_COMPAT || type == TYPE_ES) {
+            if (type == TYPE_CORE || type == TYPE_COMPAT || type == TYPE_ES) {
                 GLuint prog = glCreateProgram();
                 GLint param;
+
+                if (use_separate_shader_objects)
+                   glProgramParameteri(prog, GL_PROGRAM_SEPARABLE, GL_TRUE);
 
                 for (unsigned i = 0; i < num_shaders; i++) {
                     GLuint s = glCreateShader(shader[i].type);
