@@ -959,11 +959,8 @@ main(int argc, char **argv)
                         continue;
                     }
 
-                    char *out_filename = malloc(strlen(current_shader_name) + 5);
-
-                    strncpy(out_filename, current_shader_name,
-                            strlen(current_shader_name) + 1);
-                    out_filename = strcat(out_filename, ".bin");
+                    char *out_filename = NULL;
+                    asprintf(&out_filename, "%s.bin", current_shader_name);
 
                     fp = fopen(out_filename, "wb");
                     fprintf(stdout,
