@@ -418,6 +418,7 @@ const struct platform platforms[] = {
     "byt",  "0x0F33",
     "bdw",  "0x162E",
     "skl",  "0x191D",
+    "icl",  "0x8A50",
 };
 
 void print_usage(const char *prog_name)
