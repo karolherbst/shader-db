@@ -125,7 +125,6 @@ def mean_confidence_interval(data, confidence=0.95):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--measurements", "-m", type=split_list,
-                        default=["instructions", "cycles", "loops", "spills", "fills"],
                         help="comma-separated list of measurements to report")
     parser.add_argument("--summary-only", "-s", action="store_true", default=False,
                         help="do not show the per-shader helped / hurt data")
@@ -151,6 +150,17 @@ def main():
     helped_statistics = {}
     hurt_statistics = {}
     confidence_interval = {}
+
+    # If no set of measurements is specified, pick an arbitrary shader and use
+    # the ones it has.  The assumption is that all shaders will have had the
+    # same set of measurements printed
+    if not args.measurements:
+        args.measurements = []
+
+        for p in args.before:
+            for m in args.before[p]:
+                args.measurements.append(m)
+            break
 
     for m in args.measurements:
         total_before[m] = 0
