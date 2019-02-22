@@ -13,27 +13,40 @@ def get_results(filename):
 
     results = {}
 
-    re_match = re.compile(r"(\S+) - (\S+ \S+) shader: (\S*) inst, (\S*) loops, (\S*) cycles, (\S*):(\S*) spills:fills")
+    re_match = re.compile(r"(\S+) - (.*) shader: (.*)")
     for line in lines:
         match = re.search(re_match, line)
         if match is None:
             continue
 
         groups = match.groups()
-        inst_count = int(groups[2])
-        loop_count = int(groups[3])
-        cycle_count = int(groups[4])
-        spill_count = int(groups[5])
-        fill_count = int(groups[6])
-        if inst_count != 0:
-            results[(groups[0], groups[1])] = {
-                "instructions": inst_count,
-                "spills": spill_count,
-                "fills": fill_count,
-                "cycles": cycle_count,
-                "loops": loop_count
-            }
 
+        app = groups[0]
+        stage = groups[1]
+        stats = groups[2]
+
+        result_group = {}
+        for stat in stats.split(', '):
+            stat_split_spaces = stat.split(' ')
+            name = stat_split_spaces[1]
+            val = stat_split_spaces[0]
+            # Skipping "Promoted 0 constants" and "compacted..." on i965.
+            # We should probably change "compacted" to just a shader size
+            # in bytes.
+            if len(stat_split_spaces) != 2 :
+                continue
+
+            if name == "inst":
+                name = "instructions"
+
+            if name == "spills:fills":
+                (spills, fills) = val.split(':')
+                result_group['spills'] = int(spills)
+                result_group['fills'] = int(fills)
+            elif val.isnumeric():
+                result_group[name] = int(val)
+
+        results[(app, stage)] = result_group
     return results
 
 
