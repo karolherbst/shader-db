@@ -159,7 +159,9 @@ def main():
                 affected_before[m] += before_count
                 affected_after[m] += after_count
 
-                if after_count > before_count:
+                higher_is_better = m == "threads"
+
+                if (after_count > before_count) ^ higher_is_better:
                     hurt.append(p)
                 else:
                     helped.append(p)
