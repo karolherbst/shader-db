@@ -575,6 +575,7 @@ main(int argc, char **argv)
     }
 
     setenv("allow_glsl_extension_directive_midshader", "true", 1);
+    setenv("allow_glsl_builtin_variable_redeclaration", "true", 1);
     setenv("shader_precompile", "true", 1);
     setenv("MESA_GLSL_CACHE_DISABLE", "true", 1);
     setenv("GALLIUM_THREAD", "0", 1);
