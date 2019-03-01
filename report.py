@@ -100,8 +100,7 @@ def split_list(string):
 def gather_statistics(changes, before, after, m):
     stats = (0.0, 0, 0.0, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
-    num = len(changes)
-    if num > 0:
+    if changes:
         absolute = [abs(before[p][m] - after[p][m]) for p in changes]
         relative = [0 if before[p][m] == 0 else abs(before[p][m] - after[p][m]) / before[p][m] for p in changes]
 
