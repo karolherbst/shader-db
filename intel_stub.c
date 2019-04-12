@@ -299,6 +299,18 @@ ioctl(int fd, unsigned long request, ...)
                         return 0;
 		}
 
+                case DRM_IOCTL_I915_GEM_CONTEXT_GETPARAM: {
+                        struct drm_i915_gem_context_param *getparam = argp;
+
+                        switch (getparam->param) {
+                        case I915_CONTEXT_PARAM_GTT_SIZE:
+                                getparam->value = (1ull << 47);
+                                return 0;
+                        }
+                        return -EINVAL;
+                }
+
+
                 case DRM_IOCTL_I915_GEM_GET_APERTURE: {
                         struct drm_i915_gem_get_aperture *aperture = argp;
                         aperture->aper_available_size = 128 * 1024 * 1024;
