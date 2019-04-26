@@ -840,7 +840,7 @@ main(int argc, char **argv)
             enum shader_type type;
             unsigned num_shaders;
             bool use_separate_shader_objects;
-            struct binding_list *binding;
+            struct binding_list *binding = NULL;
             struct shader *shader = get_shaders(&core, &compat, &es,
                                                 text, shader_test[i].filesize,
                                                 &type, &num_shaders,
