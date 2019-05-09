@@ -117,9 +117,12 @@ def main():
                         help="do not show the per-shader helped / hurt data")
     parser.add_argument("--changes-only", "-c", action="store_true", default=False,
                         help="only show measurements that have changes")
-    parser.add_argument("before", type=get_results, help="the output of the original code")
-    parser.add_argument("after", type=get_results, help="the output of the new code")
+    parser.add_argument("before", help="the output of the original code")
+    parser.add_argument("after", help="the output of the new code")
     args = parser.parse_args()
+
+    before = get_results(args.before);
+    after = get_results(args.after);
 
     total_before = {}
     total_after = {}
@@ -139,18 +142,18 @@ def main():
 
         helped = []
         hurt = []
-        for p in args.before:
-            before_count = args.before[p][m]
+        for p in before:
+            before_count = before[p][m]
 
-            if args.after.get(p) is None:
+            if after.get(p) is None:
                 continue
 
             # If the number of loops changed, then we may have unrolled some
             # loops, in which case other measurements will be misleading.
-            if m != "loops" and args.before[p]["loops"] != args.after[p]["loops"]:
+            if m != "loops" and before[p]["loops"] != after[p]["loops"]:
                 continue
 
-            after_count = args.after[p][m]
+            after_count = after[p][m]
 
             total_before[m] += before_count
             total_after[m] += after_count
@@ -168,25 +171,25 @@ def main():
 
         if not args.summary_only:
             helped.sort(
-                key=lambda k: args.after[k][m] if args.before[k][m] == 0 else float(args.before[k][m] - args.after[k][m]) / args.before[k][m])
+                key=lambda k: after[k][m] if before[k][m] == 0 else float(before[k][m] - after[k][m]) / before[k][m])
             for p in helped:
                 namestr = p[0] + " " + p[1]
                 print(m + " helped:   " + get_result_string(
-                    namestr, args.before[p][m], args.after[p][m]))
+                    namestr, before[p][m], after[p][m]))
             if helped:
                 print("")
 
             hurt.sort(
-                key=lambda k: args.after[k][m] if args.before[k][m] == 0 else float(args.after[k][m] - args.before[k][m]) / args.before[k][m])
+                key=lambda k: after[k][m] if before[k][m] == 0 else float(after[k][m] - before[k][m]) / before[k][m])
             for p in hurt:
                 namestr = p[0] + " " + p[1]
                 print(m + " HURT:   " + get_result_string(
-                    namestr, args.before[p][m], args.after[p][m]))
+                    namestr, before[p][m], after[p][m]))
             if hurt:
                 print("")
 
-        helped_statistics[m] = gather_statistics(helped, args.before, args.after, m)
-        hurt_statistics[m] = gather_statistics(hurt, args.before, args.after, m)
+        helped_statistics[m] = gather_statistics(helped, before, after, m)
+        hurt_statistics[m] = gather_statistics(hurt, before, after, m)
 
         num_helped[m] = len(helped)
         num_hurt[m] = len(hurt)
@@ -196,20 +199,20 @@ def main():
             continue
 
         if num_hurt[m] + num_helped[m] > 3:
-            A = [args.after[p][m] - args.before[p][m] for p in helped + hurt]
-            B = [0 if args.before[p][m] == 0 else (args.after[p][m] - args.before[p][m]) / args.before[p][m] for p in helped + hurt]
+            A = [after[p][m] - before[p][m] for p in helped + hurt]
+            B = [0 if before[p][m] == 0 else (after[p][m] - before[p][m]) / before[p][m] for p in helped + hurt]
 
             confidence_interval[m] = (mean_confidence_interval(A), mean_confidence_interval(B))
 
     lost = []
     gained = []
 
-    for p in args.before:
-        if args.after.get(p) is None:
+    for p in before:
+        if after.get(p) is None:
             lost.append(p[0] + " " + p[1])
 
-    for p in args.after:
-        if args.before.get(p) is None:
+    for p in after:
+        if before.get(p) is None:
             gained.append(p[0] + " " + p[1])
 
     if not args.summary_only:
