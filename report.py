@@ -2,6 +2,7 @@
 
 import re
 import argparse
+import math
 import statistics
 from scipy import stats
 import numpy as np
@@ -12,9 +13,16 @@ def get_results(filename):
     lines = file.read().split('\n')
 
     results = {}
+    results["time"] = 0
 
+    time_match = re.compile(r"Thread \S+ took (\S+) seconds")
     re_match = re.compile(r"(\S+) - (.*) shader: (.*)")
     for line in lines:
+        match = re.search(time_match, line)
+        if match is not None:
+            results["time"] = results["time"] + float(match.group(1))
+            continue
+
         match = re.search(re_match, line)
         if match is None:
             continue
@@ -57,6 +65,12 @@ def format_percent(frac):
     else:
         return "{:.2f}%".format(frac * 100)
 
+def format_num(n):
+    assert n >= 0
+    if n - math.floor(n) < 0.01:
+        return str(math.floor(n))
+    else:
+        return "{:.2f}".format(n)
 
 def get_delta(b, a):
     if b != 0 and a != 0:
@@ -67,7 +81,7 @@ def get_delta(b, a):
 
 
 def change(b, a):
-    return str(b) + " -> " + str(a) + get_delta(b, a)
+    return format_num(b) + " -> " + format_num(a) + get_delta(b, a)
 
 
 def get_result_string(p, b, a):
@@ -123,6 +137,10 @@ def main():
 
     before = get_results(args.before);
     after = get_results(args.after);
+
+    # Grab these and remove them from the dictionary
+    time_before = before.pop("time")
+    time_after = after.pop("time")
 
     total_before = {}
     total_after = {}
@@ -303,6 +321,9 @@ def main():
     else:
         if not any_helped_or_hurt:
             print("No changes.")
+
+    print("")
+    print("Total CPU time (seconds): " + change(time_before, time_after))
 
 if __name__ == "__main__":
     main()
