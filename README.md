@@ -67,20 +67,17 @@ Note that a debug mesa build required (ie. `--enable-debug`)
 ./si-report.py old-run new-run
 
 
-## freedreno Usage
+## freedreno, v3d Usage
 
 ### Running shaders
 
-    $ ./run -1 shaders 2> new-run
+    $ ./run shaders > new-run
 
 Note that a debug mesa build required (ie. `--enable-debug`)
 
-`-1` option for disabling multi-threading is required to avoid garbled shader dumps.
-
-
 ### Analysis
 
-./fd-report.py old-run new-run
+./report.py old-run new-run
 
 
 ## Dependencies
