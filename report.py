@@ -163,6 +163,10 @@ def main():
             break
 
     for m in args.measurements:
+
+        if m == "inst":
+            m = "instructions"
+
         total_before[m] = 0
         total_after[m] = 0
         affected_before[m] = 0
@@ -258,6 +262,10 @@ def main():
 
     any_helped_or_hurt = False
     for m in args.measurements:
+
+        if m == "inst":
+            m = "instructions"
+
         if num_helped[m] > 0 or num_hurt[m] > 0:
             any_helped_or_hurt = True
 
