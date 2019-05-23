@@ -157,8 +157,8 @@ def main():
     if not args.measurements:
         args.measurements = []
 
-        for p in args.before:
-            for m in args.before[p]:
+        for p in before:
+            for m in before[p]:
                 args.measurements.append(m)
             break
 
