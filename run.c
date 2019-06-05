@@ -557,6 +557,7 @@ main(int argc, char **argv)
         }
         case 'j':
             max_threads = atoi(optarg);
+            omp_set_num_threads(max_threads);
             break;
         case 'b':
             generate_prog_bin = 1;
