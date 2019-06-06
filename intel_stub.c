@@ -50,6 +50,7 @@ static int (*libc_fstat64)(int fd, struct stat64 *buf);
 static int (*libc__fxstat)(int ver, int fd, struct stat *buf);
 static int (*libc__fxstat64)(int ver, int fd, struct stat64 *buf);
 static int (*libc_fcntl)(int fd, int cmd, int param);
+static int (*libc_fcntl64)(int fd, int cmd, int param);
 static ssize_t (*libc_readlink)(const char *pathname, char *buf, size_t bufsiz);
 
 static int drm_fd = 0x0000BEEF;
@@ -198,6 +199,22 @@ fcntl(int fd, int cmd, ...)
 	return libc_fcntl(fd, cmd, param);
 }
 
+__attribute__ ((visibility ("default"))) int
+fcntl64(int fd, int cmd, ...)
+{
+	va_list args;
+	int param;
+
+	if (fd == drm_fd && cmd == F_DUPFD_CLOEXEC)
+		return drm_fd;
+
+	va_start(args, cmd);
+	param = va_arg(args, int);
+	va_end(args);
+
+	return libc_fcntl64(fd, cmd, param);
+}
+
 __attribute__ ((visibility ("default"))) void *
 mmap(void *addr, size_t len, int prot, int flags,
      int fildes, off_t off)
@@ -315,6 +332,7 @@ init(void)
 	libc_open64 = dlsym(RTLD_NEXT, "open64");
 	libc_close = dlsym(RTLD_NEXT, "close");
 	libc_fcntl = dlsym(RTLD_NEXT, "fcntl");
+	libc_fcntl64 = dlsym(RTLD_NEXT, "fcntl64");
 	libc_fstat = dlsym(RTLD_NEXT, "fstat");
 	libc_fstat64 = dlsym(RTLD_NEXT, "fstat64");
 	libc__fxstat = dlsym(RTLD_NEXT, "__fxstat");
