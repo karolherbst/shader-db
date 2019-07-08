@@ -927,8 +927,8 @@ main(int argc, char **argv)
                     GLsizei length;
                     glGetProgramInfoLog(prog, sizeof(log), &length, log);
 
-                    fprintf(stderr, "ERROR: failed to link progam:\n%s\n",
-                           log);
+                    fprintf(stderr, "ERROR: failed to link program:\n%s\n",
+                            log);
                 } else if (generate_prog_bin) {
                     /* generating shader program binary */
                     char *prog_buf;
