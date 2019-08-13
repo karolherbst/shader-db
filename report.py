@@ -134,6 +134,7 @@ def main():
     parser.add_argument("--changes-only", "-c", action="store_true", default=False,
                         help="only show measurements that have changes")
     parser.add_argument("--stage", "-S", help="limit results to specified shader stage")
+    parser.add_argument("--ignore-loops", action="store_true", help="ignore loops", default=False)
     parser.add_argument("before", help="the output of the original code")
     parser.add_argument("after", help="the output of the new code")
     args = parser.parse_args()
@@ -186,7 +187,7 @@ def main():
 
             # If the number of loops changed, then we may have unrolled some
             # loops, in which case other measurements will be misleading.
-            if m != "loops" and before[p]["loops"] != after[p]["loops"]:
+            if m != "loops" and before[p]["loops"] != after[p]["loops"] and not args.ignore_loops:
                 continue
 
             after_count = after[p][m]
