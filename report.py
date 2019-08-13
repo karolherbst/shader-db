@@ -8,7 +8,7 @@ from scipy import stats
 import numpy as np
 
 
-def get_results(filename):
+def get_results(filename, args):
     file = open(filename, "r")
     lines = file.read().split('\n')
 
@@ -32,6 +32,9 @@ def get_results(filename):
         app = groups[0]
         stage = groups[1]
         stats = groups[2]
+
+        if args.stage and args.stage != stage:
+            continue
 
         result_group = {}
         for stat in stats.split(', '):
@@ -130,12 +133,13 @@ def main():
                         help="do not show the per-shader helped / hurt data")
     parser.add_argument("--changes-only", "-c", action="store_true", default=False,
                         help="only show measurements that have changes")
+    parser.add_argument("--stage", "-S", help="limit results to specified shader stage")
     parser.add_argument("before", help="the output of the original code")
     parser.add_argument("after", help="the output of the new code")
     args = parser.parse_args()
 
-    before = get_results(args.before);
-    after = get_results(args.after);
+    before = get_results(args.before, args);
+    after = get_results(args.after, args);
 
     # Grab these and remove them from the dictionary
     time_before = before.pop("time")
