@@ -98,3 +98,25 @@ amounts of time:
 ## Deprecated
 
 `run.py` is obsolete. Use the `run` binary instead.
+
+
+# Vulkan Fossils
+
+shader-db also contains a selection of vulkan fossils. These are generated
+using the fossilize.sh script and [fossil](https://github.com/ValveSoftware/Fossilize).
+
+You will need a vulkan driver with pipeline statistics:
+
+    $ fossilize-replay --enable-pipeline-stats output.csv --num-threads 4 fossils/**/*.foz
+
+If you do not get a .csv file it likely means that a driver without
+`VK_KHR_pipeline_statistics`, such as a system installed driver.
+
+You can then compare two different csv files using the report-fossil.py script:
+
+    $ report-fossil.py baseline.csv development.csv
+
+## Capturing fossils
+
+A fossilize.sh script is provided to assist in capturing fossils, you may
+need to modify it based on where fossil lives on your system.
