@@ -294,6 +294,12 @@ ioctl(int fd, unsigned long request, ...)
                         case I915_PARAM_CMD_PARSER_VERSION:
                                 *getparam->value = 9;
                                 break;
+                        case I915_PARAM_HAS_EXEC_SOFTPIN:
+                                *getparam->value = 1;
+                                break;
+                        case I915_PARAM_HAS_ALIASING_PPGTT:
+                                *getparam->value = I915_GEM_PPGTT_FULL;
+                                break;
 			}
 
                         return 0;
