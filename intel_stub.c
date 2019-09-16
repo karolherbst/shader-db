@@ -335,7 +335,14 @@ ioctl(int fd, unsigned long request, ...)
                         struct drm_i915_gem_context_create *cc = argp;
                         cc->ctx_id = 1; /* must be non-zero */
                 }
-		default:
+
+                case DRM_IOCTL_SYNCOBJ_CREATE: {
+                        struct drm_syncobj_create *args = argp;
+                        args->handle = 1;
+                }
+
+                case DRM_IOCTL_SYNCOBJ_DESTROY:
+                default:
                         return 0;
 		}
 	} else {
