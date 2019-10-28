@@ -47,11 +47,13 @@ def calculate_percent_change(b, a):
         return 0 if a == 0 else float("inf")
     return 100 * float(a - b) / float(b)
 
-def format_table_cell(n, more_is_better = False, colored = True, is_percent = False):
-    if is_percent and abs(n) < 0.01:
-        return "     .    "
+def format_table_cell(n, more_is_better = False, colored = True, is_percent = False, min_width=10):
+    if is_percent:
+        if abs(n) < 0.01:
+            return "{:^{width}}".format(".", width=min_width)
+        min_width = min_width - 2
 
-    str =  ("{:>8.2f} %" if is_percent else "{:>10}").format(n)
+    str =  ("{:>{width}.2f} %" if is_percent else "{:>{width}}").format(n, width=min_width)
     if colored:
         if n > 0.5:
             str = (set_green if more_is_better else set_red) + str + set_normal
@@ -60,9 +62,9 @@ def format_table_cell(n, more_is_better = False, colored = True, is_percent = Fa
     return str
 
 
-def format_percent_change(b, a, more_is_better = False, colored = True):
+def format_percent_change(b, a, more_is_better = False, colored = True, min_width=8):
     percent = calculate_percent_change(b, a)
-    return format_table_cell(percent, more_is_better, colored, is_percent = True)
+    return format_table_cell(percent, more_is_better, colored, min_width=min_width, is_percent = True)
 
 def cmp_max_unit(current, comp):
     return comp[0] > current[0]
@@ -528,29 +530,32 @@ class grouped_stats:
             format_percent_change(self.before.maxwaves, self.after.maxwaves, more_is_better = True),
             format_percent_change(self.before.waitstates, self.after.waitstates))
 
-    def print_percentages_end(self, name):
-        print " {:22}{:6}{}{}{}{}{}{}{}{}{}".format(
+    def print_percentages_end(self, name, align, legend):
+        print "| {:{app_width}} |{:{shader_width}}|{}|{}|{}|{}|{}|{}|{}|{}|{}|".format(
             name,
             self.num_shaders,
-            format_percent_change(self.before.sgprs, self.after.sgprs),
-            format_percent_change(self.before.vgprs, self.after.vgprs),
-            format_percent_change(self.before.spilled_sgprs, self.after.spilled_sgprs),
-            format_percent_change(self.before.spilled_vgprs, self.after.spilled_vgprs),
-            format_percent_change(self.before.privmem_vgprs, self.after.privmem_vgprs),
-            format_percent_change(self.before.scratch_size, self.after.scratch_size),
-            format_percent_change(self.before.code_size, self.after.code_size),
-            format_percent_change(self.before.maxwaves, self.after.maxwaves, more_is_better = True),
-            format_percent_change(self.before.waitstates, self.after.waitstates))
+            format_percent_change(self.before.sgprs, self.after.sgprs, min_width=len(legend[1])),
+            format_percent_change(self.before.vgprs, self.after.vgprs, min_width=len(legend[2])),
+            format_percent_change(self.before.spilled_sgprs, self.after.spilled_sgprs, min_width=len(legend[3])),
+            format_percent_change(self.before.spilled_vgprs, self.after.spilled_vgprs, min_width=len(legend[4])),
+            format_percent_change(self.before.privmem_vgprs, self.after.privmem_vgprs, min_width=len(legend[5])),
+            format_percent_change(self.before.scratch_size, self.after.scratch_size, min_width=len(legend[6])),
+            format_percent_change(self.before.code_size, self.after.code_size, min_width=len(legend[7])),
+            format_percent_change(self.before.maxwaves, self.after.maxwaves, min_width=len(legend[8]), more_is_better = True),
+            format_percent_change(self.before.waitstates, self.after.waitstates, min_width=len(legend[9])),
+            app_width=align,
+            shader_width=len(legend[0]))
 
     def print_regression(self, name, field):
         more_is_better = field == "maxwaves"
-        print " {:6}{:6}{}{}   {:90}".format(
+        print " {:6}{:6}{} {}   {:90}".format(
             self.before.__dict__[field],
             self.after.__dict__[field],
             format_table_cell(self.after.__dict__[field] - self.before.__dict__[field],
                               more_is_better = more_is_better),
             format_percent_change(self.before.__dict__[field], self.after.__dict__[field],
-                                  more_is_better = more_is_better),
+                                  more_is_better = more_is_better,
+                                  min_width=len("Percentage")),
             name)
 
 """
@@ -577,6 +582,7 @@ def print_tables(before_all_results, after_all_results):
     shaders = defaultdict(grouped_stats)
     total = grouped_stats()
     total_affected = grouped_stats()
+    longest_app_name = -1
 
     all_files = set(itertools.chain(before_all_results.keys(),
                                     after_all_results.keys()))
@@ -593,6 +599,7 @@ def print_tables(before_all_results, after_all_results):
 
         before_test_results = before_all_results.get(file)
         after_test_results = after_all_results.get(file)
+        longest_app_name = max(longest_app_name, len(app))
 
         if before_test_results is None or after_test_results is None:
             continue
@@ -718,14 +725,18 @@ def print_tables(before_all_results, after_all_results):
             print
 
     # percentages
-    legend = "Shaders     SGPRs     VGPRs SpillSGPR SpillVGPR  PrivVGPR   Scratch  CodeSize  MaxWaves     Waits"
-    print_yellow(" PERCENTAGE DELTAS    " + legend)
+    longest_app_name = max(longest_app_name, len("PERCENTAGE DELTAS"))
+    title = "| {:^{width}} |".format("PERCENTAGE DELTAS", width=longest_app_name)
+    legend = ["{:>9} ".format(s) for s in ["Shaders", "SGPRs", "VGPRs", "SpillSGPR", "SpillVGPR", "PrivVGPR", "Scratch", "CodeSize", "MaxWaves", "Waits"]]
+    header = title + "|".join(legend) + "|"
+    print_yellow(header)
+    print("|".join(["-" * len(a) for a in (header).split("|")]))
     for name, stats in sorted(apps.items()):
-        stats.print_percentages_end(name)
-    print " " + ("-" * (21 + len(legend)))
-    total_affected.print_percentages_end("All affected")
-    print " " + ("-" * (21 + len(legend)))
-    total.print_percentages_end("Total")
+        stats.print_percentages_end(name, longest_app_name, legend)
+    print("|".join(["-" * len(a) for a in (header).split("|")]))
+    total_affected.print_percentages_end("All affected", longest_app_name, legend)
+    print("|".join(["-" * len(a) for a in (header).split("|")]))
+    total.print_percentages_end("Total", longest_app_name, legend)
     print
 
 def main():
