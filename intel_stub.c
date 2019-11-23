@@ -288,8 +288,10 @@ ioctl(int fd, unsigned long request, ...)
 
                                 if (pci_id)
                                     *getparam->value = strtod(pci_id, NULL);
-                                else
+                                else {
+                                    fprintf(stderr, "Device ID required to be set using ./run -p <platform-short-id> or INTEL_DEVID_OVERRIDE\n");
                                     return -EINVAL;
+                                }
 
                                 break;
                         case I915_PARAM_CMD_PARSER_VERSION:
