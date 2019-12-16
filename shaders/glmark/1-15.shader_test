@@ -1,0 +1,31 @@
+[require]
+GLSL ES >= 1.00
+
+[vertex shader]
+attribute vec2 position;
+attribute vec2 texcoord;
+
+varying vec2 TextureCoord;
+
+void main(void)
+{
+    gl_Position = vec4(position, 0.0, 1.0);
+
+    TextureCoord = texcoord;
+}
+
+[fragment shader]
+#ifdef GL_ES
+precision mediump float;
+#endif
+uniform sampler2D MaterialTexture0;
+
+varying vec2 TextureCoord;
+
+void main(void)
+{
+    vec4 texel = texture2D(MaterialTexture0, TextureCoord);
+    gl_FragColor = texel;
+}
+
+

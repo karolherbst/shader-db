@@ -1,0 +1,27 @@
+[require]
+GLSL ES >= 1.00
+
+[vertex shader]
+uniform mat4 projection;
+uniform mat4 modelview;
+attribute vec3 vertex;
+varying vec4 color;
+
+void main()
+{
+    vec4 curVertex = vec4(vertex.x, vertex.y, vertex.z, 1.0);
+    gl_Position = projection * modelview * curVertex;
+    color = vec4(1.0, 1.0, 1.0, 1.0);
+}
+
+[fragment shader]
+#ifdef GL_ES
+precision mediump float;
+#endif
+varying vec4 color;
+
+void main()
+{
+    gl_FragColor = color;
+}
+

@@ -1,0 +1,66 @@
+[require]
+GLSL ES >= 1.00
+
+[vertex shader]
+attribute vec3 position;
+
+uniform mat4 ModelViewProjectionMatrix;
+
+// Removing this varying causes an inexplicable performance regression
+// with r600g... Keeping it for now.
+varying vec4 dummy;
+
+void main(void)
+{
+    dummy = vec4(1.0);
+
+    float d = fract(position.x);
+
+    if (d >= 0.5)
+        d = fract(2.0 * d);
+    else
+        d = fract(3.0 * d);
+    if (d >= 0.5)
+        d = fract(2.0 * d);
+    else
+        d = fract(3.0 * d);
+    if (d >= 0.5)
+        d = fract(2.0 * d);
+    else
+        d = fract(3.0 * d);
+    if (d >= 0.5)
+        d = fract(2.0 * d);
+    else
+        d = fract(3.0 * d);
+    if (d >= 0.5)
+        d = fract(2.0 * d);
+    else
+        d = fract(3.0 * d);
+
+
+    vec4 pos = vec4(position.x,
+                    position.y + 0.1 * d * fract(position.x),
+                    position.z, 1.0);
+
+    // Transform the position to clip coordinates
+    gl_Position = ModelViewProjectionMatrix * pos;
+}
+
+
+
+[fragment shader]
+#ifdef GL_ES
+precision mediump float;
+#endif
+varying vec4 dummy;
+
+void main(void)
+{
+    float d = fract(gl_FragCoord.x * gl_FragCoord.y * 0.0001);
+
+
+
+    gl_FragColor = vec4(d, d, d, 1.0);
+}
+
+

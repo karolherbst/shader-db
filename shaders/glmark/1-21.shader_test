@@ -1,0 +1,30 @@
+[require]
+GLSL ES >= 1.00
+
+[vertex shader]
+attribute vec2 position;
+attribute vec2 uvIn;
+
+varying vec2 uv;
+
+void main()
+{
+    uv = uvIn;
+    gl_Position = vec4(position, 1.0, 1.0);
+}
+
+[fragment shader]
+#ifdef GL_ES
+precision mediump float;
+#endif
+uniform vec3 color1;
+uniform vec3 color2;
+
+varying vec2 uv;
+
+void main()
+{
+    vec3 color = mix(color1, color2, uv.x * uv.y);
+    gl_FragColor = vec4(color, 1.0);
+}
+

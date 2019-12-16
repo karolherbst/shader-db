@@ -1,0 +1,55 @@
+[require]
+GLSL ES >= 1.00
+
+[vertex shader]
+#ifdef GL_ES
+#define MEDIUMP mediump
+#else
+#define MEDIUMP
+#endif
+
+uniform vec2 uvOffset;
+uniform MEDIUMP vec2 uvScale;
+
+attribute vec3 position;
+
+varying vec2 vUv;
+
+void main()
+{
+    vUv = uvScale * (position.xy * 0.5 + 0.5) + uvOffset;
+    gl_Position = vec4( position, 1.0);
+}
+
+[fragment shader]
+#ifdef GL_ES
+precision mediump float;
+#endif
+const float TextureStepY = 0.003906;
+const float TiltShift = 0.000000;
+const float Kernel2 = 0.187627;
+const float Kernel1 = 0.206068;
+const float Kernel0 = 0.212609;
+uniform sampler2D Texture0;
+
+varying vec2 vUv;
+
+void main(void)
+{
+    vec4 result;
+    vec2 TextureCoord = vUv;
+
+    float stepY = TextureStepY * abs(TiltShift - TextureCoord.y) / abs(1.0 - TiltShift);
+result = 
+texture2D(Texture0, TextureCoord + vec2(0.0, -2.0 * stepY)) * Kernel2 +
+texture2D(Texture0, TextureCoord + vec2(0.0, -1.0 * stepY)) * Kernel1 +
+texture2D(Texture0, TextureCoord + vec2(0.0, 0.0 * stepY)) * Kernel0 +
+texture2D(Texture0, TextureCoord + vec2(0.0, 1.0 * stepY)) * Kernel1 +
+texture2D(Texture0, TextureCoord + vec2(0.0, 2.0 * stepY)) * Kernel2 +
+0.0 ;
+
+
+    gl_FragColor = vec4(result.xyz, 1.0);
+}
+
+

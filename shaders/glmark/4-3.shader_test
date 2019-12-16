@@ -1,0 +1,43 @@
+[require]
+GLSL ES >= 1.00
+
+[vertex shader]
+#ifdef GL_ES
+#define MEDIUMP mediump
+#else
+#define MEDIUMP
+#endif
+
+uniform vec2 uvOffset;
+uniform MEDIUMP vec2 uvScale;
+
+attribute vec3 position;
+
+varying vec2 vUv;
+
+void main()
+{
+    vUv = uvScale * (position.xy * 0.5 + 0.5) + uvOffset;
+    gl_Position = vec4( position, 1.0);
+}
+
+[fragment shader]
+#ifdef GL_ES
+precision mediump float;
+#endif
+uniform float height;
+uniform vec2 resolution;
+uniform sampler2D heightMap;
+
+varying vec2 vUv;
+
+void main()
+{
+    float val = texture2D( heightMap, vUv ).x;
+
+    float valU = texture2D( heightMap, vUv + vec2( 1.0 / resolution.x, 0.0 ) ).x;
+    float valV = texture2D( heightMap, vUv + vec2( 0.0, 1.0 / resolution.y ) ).x;
+
+    gl_FragColor = vec4( ( 0.5 * normalize( vec3( val - valU, val - valV, height  ) ) + 0.5 ), 1.0 );
+}
+
