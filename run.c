@@ -588,6 +588,7 @@ main(int argc, char **argv)
     addenv("FD_MESA_DEBUG", "shaderdb");
     addenv("V3D_DEBUG", "precompile");
     addenv("ETNA_MESA_DEBUG", "shaderdb");
+    addenv("PAN_MESA_DEBUG", "precompile");
 
     const char *client_extensions = eglQueryString(EGL_NO_DISPLAY,
                                                    EGL_EXTENSIONS);
