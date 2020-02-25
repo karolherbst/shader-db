@@ -93,6 +93,15 @@ def get_result_string(p, b, a):
         p = p + ' '
     return p + change(b, a)
 
+def get_spill_fill_if_change(m, b, a):
+    if m in ("spills", "fills"):
+        return ''
+
+    if b["spills"] == a["spills"] and b["fills"] == a["fills"]:
+        return ''
+
+    return " (spills: " + change(b["spills"], a["spills"]) + "; fills: " + change(b["fills"], a["fills"]) + ")"
+
 def split_list(string):
     return string.split(",")
 
@@ -210,8 +219,9 @@ def main():
                 key=lambda k: after[k][m] if before[k][m] == 0 else float(before[k][m] - after[k][m]) / before[k][m])
             for p in helped:
                 namestr = p[0] + " " + p[1]
-                print(m + " helped:   " + get_result_string(
-                    namestr, before[p][m], after[p][m]))
+                print(m + " helped:   " +
+                      get_result_string(namestr, before[p][m], after[p][m]) +
+                      get_spill_fill_if_change(m, before[p], after[p]))
             if helped:
                 print("")
 
@@ -219,8 +229,9 @@ def main():
                 key=lambda k: after[k][m] if before[k][m] == 0 else float(after[k][m] - before[k][m]) / before[k][m])
             for p in hurt:
                 namestr = p[0] + " " + p[1]
-                print(m + " HURT:   " + get_result_string(
-                    namestr, before[p][m], after[p][m]))
+                print(m + " HURT:   " +
+                      get_result_string(namestr, before[p][m], after[p][m]) +
+                      get_spill_fill_if_change(m, before[p], after[p]))
             if hurt:
                 print("")
 
