@@ -138,8 +138,8 @@ def main():
     parser.add_argument("after", help="the output of the new code")
     args = parser.parse_args()
 
-    before = get_results(args.before, args);
-    after = get_results(args.after, args);
+    before = get_results(args.before, args)
+    after = get_results(args.after, args)
 
     # Grab these and remove them from the dictionary
     time_before = before.pop("time")
@@ -324,11 +324,11 @@ def main():
                 # can include zero, and both intervals must be on the
                 # same side of zero.
                 if confidence_interval[m][0][1] < 0 and confidence_interval[m][0][2] > 0:
-                    print("Inconclusive result (value mean confidence interval includes 0).");
+                    print("Inconclusive result (value mean confidence interval includes 0).")
                 elif confidence_interval[m][1][1] < 0 and confidence_interval[m][1][2] > 0:
-                    print("Inconclusive result (%-change mean confidence interval includes 0).");
+                    print("Inconclusive result (%-change mean confidence interval includes 0).")
                 elif (confidence_interval[m][0][1] < 0) != (confidence_interval[m][1][1] < 0):
-                    print("Inconclusive result (value mean confidence interval and %-change mean confidence interval disagree).");
+                    print("Inconclusive result (value mean confidence interval and %-change mean confidence interval disagree).")
                 elif confidence_interval[m][0][1] < 0:
                     print("{} are helped.".format(m.capitalize()))
                 else:
