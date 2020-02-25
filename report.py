@@ -278,11 +278,11 @@ def main():
                   "{0} in affected programs: {2}\n"
                   "helped: {3}\n"
                   "HURT: {4}".format(
-	              m,
-	              change(total_before[m], total_after[m]),
-	              change(affected_before[m], affected_after[m]),
-	              num_helped[m],
-	              num_hurt[m]))
+                      m,
+                      change(total_before[m], total_after[m]),
+                      change(affected_before[m], affected_after[m]),
+                      num_helped[m],
+                      num_hurt[m]))
 
             # Statistics for spills and fills is usually meaningless.
             if m in ["spills", "fills"]:
