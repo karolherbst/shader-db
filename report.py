@@ -39,13 +39,19 @@ def get_results(filename, args):
         result_group = {}
         for stat in stats.split(', '):
             stat_split_spaces = stat.split(' ')
-            name = stat_split_spaces[1]
-            val = stat_split_spaces[0]
+
+            if stat_split_spaces[0] == "scheduled":
+                name = stat_split_spaces[0]
+                val = stat_split_spaces[3]
+
             # Skipping "Promoted 0 constants" and "compacted..." on i965.
             # We should probably change "compacted" to just a shader size
             # in bytes.
-            if len(stat_split_spaces) != 2 :
+            elif len(stat_split_spaces) != 2:
                 continue
+            else:
+                name = stat_split_spaces[1]
+                val = stat_split_spaces[0]
 
             if name == "inst":
                 name = "instructions"
@@ -56,6 +62,8 @@ def get_results(filename, args):
                 result_group['fills'] = int(fills)
             elif val.isnumeric():
                 result_group[name] = int(val)
+            else:
+                result_group[name] = val
 
         results[(app, stage)] = result_group
     return results
@@ -101,6 +109,14 @@ def get_spill_fill_if_change(m, b, a):
         return ''
 
     return " (spills: " + change(b["spills"], a["spills"]) + "; fills: " + change(b["fills"], a["fills"]) + ")"
+
+def get_sched_mode(b, a):
+    p = " (scheduled: " + b["scheduled"]
+
+    if b["scheduled"] == a["scheduled"]:
+        return p + ")"
+
+    return p + " -> " + a["scheduled"] + ")"
 
 def split_list(string):
     return string.split(",")
@@ -176,6 +192,8 @@ def main():
             break
 
     for m in args.measurements:
+        if m == "scheduled":
+            continue
 
         if m == "inst":
             m = "instructions"
@@ -221,7 +239,8 @@ def main():
                 namestr = p[0] + " " + p[1]
                 print(m + " helped:   " +
                       get_result_string(namestr, before[p][m], after[p][m]) +
-                      get_spill_fill_if_change(m, before[p], after[p]))
+                      get_spill_fill_if_change(m, before[p], after[p]) +
+                      get_sched_mode(before[p], after[p]))
             if helped:
                 print("")
 
@@ -231,7 +250,8 @@ def main():
                 namestr = p[0] + " " + p[1]
                 print(m + " HURT:   " +
                       get_result_string(namestr, before[p][m], after[p][m]) +
-                      get_spill_fill_if_change(m, before[p], after[p]))
+                      get_spill_fill_if_change(m, before[p], after[p]) +
+                      get_sched_mode(before[p], after[p]))
             if hurt:
                 print("")
 
@@ -277,6 +297,8 @@ def main():
 
     any_helped_or_hurt = False
     for m in args.measurements:
+        if m == "scheduled":
+            continue
 
         if m == "inst":
             m = "instructions"
