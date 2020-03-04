@@ -350,6 +350,18 @@ ioctl(int fd, unsigned long request, ...)
 	}
 }
 
+static int
+fstat_gone(int fd, struct stat *buf)
+{
+	return libc__fxstat(_STAT_VER, fd, buf);
+}
+
+static int
+fstat64_gone(int fd, struct stat64 *buf)
+{
+	return libc__fxstat64(_STAT_VER, fd, buf);
+}
+
 static void __attribute__ ((constructor))
 init(void)
 {
@@ -366,4 +378,8 @@ init(void)
 	libc_mmap = dlsym(RTLD_NEXT, "mmap");
 	libc_mmap64 = dlsym(RTLD_NEXT, "mmap64");
 	libc_readlink = dlsym(RTLD_NEXT, "readlink");
+	if (!libc_fstat)
+		libc_fstat = fstat_gone;
+	if (!libc_fstat64)
+		libc_fstat64 = fstat64_gone;
 }
