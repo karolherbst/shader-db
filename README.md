@@ -112,9 +112,11 @@ You will need a vulkan driver with pipeline statistics:
 If you do not get a .csv file it likely means that a driver without
 `VK_KHR_pipeline_statistics`, such as a system installed driver.
 
-You can then compare two different csv files using the report-fossil.py script:
+You can then compare two different csv files using the report-fossil.py (ANV) or
+radv-report-fossil.py (RADV) scripts:
 
     $ report-fossil.py baseline.csv development.csv
+    $ radv-report-fossil.py baseline.csv development.csv
 
 ## Capturing fossils
 
