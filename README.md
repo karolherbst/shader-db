@@ -109,6 +109,10 @@ You will need a vulkan driver with pipeline statistics:
 
     $ fossilize-replay --enable-pipeline-stats output.csv --num-threads 4 fossils/**/*.foz
 
+Or you can use fossil_prune_replay.sh to replay a specific pipeline by hash:
+
+    $ ./fossil_prune_replay.sh fossils/ 012897d03e30f26f
+
 If you do not get a .csv file it likely means that a driver without
 `VK_KHR_pipeline_statistics`, such as a system installed driver.
 
