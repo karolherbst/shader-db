@@ -153,8 +153,10 @@ def read_csv(csv_file: pathlib.Path) -> typing.Dict[str, Result]:
     data: typing.Dict[str, Result] = {}
     with csv_file.open('rt') as f:
         reader = csv.reader(f)
-        factory = ResultFactory({k: v for v, k in enumerate(next(reader))})
         for row in reader:
+            if 'Database' in row:
+                factory = ResultFactory({k: v for v, k in enumerate(row)})
+                continue
             shader = factory(row)
             data[shader.name] = shader
     return data
