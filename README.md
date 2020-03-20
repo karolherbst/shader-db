@@ -120,11 +120,15 @@ Or you can use fossil_prune_replay.sh to replay a specific pipeline by hash:
 If you do not get a .csv file it likely means that a driver without
 `VK_KHR_pipeline_statistics`, such as a system installed driver.
 
-You can then compare two different csv files using the report-fossil.py (ANV) or
-radv-report-fossil.py (RADV) scripts:
+You can then compare two different csv files using the anv-report-fossil.py or
+radv-report-fossil.py scripts:
+
+    $ anv-report-fossil.py baseline.csv development.csv
+    $ radv-report-fossil.py baseline.csv development.csv
+
+Or the report-fossil.py script, which guesses the driver used:
 
     $ report-fossil.py baseline.csv development.csv
-    $ radv-report-fossil.py baseline.csv development.csv
 
 ## Capturing fossils
 
