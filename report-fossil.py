@@ -40,6 +40,7 @@ if typing.TYPE_CHECKING:
 @attr.s(slots=True)
 class Result:
 
+    name: str = attr.ib()
     instructions: typing.Optional[int] = attr.ib()
     loops: typing.Optional[int] = attr.ib()
     cycles: typing.Optional[int] = attr.ib()
@@ -60,7 +61,14 @@ class ResultFactory:
                 return None
             return type_(v)
 
+        shader_name = '/'.join([
+            get('Database', str),
+            get('Pipeline hash', str),
+            get('Executable name', str),
+        ])
+
         return Result(
+            name=shader_name,
             instructions=get('Instruction Count', int),
             loops=get('Loop Count', int),
             cycles=get('Cycle Count', int),
@@ -144,8 +152,8 @@ def read_csv(csv_file: pathlib.Path) -> typing.Dict[str, Result]:
         reader = csv.reader(f)
         factory = ResultFactory({k: v for v, k in enumerate(next(reader))})
         for row in reader:
-            name = row[0]
-            data[name] = factory(row)
+            shader = factory(row)
+            data[shader.name] = shader
     return data
 
 
