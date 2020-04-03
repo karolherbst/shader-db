@@ -24,10 +24,9 @@
 # Read some 
 shader_db_dir="$(dirname "$(readlink -f "${0}")")"
 
-export VK_LAYER_PATH="$HOME/source/Fossilize/layer"
+FOSSILIZE_BUILD_PATH="$HOME/source/Fossilize"
+export VK_LAYER_PATH="$FOSSILIZE_BUILD_PATH/layer"
 export VK_INSTANCE_LAYERS="VK_LAYER_fossilize"
-export FOSSILIZE_DUMP_PATH="$shader_db_dir/fossils/"
-
-[ -d "$FOSSILIZE_DUMP_PATH" ] || mkdir -p "$FOSSILIZE_DUMP_PATH"
+export FOSSILIZE_DUMP_PATH="$shader_db_dir/fossils/$(basename "${1}")"
 
 exec $@
