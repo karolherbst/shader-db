@@ -1,0 +1,56 @@
+[require]
+GLSL ES >= 3.00
+
+[fragment shader]
+#version 300 es
+
+precision mediump float;
+precision mediump sampler2D;
+out mediump vec4 sk_FragColor;
+uniform highp vec4 uinnerRect_Stage2;
+uniform mediump vec2 uradiusPlusHalf_Stage2;
+uniform sampler2D uTextureSampler_0_Stage1;
+in highp vec2 vTransformedCoords_0_Stage0;
+flat in mediump vec4 vcolor_Stage0;
+void main() {
+    mediump vec4 outputColor_Stage0;
+    {
+        outputColor_Stage0 = vcolor_Stage0;
+    }
+    mediump vec4 output_Stage1;
+    {
+        output_Stage1 = texture(uTextureSampler_0_Stage1, vTransformedCoords_0_Stage0);
+    }
+    mediump vec4 output_Stage2;
+    {
+        highp vec2 dxy0 = uinnerRect_Stage2.xy - gl_FragCoord.xy;
+        highp vec2 dxy1 = gl_FragCoord.xy - uinnerRect_Stage2.zw;
+        highp vec2 dxy = max(max(dxy0, dxy1), 0.0);
+        mediump float alpha = clamp(uradiusPlusHalf_Stage2.x - length(dxy), 0.0, 1.0);
+        alpha = 1.0 - alpha;
+        output_Stage2 = output_Stage1 * alpha;
+    }
+    {
+        sk_FragColor = outputColor_Stage0 * output_Stage2;
+    }
+}
+
+[vertex shader]
+#version 300 es
+
+precision mediump float;
+precision mediump sampler2D;
+uniform highp vec4 sk_RTAdjust;
+uniform highp mat3 uCoordTransformMatrix_0_Stage0;
+in highp vec2 position;
+in mediump vec4 color;
+in highp vec2 localCoord;
+out highp vec2 vTransformedCoords_0_Stage0;
+flat out mediump vec4 vcolor_Stage0;
+void main() {
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(localCoord, 1.0)).xy;
+    vcolor_Stage0 = color;
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

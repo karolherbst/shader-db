@@ -1,0 +1,29 @@
+[require]
+GLSL ES >= 1.00
+
+[vertex shader]
+attribute highp float _ua_index;
+attribute highp vec4 _ua_position;
+uniform highp vec2 _uquad[4];
+uniform highp mat4 _umatrix;
+varying highp vec2 _uv_texCoord;
+attribute highp vec2 _ua_texCoord;
+uniform highp vec4 _uvertexTexTransform;
+void main(){
+highp int _uvertex_index = int(_ua_index);
+highp vec4 _upos = vec4(_uquad[int(clamp(float(_uvertex_index), 0.0, float(3)))], _ua_position.z, _ua_position.w);
+(gl_Position = (_umatrix * _upos));
+highp vec2 _utexCoord = _ua_texCoord;
+(_utexCoord = ((_utexCoord * _uvertexTexTransform.zw) + _uvertexTexTransform.xy));
+(_uv_texCoord = _utexCoord);
+}
+
+[fragment shader]
+uniform lowp sampler2D _us_texture;
+varying mediump vec2 _uv_texCoord;
+void main(){
+mediump vec2 _utexCoord = _uv_texCoord;
+mediump vec4 _utexColor = texture2D(_us_texture, _utexCoord);
+(gl_FragColor = vec4(_utexColor.xyz, 1.0));
+}
+

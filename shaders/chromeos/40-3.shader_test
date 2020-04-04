@@ -1,0 +1,56 @@
+[require]
+GLSL ES >= 3.00
+
+[fragment shader]
+#version 300 es
+
+precision mediump float;
+precision mediump sampler2D;
+out mediump vec4 sk_FragColor;
+uniform mediump vec4 uscaleAndTranslate_Stage1;
+uniform mediump vec4 uTexDom_Stage1;
+uniform mediump vec3 uDecalParams_Stage1;
+uniform sampler2D uTextureSampler_0_Stage1;
+flat in mediump vec4 vcolor_Stage0;
+void main() {
+    mediump vec4 outputColor_Stage0;
+    {
+        outputColor_Stage0 = vcolor_Stage0;
+    }
+    mediump vec4 output_Stage1;
+    {
+        mediump vec2 coords = gl_FragCoord.xy * uscaleAndTranslate_Stage1.xy + uscaleAndTranslate_Stage1.zw;
+        {
+            highp vec2 origCoord = coords;
+            highp vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+            mediump vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+            mediump float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage1.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage1.y);
+            if (err > uDecalParams_Stage1.z) {
+                err = 1.0;
+            } else if (uDecalParams_Stage1.z < 1.0) {
+                err = 0.0;
+            }
+            output_Stage1 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+        }
+    }
+    {
+        sk_FragColor = outputColor_Stage0 * output_Stage1;
+    }
+}
+
+[vertex shader]
+#version 300 es
+
+precision mediump float;
+precision mediump sampler2D;
+uniform highp vec4 sk_RTAdjust;
+in highp vec2 position;
+in mediump vec4 color;
+flat out mediump vec4 vcolor_Stage0;
+void main() {
+    vcolor_Stage0 = color;
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

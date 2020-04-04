@@ -1,0 +1,119 @@
+[require]
+GLSL ES >= 3.00
+
+[fragment shader]
+#version 300 es
+
+precision mediump float;
+precision mediump sampler2D;
+out mediump vec4 sk_FragColor;
+uniform mediump vec2 uImageIncrement_Stage1;
+uniform mediump vec2 uBounds_Stage1;
+uniform mediump vec4 uKernel_Stage1[5];
+uniform sampler2D uTextureSampler_0_Stage1;
+in highp vec2 vTransformedCoords_0_Stage0;
+void main() {
+    mediump vec4 output_Stage1;
+    {
+        output_Stage1 = vec4(0.0, 0.0, 0.0, 0.0);
+        highp vec2 coord = vTransformedCoords_0_Stage0 - 9.0 * uImageIncrement_Stage1;
+        highp vec2 coordSampled = vec2(0.0, 0.0);
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[0].x;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[0].y;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[0].z;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[0].w;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[1].x;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[1].y;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[1].z;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[1].w;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[2].x;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[2].y;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[2].z;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[2].w;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[3].x;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[3].y;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[3].z;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[3].w;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[4].x;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[4].y;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        coordSampled.y = clamp(coord.y, uBounds_Stage1.x, uBounds_Stage1.y);
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[4].z;
+        coord += uImageIncrement_Stage1;
+    }
+    {
+        sk_FragColor = output_Stage1;
+        sk_FragColor = sk_FragColor.wwww;
+    }
+}
+
+[vertex shader]
+#version 300 es
+
+precision mediump float;
+precision mediump sampler2D;
+uniform highp vec4 sk_RTAdjust;
+uniform highp mat3 uCoordTransformMatrix_0_Stage0;
+in highp vec2 position;
+in highp vec2 localCoord;
+out highp vec2 vTransformedCoords_0_Stage0;
+void main() {
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(localCoord, 1.0)).xy;
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

@@ -1,0 +1,66 @@
+[require]
+GLSL ES >= 3.00
+
+[fragment shader]
+#version 300 es
+
+precision mediump float;
+precision mediump sampler2D;
+out mediump vec4 sk_FragColor;
+uniform mediump vec4 ucolor_Stage2_c1_c0;
+uniform sampler2D uTextureSampler_0_Stage1;
+in highp vec2 vTransformedCoords_0_Stage0;
+flat in mediump vec4 vcolor_Stage0;
+mediump vec4 stage_Stage1_c0_c0(mediump vec4 _input) {
+    mediump vec4 _output;
+    _output = texture(uTextureSampler_0_Stage1, vTransformedCoords_0_Stage0) * _input;
+    return _output;
+}
+mediump vec4 stage_Stage2_c1_c0(mediump vec4 _input) {
+    mediump vec4 _output;
+    {
+        _output = ucolor_Stage2_c1_c0;
+    }
+    return _output;
+}
+mediump vec4 blend_src_over(mediump vec4 src, mediump vec4 dst) {
+    return src + (1.0 - src.w) * dst;
+}
+mediump vec4 blend_darken(mediump vec4 src, mediump vec4 dst) {
+    mediump vec4 result = blend_src_over(src, dst);
+    result.xyz = min(result.xyz, (1.0 - dst.w) * src.xyz + dst.xyz);
+    return result;
+}
+void main() {
+    mediump vec4 output_Stage1;
+    {
+        output_Stage1 = stage_Stage1_c0_c0(vec4(1.0, 1.0, 1.0, 1.0));
+    }
+    mediump vec4 output_Stage2;
+    {
+        output_Stage2 = blend_darken(stage_Stage2_c1_c0(vec4(1.0)), output_Stage1);
+    }
+    {
+        sk_FragColor = output_Stage2;
+    }
+}
+
+[vertex shader]
+#version 300 es
+
+precision mediump float;
+precision mediump sampler2D;
+uniform highp vec4 sk_RTAdjust;
+uniform highp mat3 uCoordTransformMatrix_0_Stage0;
+in highp vec2 position;
+in mediump vec4 color;
+in highp vec2 localCoord;
+out highp vec2 vTransformedCoords_0_Stage0;
+flat out mediump vec4 vcolor_Stage0;
+void main() {
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(localCoord, 1.0)).xy;
+    vcolor_Stage0 = color;
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

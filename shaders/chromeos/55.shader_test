@@ -1,0 +1,47 @@
+[require]
+GLSL ES >= 1.00
+
+[fragment shader]
+#extension GL_OES_standard_derivatives : require
+varying mediump vec4 _uvQuadEdge_Stage0;
+varying mediump vec4 _uvinColor_Stage0;
+void main(){
+mediump vec4 _uoutputColor_Stage0 = vec4(0.0, 0.0, 0.0, 0.0);
+mediump vec4 _uoutputCoverage_Stage0 = vec4(0.0, 0.0, 0.0, 0.0);
+{
+(_uoutputColor_Stage0 = _uvinColor_Stage0);
+mediump float _uedgeAlpha = 0.0;
+mediump vec2 _uduvdx = dFdx(_uvQuadEdge_Stage0.xy);
+mediump vec2 _uduvdy = (-dFdy(_uvQuadEdge_Stage0.xy));
+if (((_uvQuadEdge_Stage0.z > 0.0) && (_uvQuadEdge_Stage0.w > 0.0)))
+{
+(_uedgeAlpha = min((min(_uvQuadEdge_Stage0.z, _uvQuadEdge_Stage0.w) + 0.5), 1.0));
+}
+else
+{
+mediump vec2 _ugF = vec2((((2.0 * _uvQuadEdge_Stage0.x) * _uduvdx.x) - _uduvdx.y), (((2.0 * _uvQuadEdge_Stage0.x) * _uduvdy.x) - _uduvdy.y));
+(_uedgeAlpha = ((_uvQuadEdge_Stage0.x * _uvQuadEdge_Stage0.x) - _uvQuadEdge_Stage0.y));
+(_uedgeAlpha = clamp((0.5 - (_uedgeAlpha / length(_ugF))), 0.0, 1.0));
+}
+(_uoutputCoverage_Stage0 = vec4(_uedgeAlpha));
+}
+{
+(gl_FragColor = (_uoutputColor_Stage0 * _uoutputCoverage_Stage0));
+}
+}
+
+[vertex shader]
+uniform highp vec4 _usk_RTAdjust;
+attribute highp vec2 _uinPosition;
+attribute mediump vec4 _uinColor;
+attribute mediump vec4 _uinQuadEdge;
+varying mediump vec4 _uvQuadEdge_Stage0;
+varying mediump vec4 _uvinColor_Stage0;
+void main(){
+(_uvQuadEdge_Stage0 = _uinQuadEdge);
+(_uvinColor_Stage0 = _uinColor);
+highp vec2 _upos2 = _uinPosition;
+(gl_Position = vec4(_upos2.x, _upos2.y, 0.0, 1.0));
+(gl_Position = vec4(((gl_Position.xy * _usk_RTAdjust.xz) + (gl_Position.ww * _usk_RTAdjust.yw)), 0.0, gl_Position.w));
+}
+

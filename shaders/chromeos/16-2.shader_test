@@ -1,0 +1,39 @@
+[require]
+GLSL ES >= 3.00
+
+[fragment shader]
+#version 300 es
+
+precision mediump float;
+precision mediump sampler2D;
+out mediump vec4 sk_FragColor;
+uniform sampler2D uTextureSampler_0_Stage0;
+in highp vec2 vlocalCoord_Stage0;
+void main() {
+    mediump vec4 outputColor_Stage0;
+    {
+        outputColor_Stage0 = vec4(1.0);
+        highp vec2 texCoord;
+        texCoord = vlocalCoord_Stage0;
+        outputColor_Stage0 = texture(uTextureSampler_0_Stage0, texCoord);
+    }
+    {
+        sk_FragColor = outputColor_Stage0;
+    }
+}
+
+[vertex shader]
+#version 300 es
+
+precision mediump float;
+precision mediump sampler2D;
+uniform highp vec4 sk_RTAdjust;
+in highp vec2 position;
+in highp vec2 localCoord;
+out highp vec2 vlocalCoord_Stage0;
+void main() {
+    vlocalCoord_Stage0 = localCoord;
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

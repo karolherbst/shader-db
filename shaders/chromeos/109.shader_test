@@ -1,0 +1,68 @@
+[require]
+GLSL ES >= 3.00
+
+[fragment shader]
+#version 300 es
+
+precision mediump float;
+precision mediump sampler2D;
+out mediump vec4 sk_FragColor;
+uniform mediump vec4 uColor_Stage0;
+uniform mediump float ucornerRadius_Stage1;
+uniform highp vec4 uproxyRect_Stage1;
+uniform mediump float ublurRadius_Stage1;
+uniform highp vec4 uinnerRect_Stage2;
+uniform mediump vec2 uradiusPlusHalf_Stage2;
+uniform sampler2D uTextureSampler_0_Stage1;
+void main() {
+    mediump vec4 outputColor_Stage0;
+    {
+        outputColor_Stage0 = uColor_Stage0;
+    }
+    mediump vec4 output_Stage1;
+    {
+        mediump vec2 translatedFragPos = gl_FragCoord.xy - uproxyRect_Stage1.xy;
+        mediump float threshold = ucornerRadius_Stage1 + 2.0 * ublurRadius_Stage1;
+        mediump vec2 middle = (uproxyRect_Stage1.zw - uproxyRect_Stage1.xy) - 2.0 * threshold;
+        if (translatedFragPos.x >= threshold && translatedFragPos.x < middle.x + threshold) {
+            translatedFragPos.x = threshold;
+        } else if (translatedFragPos.x >= middle.x + threshold) {
+            translatedFragPos.x -= middle.x - 1.0;
+        }
+        if (translatedFragPos.y > threshold && translatedFragPos.y < middle.y + threshold) {
+            translatedFragPos.y = threshold;
+        } else if (translatedFragPos.y >= middle.y + threshold) {
+            translatedFragPos.y -= middle.y - 1.0;
+        }
+        mediump vec2 proxyDims = vec2(2.0 * threshold + 1.0);
+        mediump vec2 texCoord = translatedFragPos / proxyDims;
+        output_Stage1 = texture(uTextureSampler_0_Stage1, texCoord);
+    }
+    mediump vec4 output_Stage2;
+    {
+        highp vec2 dxy0 = uinnerRect_Stage2.xy - gl_FragCoord.xy;
+        highp vec2 dxy1 = gl_FragCoord.xy - uinnerRect_Stage2.zw;
+        highp vec2 dxy = max(max(dxy0, dxy1), 0.0);
+        mediump float alpha = clamp(uradiusPlusHalf_Stage2.x - length(dxy), 0.0, 1.0);
+        alpha = 1.0 - alpha;
+        output_Stage2 = output_Stage1 * alpha;
+    }
+    {
+        sk_FragColor = outputColor_Stage0 * output_Stage2;
+    }
+}
+
+[vertex shader]
+#version 300 es
+
+precision mediump float;
+precision mediump sampler2D;
+uniform highp vec4 sk_RTAdjust;
+uniform highp mat3 uViewM_Stage0;
+in highp vec2 inPosition;
+void main() {
+    highp vec2 pos2 = (uViewM_Stage0 * vec3(inPosition, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

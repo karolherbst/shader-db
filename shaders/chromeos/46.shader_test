@@ -1,0 +1,30 @@
+[require]
+GLSL ES >= 1.00
+
+[fragment shader]
+varying mediump vec4 _uvcolor_Stage0;
+void main(){
+mediump vec4 _uoutputColor_Stage0 = vec4(0.0, 0.0, 0.0, 0.0);
+{
+(_uoutputColor_Stage0 = _uvcolor_Stage0);
+}
+{
+(gl_FragColor = _uoutputColor_Stage0);
+}
+}
+
+[vertex shader]
+uniform highp vec4 _usk_RTAdjust;
+uniform mediump vec4 _uuColor_Stage0;
+attribute highp vec2 _uinPosition;
+attribute mediump float _uinCoverage;
+varying mediump vec4 _uvcolor_Stage0;
+void main(){
+mediump vec4 _ucolor = _uuColor_Stage0;
+(_ucolor = (_ucolor * _uinCoverage));
+(_uvcolor_Stage0 = _ucolor);
+highp vec2 _upos2 = _uinPosition;
+(gl_Position = vec4(_upos2.x, _upos2.y, 0.0, 1.0));
+(gl_Position = vec4(((gl_Position.xy * _usk_RTAdjust.xz) + (gl_Position.ww * _usk_RTAdjust.yw)), 0.0, gl_Position.w));
+}
+
