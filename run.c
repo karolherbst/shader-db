@@ -895,6 +895,9 @@ main(int argc, char **argv)
                 GLuint prog = glCreateProgram();
                 GLint param;
 
+                glObjectLabel(GL_PROGRAM, prog, strlen(current_shader_name),
+                              current_shader_name);
+
                 if (use_separate_shader_objects)
                    glProgramParameteri(prog, GL_PROGRAM_SEPARABLE, GL_TRUE);
 
