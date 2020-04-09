@@ -1,0 +1,46 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+noperspective in vec4 vQuadEdge_Stage0;
+noperspective in vec4 vinColor_Stage0;
+void main() {
+    vec4 outputCoverage_Stage0;
+    {
+        float edgeAlpha;
+        vec2 duvdx = dFdx(vQuadEdge_Stage0.xy);
+        vec2 duvdy = dFdy(vQuadEdge_Stage0.xy);
+        if (vQuadEdge_Stage0.z > 0.0 && vQuadEdge_Stage0.w > 0.0) {
+            edgeAlpha = min(min(vQuadEdge_Stage0.z, vQuadEdge_Stage0.w) + 0.5, 1.0);
+        } else {
+            vec2 gF = vec2((2.0 * vQuadEdge_Stage0.x) * duvdx.x - duvdx.y, (2.0 * vQuadEdge_Stage0.x) * duvdy.x - duvdy.y);
+            edgeAlpha = vQuadEdge_Stage0.x * vQuadEdge_Stage0.x - vQuadEdge_Stage0.y;
+            edgeAlpha = clamp(0.5 - edgeAlpha / length(gF), 0.0, 1.0);
+        }
+        outputCoverage_Stage0 = vec4(edgeAlpha);
+    }
+    {
+        sk_FragColor = 1.0 - outputCoverage_Stage0;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+in vec2 inPosition;
+in vec4 inColor;
+in vec4 inQuadEdge;
+noperspective out vec4 vQuadEdge_Stage0;
+noperspective out vec4 vinColor_Stage0;
+void main() {
+    vQuadEdge_Stage0 = inQuadEdge;
+    vinColor_Stage0 = inColor;
+    vec2 pos2 = inPosition;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

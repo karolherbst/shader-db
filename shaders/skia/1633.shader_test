@@ -1,0 +1,333 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+#extension GL_ARB_fragment_coord_conventions : require
+layout(origin_upper_left) in vec4 gl_FragCoord;
+out vec4 sk_FragColor;
+uniform vec4 uCoordTransformMatrix_1_Stage0;
+uniform float uPixelSize_Stage1_c0_c0;
+uniform vec2 uRange_Stage1_c0_c0;
+uniform float uPixelSize_Stage2;
+uniform vec2 uRange_Stage2;
+uniform vec2 uImageIncrement_Stage3;
+uniform float uSurfaceScale_Stage3;
+uniform vec3 uLightColor_Stage3;
+uniform float uKD_Stage3;
+uniform vec4 uTexDom_Stage3;
+uniform vec3 uDecalParams_Stage3;
+uniform vec3 uLightDirection_Stage3;
+uniform vec4 urectH_Stage4;
+uniform float uinvSixSigma_Stage4;
+uniform vec4 uinnerRect_Stage5;
+uniform vec2 uradiusPlusHalf_Stage5;
+uniform vec4 ucircleData_Stage6_c1_c0;
+uniform sampler2D uTextureSampler_0_Stage0;
+uniform sampler2D uTextureSampler_0_Stage1;
+uniform sampler2D uTextureSampler_0_Stage2;
+uniform sampler2D uTextureSampler_0_Stage3;
+uniform sampler2D uTextureSampler_0_Stage4;
+uniform sampler2D uTextureSampler_0_Stage6;
+in vec2 vTextureCoords_Stage0;
+flat in int vTexIndex_Stage0;
+in vec2 vIntTextureCoords_Stage0;
+in vec4 vinColor_Stage0;
+in vec2 vTransformedCoords_0_Stage0;
+in vec2 vTransformedCoords_2_Stage0;
+in vec2 vTransformedCoords_3_Stage0;
+vec4 Morphology_Stage1_c0_c0(vec4 _input, vec2 _coords) {
+    _coords = _coords * uCoordTransformMatrix_1_Stage0.xz + uCoordTransformMatrix_1_Stage0.yw;
+    vec4 _output;
+    _output = vec4(1.0, 1.0, 1.0, 1.0);
+    vec2 coord = _coords;
+    coord.x -= 7.0 * uPixelSize_Stage1_c0_c0;
+    for (int i = 0;i < 15; i++) {
+        _output = min(_output, texture(uTextureSampler_0_Stage1, coord));
+        coord.x += uPixelSize_Stage1_c0_c0;
+    }
+    _output *= _input;
+    return _output;
+}
+vec4 light_Stage3(vec3 normal, vec3 surfaceToLight, vec3 lightColor) {
+    float colorScale = uKD_Stage3 * dot(normal, surfaceToLight);
+    return vec4(lightColor * clamp(colorScale, 0.0, 1.0), 1.0);
+}
+float sobel_Stage3(float a, float b, float c, float d, float e, float f, float scale) {
+    return (((((-a + b) - 2.0 * c) + 2.0 * d) - e) + f) * scale;
+}
+vec3 pointToNormal_Stage3(float x, float y, float scale) {
+    return normalize(vec3(-x * scale, -y * scale, 1.0));
+}
+vec3 normal_Stage3(float m[9], float surfaceScale) {
+    return pointToNormal_Stage3(sobel_Stage3(m[0], m[2], m[3], m[5], 0.0, 0.0, 0.33333298563957214), sobel_Stage3(m[0], m[3], m[1], m[4], m[2], m[5], 0.5), surfaceScale);
+}
+vec4 CircleBlurFragmentProcessor_Stage6_c1_c0(vec4 _input, vec2 _coords) {
+    vec4 _output;
+    vec2 vec = vec2((gl_FragCoord.x - ucircleData_Stage6_c1_c0.x) * ucircleData_Stage6_c1_c0.w, (gl_FragCoord.y - ucircleData_Stage6_c1_c0.y) * ucircleData_Stage6_c1_c0.w);
+    float dist = length(vec) + (0.5 - ucircleData_Stage6_c1_c0.z) * ucircleData_Stage6_c1_c0.w;
+    _output = _input * texture(uTextureSampler_0_Stage6, vec2(dist, 0.5)).w;
+    return _output;
+}
+void main() {
+    vec4 outputCoverage_Stage0;
+    {
+        vec2 uv = vTextureCoords_Stage0;
+        vec4 texColor;
+        {
+            texColor = texture(uTextureSampler_0_Stage0, uv);
+        }
+        float distance = 7.96875 * (texColor.x - 0.50196081399917603);
+        float afwidth;
+        vec2 dist_grad = vec2(dFdx(distance), -dFdy(distance));
+        float dg_len2 = dot(dist_grad, dist_grad);
+        if (dg_len2 < 9.9999997473787516e-05) {
+            dist_grad = vec2(0.70709997415542603, 0.70709997415542603);
+        } else {
+            dist_grad = dist_grad * inversesqrt(dg_len2);
+        }
+        vec2 Jdx = dFdx(vIntTextureCoords_Stage0);
+        vec2 Jdy = -dFdy(vIntTextureCoords_Stage0);
+        vec2 grad = vec2(dist_grad.x * Jdx.x + dist_grad.y * Jdy.x, dist_grad.x * Jdx.y + dist_grad.y * Jdy.y);
+        afwidth = 0.64999997615814209 * length(grad);
+        float val = smoothstep(-afwidth, afwidth, distance);
+        outputCoverage_Stage0 = vec4(val);
+    }
+    vec4 output_Stage1;
+    {
+        float coord = vTransformedCoords_0_Stage0.y - 0.5;
+        float f = fract(coord);
+        coord += 0.5 - f;
+        float f2 = f * f;
+        vec4 w = mat4(0.055555555555555552, 0.88888888888888884, 0.055555555555555552, 0.0, -0.5, 0.0, 0.5, 0.0, 0.83333333333333337, -2.0, 1.5, -0.33333333333333331, -0.3888888888888889, 1.1666666666666667, -1.1666666666666667, 0.3888888888888889) * vec4(1.0, f, f2, f2 * f);
+        vec4 c[4];
+        c[0] = Morphology_Stage1_c0_c0(vec4(1.0), vec2(vTransformedCoords_0_Stage0.x, coord + -1.0));
+        c[1] = Morphology_Stage1_c0_c0(vec4(1.0), vec2(vTransformedCoords_0_Stage0.x, coord));
+        c[2] = Morphology_Stage1_c0_c0(vec4(1.0), vec2(vTransformedCoords_0_Stage0.x, coord + 1.0));
+        c[3] = Morphology_Stage1_c0_c0(vec4(1.0), vec2(vTransformedCoords_0_Stage0.x, coord + 2.0));
+        vec4 bicubicColor = ((c[0] * w.x + c[1] * w.y) + c[2] * w.z) + c[3] * w.w;
+        bicubicColor = clamp(bicubicColor, 0.0, 1.0);
+        output_Stage1 = bicubicColor * outputCoverage_Stage0;
+    }
+    vec4 output_Stage2;
+    {
+        output_Stage2 = vec4(0.0, 0.0, 0.0, 0.0);
+        vec2 coord = vTransformedCoords_2_Stage0;
+        coord.y -= 6.0 * uPixelSize_Stage2;
+        for (int i = 0;i < 13; i++) {
+            output_Stage2 = max(output_Stage2, texture(uTextureSampler_0_Stage2, coord));
+            coord.y += uPixelSize_Stage2;
+        }
+        output_Stage2 *= output_Stage1;
+    }
+    vec4 output_Stage3;
+    {
+        vec2 coord = vTransformedCoords_3_Stage0;
+        float m[9];
+        vec4 temp0;
+        {
+            vec2 origCoord = coord + vec2(-1.0, 1.0) * uImageIncrement_Stage3;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage3.xy, uTexDom_Stage3.zw);
+            vec4 textureColor = texture(uTextureSampler_0_Stage3, clampedCoord);
+            float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage3.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage3.y);
+            if (err > uDecalParams_Stage3.z) {
+                err = 1.0;
+            } else if (uDecalParams_Stage3.z < 1.0) {
+                err = 0.0;
+            }
+            temp0 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+        }
+        m[0] = temp0.w;
+        vec4 temp1;
+        {
+            vec2 origCoord = coord + vec2(0.0, 1.0) * uImageIncrement_Stage3;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage3.xy, uTexDom_Stage3.zw);
+            vec4 textureColor = texture(uTextureSampler_0_Stage3, clampedCoord);
+            float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage3.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage3.y);
+            if (err > uDecalParams_Stage3.z) {
+                err = 1.0;
+            } else if (uDecalParams_Stage3.z < 1.0) {
+                err = 0.0;
+            }
+            temp1 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+        }
+        m[1] = temp1.w;
+        vec4 temp2;
+        {
+            vec2 origCoord = coord + uImageIncrement_Stage3;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage3.xy, uTexDom_Stage3.zw);
+            vec4 textureColor = texture(uTextureSampler_0_Stage3, clampedCoord);
+            float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage3.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage3.y);
+            if (err > uDecalParams_Stage3.z) {
+                err = 1.0;
+            } else if (uDecalParams_Stage3.z < 1.0) {
+                err = 0.0;
+            }
+            temp2 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+        }
+        m[2] = temp2.w;
+        vec4 temp3;
+        {
+            vec2 origCoord = coord + vec2(-1.0, 0.0) * uImageIncrement_Stage3;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage3.xy, uTexDom_Stage3.zw);
+            vec4 textureColor = texture(uTextureSampler_0_Stage3, clampedCoord);
+            float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage3.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage3.y);
+            if (err > uDecalParams_Stage3.z) {
+                err = 1.0;
+            } else if (uDecalParams_Stage3.z < 1.0) {
+                err = 0.0;
+            }
+            temp3 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+        }
+        m[3] = temp3.w;
+        vec4 temp4;
+        {
+            vec2 origCoord = coord;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage3.xy, uTexDom_Stage3.zw);
+            vec4 textureColor = texture(uTextureSampler_0_Stage3, clampedCoord);
+            float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage3.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage3.y);
+            if (err > uDecalParams_Stage3.z) {
+                err = 1.0;
+            } else if (uDecalParams_Stage3.z < 1.0) {
+                err = 0.0;
+            }
+            temp4 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+        }
+        m[4] = temp4.w;
+        vec4 temp5;
+        {
+            vec2 origCoord = coord + vec2(1.0, 0.0) * uImageIncrement_Stage3;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage3.xy, uTexDom_Stage3.zw);
+            vec4 textureColor = texture(uTextureSampler_0_Stage3, clampedCoord);
+            float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage3.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage3.y);
+            if (err > uDecalParams_Stage3.z) {
+                err = 1.0;
+            } else if (uDecalParams_Stage3.z < 1.0) {
+                err = 0.0;
+            }
+            temp5 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+        }
+        m[5] = temp5.w;
+        vec4 temp6;
+        {
+            vec2 origCoord = coord + vec2(-1.0, -1.0) * uImageIncrement_Stage3;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage3.xy, uTexDom_Stage3.zw);
+            vec4 textureColor = texture(uTextureSampler_0_Stage3, clampedCoord);
+            float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage3.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage3.y);
+            if (err > uDecalParams_Stage3.z) {
+                err = 1.0;
+            } else if (uDecalParams_Stage3.z < 1.0) {
+                err = 0.0;
+            }
+            temp6 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+        }
+        m[6] = temp6.w;
+        vec4 temp7;
+        {
+            vec2 origCoord = coord + vec2(0.0, -1.0) * uImageIncrement_Stage3;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage3.xy, uTexDom_Stage3.zw);
+            vec4 textureColor = texture(uTextureSampler_0_Stage3, clampedCoord);
+            float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage3.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage3.y);
+            if (err > uDecalParams_Stage3.z) {
+                err = 1.0;
+            } else if (uDecalParams_Stage3.z < 1.0) {
+                err = 0.0;
+            }
+            temp7 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+        }
+        m[7] = temp7.w;
+        vec4 temp8;
+        {
+            vec2 origCoord = coord + vec2(1.0, -1.0) * uImageIncrement_Stage3;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage3.xy, uTexDom_Stage3.zw);
+            vec4 textureColor = texture(uTextureSampler_0_Stage3, clampedCoord);
+            float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage3.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage3.y);
+            if (err > uDecalParams_Stage3.z) {
+                err = 1.0;
+            } else if (uDecalParams_Stage3.z < 1.0) {
+                err = 0.0;
+            }
+            temp8 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+        }
+        m[8] = temp8.w;
+        vec3 surfaceToLight = uLightDirection_Stage3;
+        output_Stage3 = light_Stage3(normal_Stage3(m, uSurfaceScale_Stage3), surfaceToLight, uLightColor_Stage3);
+        output_Stage3 *= output_Stage2;
+    }
+    vec4 output_Stage4;
+    {
+        float xCoverage, yCoverage;
+        {
+            float x, y;
+            {
+                x = max(urectH_Stage4.x - gl_FragCoord.x, gl_FragCoord.x - urectH_Stage4.z);
+                y = max(urectH_Stage4.y - gl_FragCoord.y, gl_FragCoord.y - urectH_Stage4.w);
+            }
+            xCoverage = texture(uTextureSampler_0_Stage4, vec2(x * uinvSixSigma_Stage4, 0.5)).w;
+            yCoverage = texture(uTextureSampler_0_Stage4, vec2(y * uinvSixSigma_Stage4, 0.5)).w;
+            output_Stage4 = (output_Stage3 * xCoverage) * yCoverage;
+        }
+        output_Stage4 = (output_Stage3 * xCoverage) * yCoverage;
+    }
+    vec4 output_Stage5;
+    {
+        vec2 dxy0 = uinnerRect_Stage5.xy - gl_FragCoord.xy;
+        vec2 dxy1 = gl_FragCoord.xy - uinnerRect_Stage5.zw;
+        vec2 dxy = max(max(dxy0, dxy1), 0.0);
+        float alpha = clamp(uradiusPlusHalf_Stage5.x - length(dxy), 0.0, 1.0);
+        alpha = 1.0 - alpha;
+        output_Stage5 = output_Stage4 * alpha;
+    }
+    vec4 output_Stage6;
+    {
+        output_Stage6 = CircleBlurFragmentProcessor_Stage6_c1_c0(output_Stage5, gl_FragCoord.xy);
+    }
+    {
+        sk_FragColor = output_Stage6;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform vec2 uAtlasDimensionsInv_Stage0;
+uniform mat3 uViewM_Stage0;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+uniform mat3 uCoordTransformMatrix_2_Stage0;
+uniform mat3 uCoordTransformMatrix_3_Stage0;
+in vec2 inPosition;
+in vec4 inColor;
+in uvec2 inTextureCoords;
+out vec2 vTextureCoords_Stage0;
+flat out int vTexIndex_Stage0;
+out vec2 vIntTextureCoords_Stage0;
+out vec4 vinColor_Stage0;
+out vec2 vTransformedCoords_0_Stage0;
+out vec2 vTransformedCoords_2_Stage0;
+out vec2 vTransformedCoords_3_Stage0;
+void main() {
+    ivec2 signedCoords = ivec2(int(inTextureCoords.x), int(inTextureCoords.y));
+    vec2 unormTexCoords = vec2(float(signedCoords.x / 2), float(signedCoords.y / 2));
+    vTextureCoords_Stage0 = unormTexCoords * uAtlasDimensionsInv_Stage0;
+    vTexIndex_Stage0 = 0;
+    vIntTextureCoords_Stage0 = unormTexCoords;
+    vinColor_Stage0 = inColor;
+    vec3 pos3 = uViewM_Stage0 * vec3(inPosition, 1.0);
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inPosition, 1.0)).xy;
+    vTransformedCoords_2_Stage0 = (uCoordTransformMatrix_2_Stage0 * vec3(inPosition, 1.0)).xy;
+    vTransformedCoords_3_Stage0 = (uCoordTransformMatrix_3_Stage0 * vec3(inPosition, 1.0)).xy;
+    gl_Position = vec4(pos3.x, pos3.y, 0.0, pos3.z);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

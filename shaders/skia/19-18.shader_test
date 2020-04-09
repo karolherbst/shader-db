@@ -1,0 +1,68 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 usubset_Stage1;
+uniform vec4 uclamp_Stage1;
+uniform vec4 unorm_Stage1;
+uniform sampler2D uTextureSampler_0_Stage1;
+flat in vec4 vcolor_Stage0;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+void main() {
+    vec4 outputColor_Stage0;
+    {
+        outputColor_Stage0 = vcolor_Stage0;
+    }
+    vec4 output_Stage1;
+    {
+        vec2 inCoord = vTransformedCoords_0_Stage0;
+        inCoord *= unorm_Stage1.xy;
+        float extraRepeatCoordY;
+        float repeatCoordWeightY;
+        vec2 subsetCoord;
+        subsetCoord.x = inCoord.x;
+        {
+            float w = usubset_Stage1.w - usubset_Stage1.y;
+            float w2 = 2.0 * w;
+            float d = inCoord.y - usubset_Stage1.y;
+            float m = mod(d, w2);
+            float o = mix(m, w2 - m, step(w, m));
+            subsetCoord.y = o + usubset_Stage1.y;
+            extraRepeatCoordY = (w - o) + usubset_Stage1.y;
+            float hw = w / 2.0;
+            float n = mod(d - hw, w2);
+            repeatCoordWeightY = clamp((mix(n, w2 - n, step(w, n)) - hw) + 0.5, 0.0, 1.0);
+        }
+        vec2 clampedCoord;
+        clampedCoord.x = clamp(subsetCoord.x, uclamp_Stage1.x, uclamp_Stage1.z);
+        clampedCoord.y = clamp(subsetCoord.y, uclamp_Stage1.y, uclamp_Stage1.w);
+        extraRepeatCoordY = clamp(extraRepeatCoordY, uclamp_Stage1.y, uclamp_Stage1.w);
+        vec4 textureColor = mix(texture(uTextureSampler_0_Stage1, clampedCoord * unorm_Stage1.zw), texture(uTextureSampler_0_Stage1, vec2(clampedCoord.x, extraRepeatCoordY) * unorm_Stage1.zw), repeatCoordWeightY);
+        output_Stage1 = outputColor_Stage0 * textureColor;
+    }
+    {
+        sk_FragColor = output_Stage1;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+in vec2 inPosition;
+in vec2 inLocalCoords;
+in vec4 color;
+flat out vec4 vcolor_Stage0;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+void main() {
+    vcolor_Stage0 = color;
+    vec2 pos2 = inPosition;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inLocalCoords, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

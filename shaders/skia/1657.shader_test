@@ -1,0 +1,45 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+noperspective in vec4 vinCircleEdge_Stage0;
+noperspective in vec4 vinColor_Stage0;
+void main() {
+    vec4 outputCoverage_Stage0;
+    {
+        vec4 circleEdge;
+        circleEdge = vinCircleEdge_Stage0;
+        float d = length(circleEdge.xy);
+        float distanceToOuterEdge = circleEdge.z * (1.0 - d);
+        float edgeAlpha = clamp(distanceToOuterEdge, 0.0, 1.0);
+        outputCoverage_Stage0 = vec4(edgeAlpha);
+    }
+    vec4 output_Stage1;
+    {
+        output_Stage1 = outputCoverage_Stage0;
+    }
+    {
+        sk_FragColor = 1.0 - output_Stage1;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+in vec2 inPosition;
+in vec4 inColor;
+in vec4 inCircleEdge;
+noperspective out vec4 vinCircleEdge_Stage0;
+noperspective out vec4 vinColor_Stage0;
+void main() {
+    vinCircleEdge_Stage0 = inCircleEdge;
+    vinColor_Stage0 = inColor;
+    vec2 pos2 = inPosition;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

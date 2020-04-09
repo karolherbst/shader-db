@@ -1,0 +1,144 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 uleftBorderColor_Stage2_c0_c0;
+uniform vec4 urightBorderColor_Stage2_c0_c0;
+uniform vec2 ufocalParams_Stage2_c0_c0_c0_c0;
+uniform vec4 uscale0_1_Stage2_c0_c0_c1_c0;
+uniform vec4 uscale2_3_Stage2_c0_c0_c1_c0;
+uniform vec4 uscale4_5_Stage2_c0_c0_c1_c0;
+uniform vec4 uscale6_7_Stage2_c0_c0_c1_c0;
+uniform vec4 uscale8_9_Stage2_c0_c0_c1_c0;
+uniform vec4 ubias0_1_Stage2_c0_c0_c1_c0;
+uniform vec4 ubias2_3_Stage2_c0_c0_c1_c0;
+uniform vec4 ubias4_5_Stage2_c0_c0_c1_c0;
+uniform vec4 ubias6_7_Stage2_c0_c0_c1_c0;
+uniform vec4 ubias8_9_Stage2_c0_c0_c1_c0;
+uniform vec4 uthresholds1_7_Stage2_c0_c0_c1_c0;
+uniform vec4 uthresholds9_13_Stage2_c0_c0_c1_c0;
+uniform sampler2D uTextureSampler_0_Stage1;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+noperspective in vec2 vTransformedCoords_1_Stage0;
+vec4 TwoPointConicalGradientLayout_Stage2_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec2 p = vTransformedCoords_1_Stage0;
+    float t = -1.0;
+    float v = 1.0;
+    {
+        {
+            float invR1 = ufocalParams_Stage2_c0_c0_c0_c0.x;
+            float x_t = -1.0;
+            {
+                float temp = p.x * p.x - p.y * p.y;
+                if (temp >= 0.0) {
+                    {
+                        x_t = sqrt(temp) - p.x * invR1;
+                    }
+                }
+            }
+            {
+                if (x_t <= 0.0) {
+                    v = -1.0;
+                }
+            }
+            {
+                {
+                    t = x_t;
+                }
+            }
+        }
+    }
+    _output = vec4(t, v, 0.0, 0.0);
+    return _output;
+}
+vec4 UnrolledBinaryGradientColorizer_Stage2_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    float t = _input.x;
+    vec4 scale, bias;
+    if (t < uthresholds1_7_Stage2_c0_c0_c1_c0.w) {
+        if (t < uthresholds1_7_Stage2_c0_c0_c1_c0.y) {
+            if (t < uthresholds1_7_Stage2_c0_c0_c1_c0.x) {
+                scale = uscale0_1_Stage2_c0_c0_c1_c0;
+                bias = ubias0_1_Stage2_c0_c0_c1_c0;
+            } else {
+                scale = uscale2_3_Stage2_c0_c0_c1_c0;
+                bias = ubias2_3_Stage2_c0_c0_c1_c0;
+            }
+        } else {
+            if (t < uthresholds1_7_Stage2_c0_c0_c1_c0.z) {
+                scale = uscale4_5_Stage2_c0_c0_c1_c0;
+                bias = ubias4_5_Stage2_c0_c0_c1_c0;
+            } else {
+                scale = uscale6_7_Stage2_c0_c0_c1_c0;
+                bias = ubias6_7_Stage2_c0_c0_c1_c0;
+            }
+        }
+    } else {
+        {
+            {
+                scale = uscale8_9_Stage2_c0_c0_c1_c0;
+                bias = ubias8_9_Stage2_c0_c0_c1_c0;
+            }
+        }
+    }
+    _output = t * scale + bias;
+    return _output;
+}
+vec4 ClampedGradientEffect_Stage2_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 t = TwoPointConicalGradientLayout_Stage2_c0_c0_c0_c0(vec4(1.0));
+    if (t.y < 0.0) {
+        _output = vec4(0.0);
+    } else if (t.x < 0.0) {
+        _output = uleftBorderColor_Stage2_c0_c0;
+    } else if (t.x > 1.0) {
+        _output = urightBorderColor_Stage2_c0_c0;
+    } else {
+        _output = UnrolledBinaryGradientColorizer_Stage2_c0_c0_c1_c0(t);
+    }
+    {
+        _output.xyz *= _output.w;
+    }
+    return _output;
+}
+vec4 blend_src_in(vec4 src, vec4 dst) {
+    return src * dst.w;
+}
+vec4 blend_dst_in(vec4 src, vec4 dst) {
+    return blend_src_in(dst, src);
+}
+void main() {
+    vec4 output_Stage1;
+    {
+        output_Stage1 = texture(uTextureSampler_0_Stage1, vTransformedCoords_0_Stage0);
+    }
+    vec4 output_Stage2;
+    {
+        output_Stage2 = blend_dst_in(output_Stage1, ClampedGradientEffect_Stage2_c0_c0(vec4(1.0)));
+    }
+    {
+        sk_FragColor = output_Stage2;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+uniform mat3 uCoordTransformMatrix_1_Stage0;
+in vec2 position;
+in vec2 localCoord;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+noperspective out vec2 vTransformedCoords_1_Stage0;
+void main() {
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(localCoord, 1.0)).xy;
+    vTransformedCoords_1_Stage0 = (uCoordTransformMatrix_1_Stage0 * vec3(localCoord, 1.0)).xy;
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

@@ -1,0 +1,93 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+flat in vec4 vcolor_Stage0;
+noperspective in vec4 varccoord_Stage0;
+void main() {
+    vec4 outputColor_Stage0;
+    vec4 outputCoverage_Stage0;
+    {
+        outputColor_Stage0 = vcolor_Stage0;
+        float x_plus_1 = varccoord_Stage0.x, y = varccoord_Stage0.y;
+        float coverage;
+        if (0.0 == x_plus_1) {
+            coverage = y;
+        } else {
+            float fn = x_plus_1 * (x_plus_1 - 2.0);
+            fn = ((y) * (y) + (fn));
+            float gx = varccoord_Stage0.z, gy = varccoord_Stage0.w;
+            float fnwidth = abs(gx) + abs(gy);
+            float d = fn / fnwidth;
+            coverage = clamp(0.5 - d, 0.0, 1.0);
+        }
+        outputCoverage_Stage0 = vec4(coverage);
+    }
+    {
+        sk_FragColor = outputColor_Stage0 * outputCoverage_Stage0;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+in vec4 radii_selector;
+in vec4 corner_and_radius_outsets;
+in vec4 aa_bloat_and_coverage;
+in vec4 skew;
+in vec2 translate;
+in vec4 radii_x;
+in vec4 radii_y;
+in vec4 color;
+flat out vec4 vcolor_Stage0;
+noperspective out vec4 varccoord_Stage0;
+void main() {
+    vcolor_Stage0 = color;
+    vec2 corner = corner_and_radius_outsets.xy;
+    vec2 radius_outset = corner_and_radius_outsets.zw;
+    vec2 aa_bloat_direction = aa_bloat_and_coverage.xy;
+    float coverage = aa_bloat_and_coverage.z;
+    float is_linear_coverage = aa_bloat_and_coverage.w;
+    vec2 pixellength = inversesqrt(vec2(dot(skew.xz, skew.xz), dot(skew.yw, skew.yw)));
+    vec4 normalized_axis_dirs = skew * pixellength.xyxy;
+    vec2 axiswidths = abs(normalized_axis_dirs.xy) + abs(normalized_axis_dirs.zw);
+    vec2 aa_bloatradius = (axiswidths * pixellength) * 0.5;
+    vec4 radii_and_neighbors = radii_selector * mat4(radii_x, radii_y, radii_x.yxwz, radii_y.wzyx);
+    vec2 radii = radii_and_neighbors.xy;
+    vec2 neighbor_radii = radii_and_neighbors.zw;
+    if (any(greaterThan(aa_bloatradius, vec2(1.0)))) {
+        corner = max(abs(corner), aa_bloatradius) * sign(corner);
+        coverage /= max(aa_bloatradius.x, 1.0) * max(aa_bloatradius.y, 1.0);
+        radii = vec2(0.0);
+    }
+    if (any(lessThan(radii, aa_bloatradius * 1.25))) {
+        radii = aa_bloatradius;
+        radius_outset = floor(abs(radius_outset)) * radius_outset;
+        is_linear_coverage = 1.0;
+    } else {
+        radii = clamp(radii, pixellength, 2.0 - pixellength);
+        neighbor_radii = clamp(neighbor_radii, pixellength, 2.0 - pixellength);
+        vec2 spacing = (2.0 - radii) - neighbor_radii;
+        vec2 extra_pad = max(pixellength * 0.0625 - spacing, vec2(0.0));
+        radii -= extra_pad * 0.5;
+    }
+    vec2 aa_outset = aa_bloat_direction * aa_bloatradius;
+    vec2 vertexpos = (corner + radius_outset * radii) + aa_outset;
+    mat2 skewmatrix = mat2(skew.xy, skew.zw);
+    vec2 devcoord = vertexpos * skewmatrix + translate;
+    if (0.0 != is_linear_coverage) {
+        varccoord_Stage0.xy = vec2(0.0, coverage);
+    } else {
+        vec2 arccoord = (1.0 - abs(radius_outset)) + (aa_outset / radii) * corner;
+        varccoord_Stage0.xy = vec2(arccoord.x + 1.0, arccoord.y);
+        mat2 derivatives = inverse(skewmatrix);
+        varccoord_Stage0.zw = derivatives * ((arccoord / radii) * 2.0);
+    }
+    gl_Position = vec4(devcoord.x, devcoord.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

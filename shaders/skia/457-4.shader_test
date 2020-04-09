@@ -1,0 +1,85 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 uboundsUniform_Stage2_c1_c0;
+uniform float uxInvZoom_Stage2_c1_c0;
+uniform float uyInvZoom_Stage2_c1_c0;
+uniform float uxInvInset_Stage2_c1_c0;
+uniform float uyInvInset_Stage2_c1_c0;
+uniform vec2 uoffset_Stage2_c1_c0;
+uniform sampler2D uTextureSampler_0_Stage1;
+uniform sampler2D uTextureSampler_0_Stage2;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+noperspective in vec2 vTransformedCoords_1_Stage0;
+vec4 ClampFragmentProcessor_Stage2_c0_c0(vec4 _input) {
+    vec4 _output;
+    {
+        _output = clamp(_input, 0.0, 1.0);
+    }
+    return _output;
+}
+vec4 MagnifierEffect_Stage2_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec2 coord = vTransformedCoords_1_Stage0;
+    vec2 zoom_coord = uoffset_Stage2_c1_c0 + coord * vec2(uxInvZoom_Stage2_c1_c0, uyInvZoom_Stage2_c1_c0);
+    vec2 delta = (coord - uboundsUniform_Stage2_c1_c0.xy) * uboundsUniform_Stage2_c1_c0.zw;
+    delta = min(delta, vec2(1.0, 1.0) - delta);
+    delta *= vec2(uxInvInset_Stage2_c1_c0, uyInvInset_Stage2_c1_c0);
+    float weight = 0.0;
+    if (delta.x < 2.0 && delta.y < 2.0) {
+        delta = vec2(2.0, 2.0) - delta;
+        float dist = length(delta);
+        dist = max(2.0 - dist, 0.0);
+        weight = min(dist * dist, 1.0);
+    } else {
+        vec2 delta_squared = delta * delta;
+        weight = min(min(delta_squared.x, delta_squared.y), 1.0);
+    }
+    _output = texture(uTextureSampler_0_Stage2, mix(coord, zoom_coord, weight));
+    return _output;
+}
+vec4 blend_src_over(vec4 src, vec4 dst) {
+    return src + (1.0 - src.w) * dst;
+}
+vec4 blend_lighten(vec4 src, vec4 dst) {
+    vec4 result = blend_src_over(src, dst);
+    result.xyz = max(result.xyz, (1.0 - dst.w) * src.xyz + dst.xyz);
+    return result;
+}
+void main() {
+    vec4 output_Stage1;
+    {
+        output_Stage1 = texture(uTextureSampler_0_Stage1, vTransformedCoords_0_Stage0);
+    }
+    vec4 output_Stage2;
+    {
+        vec4 inputColor = vec4(output_Stage1.xyz, 1.0);
+        output_Stage2 = blend_lighten(ClampFragmentProcessor_Stage2_c0_c0(inputColor), MagnifierEffect_Stage2_c1_c0(inputColor));
+        output_Stage2 *= output_Stage1.w;
+    }
+    {
+        sk_FragColor = output_Stage2;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+uniform mat3 uCoordTransformMatrix_1_Stage0;
+in vec2 position;
+in vec2 localCoord;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+noperspective out vec2 vTransformedCoords_1_Stage0;
+void main() {
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(localCoord, 1.0)).xy;
+    vTransformedCoords_1_Stage0 = (uCoordTransformMatrix_1_Stage0 * vec3(localCoord, 1.0)).xy;
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

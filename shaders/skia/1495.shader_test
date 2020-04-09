@@ -1,0 +1,83 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+#extension GL_KHR_blend_equation_advanced : require
+out vec4 sk_FragColor;
+layout (blend_support_all_equations) out ;
+uniform vec4 uColor_Stage0;
+uniform vec4 ucircleData_Stage2;
+uniform float uPixelSize_Stage3;
+uniform vec2 uRange_Stage3;
+uniform float uPixelSize_Stage4;
+uniform vec2 uRange_Stage4;
+uniform sampler2D uTextureSampler_0_Stage2;
+uniform sampler2D uTextureSampler_0_Stage3;
+uniform sampler2D uTextureSampler_0_Stage4;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+noperspective in vec2 vTransformedCoords_1_Stage0;
+void main() {
+    vec4 outputColor_Stage0;
+    {
+        outputColor_Stage0 = uColor_Stage0;
+    }
+    vec4 output_Stage1;
+    {
+        output_Stage1 = floor(outputColor_Stage0 * 255.0 + 0.5) / 255.0;
+        {
+            output_Stage1.xyz = floor((output_Stage1.xyz * output_Stage1.w) * 255.0 + 0.5) / 255.0;
+        }
+    }
+    vec4 output_Stage2;
+    {
+        vec2 vec = vec2((gl_FragCoord.x - ucircleData_Stage2.x) * ucircleData_Stage2.w, (gl_FragCoord.y - ucircleData_Stage2.y) * ucircleData_Stage2.w);
+        float dist = length(vec) + (0.5 - ucircleData_Stage2.z) * ucircleData_Stage2.w;
+        output_Stage2 = output_Stage1 * texture(uTextureSampler_0_Stage2, vec2(dist, 0.5)).w;
+    }
+    vec4 output_Stage3;
+    {
+        output_Stage3 = vec4(1.0, 1.0, 1.0, 1.0);
+        vec2 coord = vTransformedCoords_0_Stage0;
+        coord.x -= uPixelSize_Stage3;
+        for (int i = 0;i < 3; i++) {
+            output_Stage3 = min(output_Stage3, texture(uTextureSampler_0_Stage3, coord));
+            coord.x += uPixelSize_Stage3;
+        }
+        output_Stage3 *= output_Stage2;
+    }
+    vec4 output_Stage4;
+    {
+        output_Stage4 = vec4(0.0, 0.0, 0.0, 0.0);
+        vec2 coord = vTransformedCoords_1_Stage0;
+        coord.x -= 6.0 * uPixelSize_Stage4;
+        for (int i = 0;i < 13; i++) {
+            output_Stage4 = max(output_Stage4, texture(uTextureSampler_0_Stage4, coord));
+            coord.x += uPixelSize_Stage4;
+        }
+    }
+    {
+        sk_FragColor = output_Stage4 * output_Stage3;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uViewM_Stage0;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+uniform mat3 uCoordTransformMatrix_1_Stage0;
+in vec2 position;
+in vec2 inLocalCoord;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+noperspective out vec2 vTransformedCoords_1_Stage0;
+void main() {
+    vec2 pos2 = (uViewM_Stage0 * vec3(position, 1.0)).xy;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inLocalCoord, 1.0)).xy;
+    vTransformedCoords_1_Stage0 = (uCoordTransformMatrix_1_Stage0 * vec3(inLocalCoord, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

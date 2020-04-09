@@ -1,0 +1,84 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec3 uDistanceAdjust_Stage0;
+uniform float ualpha_Stage1;
+uniform sampler2D uTextureSampler_0_Stage0;
+noperspective in vec4 vinColor_Stage0;
+noperspective in vec2 vTextureCoords_Stage0;
+flat in int vTexIndex_Stage0;
+noperspective in vec2 vIntTextureCoords_Stage0;
+noperspective in float vDelta_Stage0;
+void main() {
+    vec4 outputCoverage_Stage0;
+    {
+        vec2 uv = vTextureCoords_Stage0;
+        vec2 st = vIntTextureCoords_Stage0;
+        vec2 Jdx = dFdx(st);
+        vec2 Jdy = -dFdy(st);
+        vec2 offset = vec2(vDelta_Stage0) * Jdx;
+        vec4 texColor;
+        {
+            texColor = texture(uTextureSampler_0_Stage0, uv);
+        }
+        vec3 distance;
+        distance.y = texColor.x;
+        vec2 uv_adjusted = uv - offset;
+        {
+            texColor = texture(uTextureSampler_0_Stage0, uv_adjusted);
+        }
+        distance.x = texColor.x;
+        uv_adjusted = uv + offset;
+        {
+            texColor = texture(uTextureSampler_0_Stage0, uv_adjusted);
+        }
+        distance.z = texColor.x;
+        distance = vec3(7.96875) * (distance - vec3(0.50196081399917603));
+        distance -= uDistanceAdjust_Stage0;
+        float afwidth;
+        vec2 dist_grad = vec2(dFdx(distance.x), -dFdy(distance.x));
+        float dg_len2 = dot(dist_grad, dist_grad);
+        if (dg_len2 < 9.9999997473787516e-05) {
+            dist_grad = vec2(0.70709997415542603, 0.70709997415542603);
+        } else {
+            dist_grad = dist_grad * inversesqrt(dg_len2);
+        }
+        vec2 grad = vec2(dist_grad.x * Jdx.x + dist_grad.y * Jdy.x, dist_grad.x * Jdx.y + dist_grad.y * Jdy.y);
+        afwidth = 0.64999997615814209 * length(grad);
+        outputCoverage_Stage0 = vec4(smoothstep(vec3(-afwidth), vec3(afwidth), distance), 1.0);
+    }
+    {
+        outputCoverage_Stage0.w = max(max(outputCoverage_Stage0.x, outputCoverage_Stage0.y), outputCoverage_Stage0.z);
+        sk_FragColor = ualpha_Stage1 * outputCoverage_Stage0;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform vec2 uAtlasDimensionsInv_Stage0;
+in vec2 inPosition;
+in vec4 inColor;
+in uvec2 inTextureCoords;
+noperspective out vec4 vinColor_Stage0;
+noperspective out vec2 vTextureCoords_Stage0;
+flat out int vTexIndex_Stage0;
+noperspective out vec2 vIntTextureCoords_Stage0;
+noperspective out float vDelta_Stage0;
+void main() {
+    vinColor_Stage0 = inColor;
+    ivec2 signedCoords = ivec2(int(inTextureCoords.x), int(inTextureCoords.y));
+    vec2 unormTexCoords = vec2(float(signedCoords.x / 2), float(signedCoords.y / 2));
+    vTextureCoords_Stage0 = unormTexCoords * uAtlasDimensionsInv_Stage0;
+    vTexIndex_Stage0 = 0;
+    vIntTextureCoords_Stage0 = unormTexCoords;
+    vDelta_Stage0 = uAtlasDimensionsInv_Stage0.x / 3.0;
+    gl_Position = vec4(inPosition.x, inPosition.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

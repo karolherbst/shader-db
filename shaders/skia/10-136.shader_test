@@ -1,0 +1,53 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 ucolor_Stage1;
+uniform sampler2D uTextureSampler_0_Stage0;
+noperspective in vec2 vtextureCoords_Stage0;
+flat in vec4 vtextureDomain_Stage0;
+flat in vec4 vcolor_Stage0;
+void main() {
+    vec4 outputColor_Stage0;
+    {
+        vec2 textureCoords;
+        textureCoords = vtextureCoords_Stage0;
+        vec4 textureDomain;
+        textureDomain = vtextureDomain_Stage0;
+        outputColor_Stage0 = vcolor_Stage0;
+        outputColor_Stage0 = texture(uTextureSampler_0_Stage0, clamp(textureCoords, textureDomain.xy, textureDomain.zw)) * outputColor_Stage0;
+    }
+    vec4 output_Stage1;
+    {
+        {
+            output_Stage1 = outputColor_Stage0 * ucolor_Stage1;
+        }
+    }
+    {
+        sk_FragColor = output_Stage1;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+in vec2 position;
+in vec2 textureCoords;
+in vec4 textureDomain;
+in vec4 color;
+noperspective out vec2 vtextureCoords_Stage0;
+flat out vec4 vtextureDomain_Stage0;
+flat out vec4 vcolor_Stage0;
+void main() {
+    vec2 pos2 = position;
+    vtextureCoords_Stage0 = textureCoords;
+    vtextureDomain_Stage0 = textureDomain;
+    vcolor_Stage0 = color;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

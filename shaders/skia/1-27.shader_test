@@ -1,0 +1,57 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+vec4 _vtx_attr_0;
+uniform vec4 uColor_Stage0;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+noperspective in vec4 v_vtx_attr0_Stage0;
+vec4 runtime_shader_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    _output = _input;
+    _output = _vtx_attr_0;
+    return _output;
+}
+vec4 ClampFragmentProcessor_Stage1_c1_c0(vec4 _input) {
+    vec4 _output;
+    {
+        float alpha = clamp(_input.w, 0.0, 1.0);
+        _output = vec4(clamp(_input.xyz, 0.0, alpha), alpha);
+    }
+    return _output;
+}
+void main() {
+    vec4 outputColor_Stage0;
+    {
+        outputColor_Stage0 = uColor_Stage0;
+        _vtx_attr_0 = v_vtx_attr0_Stage0;
+    }
+    vec4 output_Stage1;
+    {
+        output_Stage1 = ClampFragmentProcessor_Stage1_c1_c0(runtime_shader_Stage1_c0_c0(outputColor_Stage0));
+    }
+    {
+        sk_FragColor = output_Stage1;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+in vec2 position;
+in vec4 _vtx_attr0;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+noperspective out vec4 v_vtx_attr0_Stage0;
+void main() {
+    vec2 pos2 = position;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(position, 1.0)).xy;
+    v_vtx_attr0_Stage0 = _vtx_attr0;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

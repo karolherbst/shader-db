@@ -1,0 +1,134 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 uColor_Stage0;
+uniform float ucornerRadius_Stage2;
+uniform vec4 uproxyRect_Stage2;
+uniform float ublurRadius_Stage2;
+uniform vec4 uinnerRect_Stage3_c0_c0;
+uniform vec2 uinvRadiiXY_Stage3_c0_c0;
+uniform mat4 um_Stage5;
+uniform vec4 uv_Stage5;
+uniform sampler2D uTextureSampler_0_Stage2;
+noperspective in vec3 vDashParams_Stage0;
+noperspective in vec4 vRectParams_Stage0;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+vec4 EllipticalRRect_Stage3_c0_c0(vec4 _input, vec2 _coords) {
+    vec4 _output;
+    vec2 dxy0 = uinnerRect_Stage3_c0_c0.xy - gl_FragCoord.xy;
+    vec2 dxy1 = gl_FragCoord.xy - uinnerRect_Stage3_c0_c0.zw;
+    vec2 dxy = max(max(dxy0, dxy1), 0.0);
+    vec2 Z = dxy * uinvRadiiXY_Stage3_c0_c0;
+    float implicit = dot(Z, dxy) - 1.0;
+    float grad_dot = 4.0 * dot(Z, Z);
+    grad_dot = max(grad_dot, 9.9999997473787516e-05);
+    float approx_dist = implicit * inversesqrt(grad_dot);
+    float alpha = clamp(0.5 + approx_dist, 0.0, 1.0);
+    _output = _input * alpha;
+    return _output;
+}
+void main() {
+    vec4 outputColor_Stage0;
+    vec4 outputCoverage_Stage0;
+    {
+        outputColor_Stage0 = uColor_Stage0;
+        float xShifted = vDashParams_Stage0.x - floor(vDashParams_Stage0.x / vDashParams_Stage0.z) * vDashParams_Stage0.z;
+        vec2 fragPosShifted = vec2(xShifted, vDashParams_Stage0.y);
+        float alpha = 1.0;
+        alpha *= fragPosShifted.x - vRectParams_Stage0.x > -0.5 ? 1.0 : 0.0;
+        alpha *= vRectParams_Stage0.z - fragPosShifted.x >= -0.5 ? 1.0 : 0.0;
+        outputCoverage_Stage0 = vec4(alpha);
+    }
+    vec4 output_Stage1;
+    {
+        output_Stage1 = floor(outputColor_Stage0 * 255.0 + 0.5) / 255.0;
+        {
+            output_Stage1.xyz = floor((output_Stage1.xyz * output_Stage1.w) * 255.0 + 0.5) / 255.0;
+        }
+    }
+    vec4 output_Stage2;
+    {
+        vec2 translatedFragPos = gl_FragCoord.xy - uproxyRect_Stage2.xy;
+        float threshold = ucornerRadius_Stage2 + 2.0 * ublurRadius_Stage2;
+        vec2 middle = (uproxyRect_Stage2.zw - uproxyRect_Stage2.xy) - 2.0 * threshold;
+        if (translatedFragPos.x >= threshold && translatedFragPos.x < middle.x + threshold) {
+            translatedFragPos.x = threshold;
+        } else if (translatedFragPos.x >= middle.x + threshold) {
+            translatedFragPos.x -= middle.x - 1.0;
+        }
+        if (translatedFragPos.y > threshold && translatedFragPos.y < middle.y + threshold) {
+            translatedFragPos.y = threshold;
+        } else if (translatedFragPos.y >= middle.y + threshold) {
+            translatedFragPos.y -= middle.y - 1.0;
+        }
+        vec2 proxyDims = vec2(2.0 * threshold + 1.0);
+        vec2 texCoord = translatedFragPos / proxyDims;
+        output_Stage2 = output_Stage1 * texture(uTextureSampler_0_Stage2, texCoord);
+    }
+    vec4 output_Stage3;
+    {
+        float coord = vTransformedCoords_0_Stage0.y - 0.5;
+        float f = fract(coord);
+        coord += 0.5 - f;
+        float f2 = f * f;
+        vec4 w = mat4(0.055555555555555552, 0.88888888888888884, 0.055555555555555552, 0.0, -0.5, 0.0, 0.5, 0.0, 0.83333333333333337, -2.0, 1.5, -0.33333333333333331, -0.3888888888888889, 1.1666666666666667, -1.1666666666666667, 0.3888888888888889) * vec4(1.0, f, f2, f2 * f);
+        vec4 c[4];
+        c[0] = EllipticalRRect_Stage3_c0_c0(vec4(1.0), vec2(vTransformedCoords_0_Stage0.x, coord + -1.0));
+        c[1] = EllipticalRRect_Stage3_c0_c0(vec4(1.0), vec2(vTransformedCoords_0_Stage0.x, coord));
+        c[2] = EllipticalRRect_Stage3_c0_c0(vec4(1.0), vec2(vTransformedCoords_0_Stage0.x, coord + 1.0));
+        c[3] = EllipticalRRect_Stage3_c0_c0(vec4(1.0), vec2(vTransformedCoords_0_Stage0.x, coord + 2.0));
+        vec4 bicubicColor = ((c[0] * w.x + c[1] * w.y) + c[2] * w.z) + c[3] * w.w;
+        bicubicColor = clamp(bicubicColor, 0.0, 1.0);
+        output_Stage3 = bicubicColor * output_Stage2;
+    }
+    vec4 output_Stage4;
+    {
+        output_Stage4 = floor(output_Stage3 * 255.0 + 0.5) / 255.0;
+        {
+            output_Stage4.xyz = floor((output_Stage4.xyz * output_Stage4.w) * 255.0 + 0.5) / 255.0;
+        }
+    }
+    vec4 output_Stage5;
+    {
+        vec4 inputColor = output_Stage4;
+        {
+            float nonZeroAlpha = max(inputColor.w, 9.9999997473787516e-05);
+            inputColor = vec4(inputColor.xyz / nonZeroAlpha, inputColor.w);
+        }
+        output_Stage5 = um_Stage5 * inputColor + uv_Stage5;
+        {
+            output_Stage5.w = clamp(output_Stage5.w, 0.0, 1.0);
+        }
+        {
+            output_Stage5.xyz *= output_Stage5.w;
+        }
+    }
+    {
+        sk_FragColor = output_Stage5 * outputCoverage_Stage0;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+in vec2 inPosition;
+in vec3 inDashParams;
+in vec4 inRect;
+noperspective out vec3 vDashParams_Stage0;
+noperspective out vec4 vRectParams_Stage0;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+void main() {
+    vDashParams_Stage0 = inDashParams;
+    vRectParams_Stage0 = inRect;
+    vec2 pos2 = inPosition;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inPosition, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

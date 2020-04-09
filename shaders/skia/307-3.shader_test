@@ -1,0 +1,179 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 uellipse_Stage1_c0_c0_c0_c0;
+uniform mat4 um_Stage1_c0_c0_c1_c0;
+uniform vec4 uv_Stage1_c0_c0_c1_c0;
+uniform vec4 ucolor_Stage1_c1_c0_c0_c0;
+uniform vec2 uDstTextureUpperLeft_Stage2;
+uniform vec2 uDstTextureCoordScale_Stage2;
+uniform sampler2D uTextureSampler_0_Stage1;
+uniform sampler2D uDstTextureSampler_Stage2;
+noperspective in vec4 vinCircleEdge_Stage0;
+noperspective in vec3 vinClipPlane_Stage0;
+noperspective in vec3 vinUnionPlane_Stage0;
+noperspective in vec4 vinColor_Stage0;
+vec4 EllipseEffect_Stage1_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec2 d = gl_FragCoord.xy - uellipse_Stage1_c0_c0_c0_c0.xy;
+    vec2 Z = d * uellipse_Stage1_c0_c0_c0_c0.zw;
+    float implicit = dot(Z, d) - 1.0;
+    float grad_dot = 4.0 * dot(Z, Z);
+    {
+        grad_dot = max(grad_dot, 1.1754999560161448e-38);
+    }
+    float approx_dist = implicit * inversesqrt(grad_dot);
+    float alpha;
+    {
+        alpha = clamp(0.5 + approx_dist, 0.0, 1.0);
+    }
+    _output = _input * alpha;
+    return _output;
+}
+vec4 ColorMatrixFragmentProcessor_Stage1_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = _input;
+    {
+        float nonZeroAlpha = max(inputColor.w, 9.9999997473787516e-05);
+        inputColor = vec4(inputColor.xyz / nonZeroAlpha, inputColor.w);
+    }
+    _output = um_Stage1_c0_c0_c1_c0 * inputColor + uv_Stage1_c0_c0_c1_c0;
+    {
+        _output = clamp(_output, 0.0, 1.0);
+    }
+    {
+        _output.xyz *= _output.w;
+    }
+    return _output;
+}
+float _blend_overlay_component(float sc, float sa, float dc, float da) {
+    if (2.0 * dc <= da) {
+        return (2.0 * sc) * dc;
+    }
+    return sa * da - (2.0 * (da - dc)) * (sa - sc);
+}
+vec4 blend_overlay(vec4 src, vec4 dst) {
+    vec4 result = vec4(_blend_overlay_component(src.x, src.w, dst.x, dst.w), _blend_overlay_component(src.y, src.w, dst.y, dst.w), _blend_overlay_component(src.z, src.w, dst.z, dst.w), src.w + (1.0 - src.w) * dst.w);
+    result.xyz += dst.xyz * (1.0 - src.w) + src.xyz * (1.0 - dst.w);
+    return result;
+}
+vec4 blend_hard_light(vec4 src, vec4 dst) {
+    return blend_overlay(dst, src);
+}
+vec4 ComposeTwo_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_hard_light(EllipseEffect_Stage1_c0_c0_c0_c0(inputColor), ColorMatrixFragmentProcessor_Stage1_c0_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 ConstColorProcessor_Stage1_c1_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    {
+        _output = ucolor_Stage1_c1_c0_c0_c0;
+    }
+    return _output;
+}
+vec4 ColorTableEffect_Stage1_c1_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    float nonZeroAlpha = max(_input.w, 9.9999997473787516e-05);
+    vec4 coord = vec4(_input.xyz / nonZeroAlpha, nonZeroAlpha);
+    coord = coord * 0.9960939884185791 + vec4(0.0019529999699443579, 0.0019529999699443579, 0.0019529999699443579, 0.0019529999699443579);
+    _output.w = texture(uTextureSampler_0_Stage1, vec2(coord.w, 0.125)).w;
+    _output.x = texture(uTextureSampler_0_Stage1, vec2(coord.x, 0.375)).w;
+    _output.y = texture(uTextureSampler_0_Stage1, vec2(coord.y, 0.625)).w;
+    _output.z = texture(uTextureSampler_0_Stage1, vec2(coord.z, 0.875)).w;
+    _output.xyz *= _output.w;
+    return _output;
+}
+float _guarded_divide(float n, float d) {
+    return n / d;
+}
+float _color_burn_component(float sc, float sa, float dc, float da) {
+    if (da == dc) {
+        return (sa * da + sc * (1.0 - da)) + dc * (1.0 - sa);
+    } else if (sc == 0.0) {
+        return dc * (1.0 - sa);
+    }
+    float d = max(0.0, da - _guarded_divide((da - dc) * sa, sc));
+    return (d * sa + sc * (1.0 - da)) + dc * (1.0 - sa);
+}
+vec4 blend_color_burn(vec4 src, vec4 dst) {
+    return vec4(_color_burn_component(src.x, src.w, dst.x, dst.w), _color_burn_component(src.y, src.w, dst.y, dst.w), _color_burn_component(src.z, src.w, dst.z, dst.w), src.w + (1.0 - src.w) * dst.w);
+}
+vec4 ComposeTwo_Stage1_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_color_burn(ConstColorProcessor_Stage1_c1_c0_c0_c0(inputColor), ColorTableEffect_Stage1_c1_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 blend_src_in(vec4 src, vec4 dst) {
+    return src * dst.w;
+}
+vec4 blend_dst_in(vec4 src, vec4 dst) {
+    return blend_src_in(dst, src);
+}
+void main() {
+    vec4 outputColor_Stage0;
+    vec4 outputCoverage_Stage0;
+    {
+        vec4 circleEdge;
+        circleEdge = vinCircleEdge_Stage0;
+        vec3 clipPlane;
+        clipPlane = vinClipPlane_Stage0;
+        vec3 unionPlane;
+        unionPlane = vinUnionPlane_Stage0;
+        outputColor_Stage0 = vinColor_Stage0;
+        float d = length(circleEdge.xy);
+        float distanceToOuterEdge = circleEdge.z * (1.0 - d);
+        float edgeAlpha = clamp(distanceToOuterEdge, 0.0, 1.0);
+        float clip = clamp(circleEdge.z * dot(circleEdge.xy, clipPlane.xy) + clipPlane.z, 0.0, 1.0);
+        clip = clamp(clip + clamp(circleEdge.z * dot(circleEdge.xy, unionPlane.xy) + unionPlane.z, 0.0, 1.0), 0.0, 1.0);
+        edgeAlpha *= clip;
+        outputCoverage_Stage0 = vec4(edgeAlpha);
+    }
+    vec4 output_Stage1;
+    {
+        vec4 inputColor = vec4(outputColor_Stage0.xyz, 1.0);
+        output_Stage1 = blend_dst_in(ComposeTwo_Stage1_c0_c0(inputColor), ComposeTwo_Stage1_c1_c0(inputColor));
+        output_Stage1 *= outputColor_Stage0.w;
+    }
+    {
+        if (all(lessThanEqual(outputCoverage_Stage0.xyz, vec3(0.0)))) {
+            discard;
+        }
+        vec2 _dstTexCoord = (gl_FragCoord.xy - uDstTextureUpperLeft_Stage2) * uDstTextureCoordScale_Stage2;
+        vec4 _dstColor = texture(uDstTextureSampler_Stage2, _dstTexCoord);
+        sk_FragColor = blend_src_in(output_Stage1, _dstColor);
+        sk_FragColor = outputCoverage_Stage0 * sk_FragColor + (vec4(1.0) - outputCoverage_Stage0) * _dstColor;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+in vec2 inPosition;
+in vec4 inColor;
+in vec4 inCircleEdge;
+in vec3 inClipPlane;
+in vec3 inUnionPlane;
+noperspective out vec4 vinCircleEdge_Stage0;
+noperspective out vec3 vinClipPlane_Stage0;
+noperspective out vec3 vinUnionPlane_Stage0;
+noperspective out vec4 vinColor_Stage0;
+void main() {
+    vinCircleEdge_Stage0 = inCircleEdge;
+    vinClipPlane_Stage0 = inClipPlane;
+    vinUnionPlane_Stage0 = inUnionPlane;
+    vinColor_Stage0 = inColor;
+    vec2 pos2 = inPosition;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

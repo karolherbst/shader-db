@@ -1,0 +1,355 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 ucircleData_Stage1_c0_c0_c0_c0_c0_c0;
+uniform vec4 uboundsUniform_Stage1_c0_c0_c0_c0_c1_c0;
+uniform float uxInvZoom_Stage1_c0_c0_c0_c0_c1_c0;
+uniform float uyInvZoom_Stage1_c0_c0_c0_c0_c1_c0;
+uniform float uxInvInset_Stage1_c0_c0_c0_c0_c1_c0;
+uniform float uyInvInset_Stage1_c0_c0_c0_c0_c1_c0;
+uniform vec2 uoffset_Stage1_c0_c0_c0_c0_c1_c0;
+uniform vec4 urectUniform_Stage1_c0_c0_c1_c0_c0_c0;
+uniform vec2 uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+uniform vec4 uKernel_Stage1_c0_c0_c1_c0_c1_c0[3];
+uniform vec2 uKernelOffset_Stage1_c0_c0_c1_c0_c1_c0;
+uniform float uGain_Stage1_c0_c0_c1_c0_c1_c0;
+uniform float uBias_Stage1_c0_c0_c1_c0_c1_c0;
+uniform vec4 uinnerRect_Stage1_c1_c0;
+uniform vec2 uinvRadiiXY_Stage1_c1_c0;
+uniform sampler2D uTextureSampler_0_Stage1;
+uniform sampler2D uTextureSampler_1_Stage1;
+uniform sampler2D uTextureSampler_2_Stage1;
+noperspective in vec4 vcolor_Stage0;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+noperspective in vec2 vTransformedCoords_1_Stage0;
+vec4 CircleBlurFragmentProcessor_Stage1_c0_c0_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec2 vec = vec2((gl_FragCoord.x - ucircleData_Stage1_c0_c0_c0_c0_c0_c0.x) * ucircleData_Stage1_c0_c0_c0_c0_c0_c0.w, (gl_FragCoord.y - ucircleData_Stage1_c0_c0_c0_c0_c0_c0.y) * ucircleData_Stage1_c0_c0_c0_c0_c0_c0.w);
+    float dist = length(vec) + (0.5 - ucircleData_Stage1_c0_c0_c0_c0_c0_c0.z) * ucircleData_Stage1_c0_c0_c0_c0_c0_c0.w;
+    _output = _input * texture(uTextureSampler_0_Stage1, vec2(dist, 0.5)).w;
+    return _output;
+}
+vec4 MagnifierEffect_Stage1_c0_c0_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec2 coord = vTransformedCoords_0_Stage0;
+    vec2 zoom_coord = uoffset_Stage1_c0_c0_c0_c0_c1_c0 + coord * vec2(uxInvZoom_Stage1_c0_c0_c0_c0_c1_c0, uyInvZoom_Stage1_c0_c0_c0_c0_c1_c0);
+    vec2 delta = (coord - uboundsUniform_Stage1_c0_c0_c0_c0_c1_c0.xy) * uboundsUniform_Stage1_c0_c0_c0_c0_c1_c0.zw;
+    delta = min(delta, vec2(1.0, 1.0) - delta);
+    delta *= vec2(uxInvInset_Stage1_c0_c0_c0_c0_c1_c0, uyInvInset_Stage1_c0_c0_c0_c0_c1_c0);
+    float weight = 0.0;
+    if (delta.x < 2.0 && delta.y < 2.0) {
+        delta = vec2(2.0, 2.0) - delta;
+        float dist = length(delta);
+        dist = max(2.0 - dist, 0.0);
+        weight = min(dist * dist, 1.0);
+    } else {
+        vec2 delta_squared = delta * delta;
+        weight = min(min(delta_squared.x, delta_squared.y), 1.0);
+    }
+    _output = texture(uTextureSampler_1_Stage1, mix(coord, zoom_coord, weight));
+    return _output;
+}
+vec4 blend_screen(vec4 src, vec4 dst) {
+    return src + (1.0 - src) * dst;
+}
+vec4 ComposeTwo_Stage1_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_screen(CircleBlurFragmentProcessor_Stage1_c0_c0_c0_c0_c0_c0(inputColor), MagnifierEffect_Stage1_c0_c0_c0_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 AARectEffect_Stage1_c0_c0_c1_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    float alpha;
+    {
+        float xSub, ySub;
+        xSub = min(gl_FragCoord.x - urectUniform_Stage1_c0_c0_c1_c0_c0_c0.x, 0.0);
+        xSub += min(urectUniform_Stage1_c0_c0_c1_c0_c0_c0.z - gl_FragCoord.x, 0.0);
+        ySub = min(gl_FragCoord.y - urectUniform_Stage1_c0_c0_c1_c0_c0_c0.y, 0.0);
+        ySub += min(urectUniform_Stage1_c0_c0_c1_c0_c0_c0.w - gl_FragCoord.y, 0.0);
+        alpha = (1.0 + max(xSub, -1.0)) * (1.0 + max(ySub, -1.0));
+    }
+    {
+        alpha = 1.0 - alpha;
+    }
+    _output = _input * alpha;
+    return _output;
+}
+vec4 MatrixConvolution_Stage1_c0_c0_c1_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec4 sum = vec4(0.0, 0.0, 0.0, 0.0);
+    vec2 coord = vTransformedCoords_1_Stage0 - uKernelOffset_Stage1_c0_c0_c1_c0_c1_c0 * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+    vec4 c;
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c1_c0[0].x;
+        {
+            vec2 origCoord = coord;
+            vec2 clampedCoord;
+            clampedCoord = origCoord;
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c1_c0[0].y;
+        {
+            vec2 origCoord = coord + vec2(0.0, 1.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+            vec2 clampedCoord;
+            clampedCoord = origCoord;
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c1_c0[0].z;
+        {
+            vec2 origCoord = coord + vec2(0.0, 2.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+            vec2 clampedCoord;
+            clampedCoord = origCoord;
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c1_c0[0].w;
+        {
+            vec2 origCoord = coord + vec2(0.0, 3.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+            vec2 clampedCoord;
+            clampedCoord = origCoord;
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c1_c0[1].x;
+        {
+            vec2 origCoord = coord + vec2(0.0, 4.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+            vec2 clampedCoord;
+            clampedCoord = origCoord;
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c1_c0[1].y;
+        {
+            vec2 origCoord = coord + vec2(0.0, 5.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+            vec2 clampedCoord;
+            clampedCoord = origCoord;
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c1_c0[1].z;
+        {
+            vec2 origCoord = coord + vec2(0.0, 6.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+            vec2 clampedCoord;
+            clampedCoord = origCoord;
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c1_c0[1].w;
+        {
+            vec2 origCoord = coord + vec2(0.0, 7.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+            vec2 clampedCoord;
+            clampedCoord = origCoord;
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c1_c0[2].x;
+        {
+            vec2 origCoord = coord + vec2(0.0, 8.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+            vec2 clampedCoord;
+            clampedCoord = origCoord;
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c1_c0[2].y;
+        {
+            vec2 origCoord = coord + vec2(0.0, 9.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+            vec2 clampedCoord;
+            clampedCoord = origCoord;
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c1_c0[2].z;
+        {
+            vec2 origCoord = coord + vec2(0.0, 10.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+            vec2 clampedCoord;
+            clampedCoord = origCoord;
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    _output = sum * uGain_Stage1_c0_c0_c1_c0_c1_c0 + uBias_Stage1_c0_c0_c1_c0_c1_c0;
+    _output.w = clamp(_output.w, 0.0, 1.0);
+    _output.xyz = clamp(_output.xyz, 0.0, _output.w);
+    _output *= _input;
+    return _output;
+}
+float _blend_overlay_component(float sc, float sa, float dc, float da) {
+    if (2.0 * dc <= da) {
+        return (2.0 * sc) * dc;
+    }
+    return sa * da - (2.0 * (da - dc)) * (sa - sc);
+}
+vec4 blend_overlay(vec4 src, vec4 dst) {
+    vec4 result = vec4(_blend_overlay_component(src.x, src.w, dst.x, dst.w), _blend_overlay_component(src.y, src.w, dst.y, dst.w), _blend_overlay_component(src.z, src.w, dst.z, dst.w), src.w + (1.0 - src.w) * dst.w);
+    result.xyz += dst.xyz * (1.0 - src.w) + src.xyz * (1.0 - dst.w);
+    return result;
+}
+vec4 blend_hard_light(vec4 src, vec4 dst) {
+    return blend_overlay(dst, src);
+}
+vec4 ComposeTwo_Stage1_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_hard_light(AARectEffect_Stage1_c0_c0_c1_c0_c0_c0(inputColor), MatrixConvolution_Stage1_c0_c0_c1_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 blend_src_over(vec4 src, vec4 dst) {
+    return src + (1.0 - src.w) * dst;
+}
+vec4 blend_lighten(vec4 src, vec4 dst) {
+    vec4 result = blend_src_over(src, dst);
+    result.xyz = max(result.xyz, (1.0 - dst.w) * src.xyz + dst.xyz);
+    return result;
+}
+vec4 ComposeTwo_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_lighten(ComposeTwo_Stage1_c0_c0_c0_c0(inputColor), ComposeTwo_Stage1_c0_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 EllipticalRRect_Stage1_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec2 dxy0 = uinnerRect_Stage1_c1_c0.xy - gl_FragCoord.xy;
+    vec2 dxy1 = gl_FragCoord.xy - uinnerRect_Stage1_c1_c0.zw;
+    vec2 dxy = max(max(dxy0, dxy1), 0.0);
+    vec2 Z = dxy * uinvRadiiXY_Stage1_c1_c0;
+    float implicit = dot(Z, dxy) - 1.0;
+    float grad_dot = 4.0 * dot(Z, Z);
+    grad_dot = max(grad_dot, 9.9999997473787516e-05);
+    float approx_dist = implicit * inversesqrt(grad_dot);
+    float alpha = clamp(0.5 - approx_dist, 0.0, 1.0);
+    _output = _input * alpha;
+    return _output;
+}
+vec4 blend_src_in(vec4 src, vec4 dst) {
+    return src * dst.w;
+}
+void main() {
+    vec4 outputColor_Stage0;
+    {
+        outputColor_Stage0 = vcolor_Stage0;
+    }
+    vec4 output_Stage1;
+    {
+        vec4 inputColor = vec4(outputColor_Stage0.xyz, 1.0);
+        output_Stage1 = blend_src_in(ComposeTwo_Stage1_c0_c0(inputColor), EllipticalRRect_Stage1_c1_c0(inputColor));
+        output_Stage1 *= outputColor_Stage0.w;
+    }
+    {
+        sk_FragColor = output_Stage1;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform float uSrcTF_Stage0[7];
+uniform mat3 uColorXform_Stage0;
+uniform float uDstTF_Stage0[7];
+uniform mat3 uViewM_Stage0;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+uniform mat3 uCoordTransformMatrix_1_Stage0;
+in vec2 position;
+in vec4 inColor;
+noperspective out vec4 vcolor_Stage0;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+noperspective out vec2 vTransformedCoords_1_Stage0;
+float src_tf_Stage0(float x) {
+    float G = uSrcTF_Stage0[0];
+    float A = uSrcTF_Stage0[1];
+    float B = uSrcTF_Stage0[2];
+    float C = uSrcTF_Stage0[3];
+    float D = uSrcTF_Stage0[4];
+    float E = uSrcTF_Stage0[5];
+    float F = uSrcTF_Stage0[6];
+    float s = sign(x);
+    x = abs(x);
+    x = x < D ? C * x + F : pow(A * x + B, G) + E;
+    return s * x;
+}
+float dst_tf_Stage0(float x) {
+    float G = uDstTF_Stage0[0];
+    float A = uDstTF_Stage0[1];
+    float B = uDstTF_Stage0[2];
+    float C = uDstTF_Stage0[3];
+    float D = uDstTF_Stage0[4];
+    float E = uDstTF_Stage0[5];
+    float F = uDstTF_Stage0[6];
+    float s = sign(x);
+    x = abs(x);
+    x = x < D ? C * x + F : pow(A * x + B, G) + E;
+    return s * x;
+}
+vec4 gamut_xform_Stage0(vec4 color) {
+    color.xyz = uColorXform_Stage0 * color.xyz;
+    return color;
+}
+vec4 color_xform_Stage0(vec4 color) {
+    float nonZeroAlpha = max(color.w, 9.9999997473787516e-05);
+    color = vec4(color.xyz / nonZeroAlpha, nonZeroAlpha);
+    color.x = src_tf_Stage0(color.x);
+    color.y = src_tf_Stage0(color.y);
+    color.z = src_tf_Stage0(color.z);
+    color = gamut_xform_Stage0(color);
+    color.x = dst_tf_Stage0(color.x);
+    color.y = dst_tf_Stage0(color.y);
+    color.z = dst_tf_Stage0(color.z);
+    color.xyz *= color.w;
+    return color;
+}
+void main() {
+    vec4 color = inColor;
+    color = color.zyxw;
+    color = color_xform_Stage0(color);
+    color = vec4(color.xyz * color.w, color.w);
+    vcolor_Stage0 = color;
+    vec2 pos2 = (uViewM_Stage0 * vec3(position, 1.0)).xy;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(position, 1.0)).xy;
+    vTransformedCoords_1_Stage0 = (uCoordTransformMatrix_1_Stage0 * vec3(position, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_PointSize = 1.0;
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

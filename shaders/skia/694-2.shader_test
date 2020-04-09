@@ -1,0 +1,64 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 ucircleData_Stage1;
+uniform vec4 uinnerRect_Stage2;
+uniform vec2 uradiusPlusHalf_Stage2;
+uniform vec4 urectH_Stage3;
+uniform float uinvSixSigma_Stage3;
+uniform sampler2D uTextureSampler_0_Stage1;
+uniform sampler2D uTextureSampler_0_Stage3;
+flat in vec4 vcolor_Stage0;
+void main() {
+    vec4 output_Stage1;
+    {
+        vec2 vec = vec2((gl_FragCoord.x - ucircleData_Stage1.x) * ucircleData_Stage1.w, (gl_FragCoord.y - ucircleData_Stage1.y) * ucircleData_Stage1.w);
+        float dist = length(vec) + (0.5 - ucircleData_Stage1.z) * ucircleData_Stage1.w;
+        output_Stage1 = vec4(texture(uTextureSampler_0_Stage1, vec2(dist, 0.5)).w);
+    }
+    vec4 output_Stage2;
+    {
+        vec2 dxy0 = uinnerRect_Stage2.xy - gl_FragCoord.xy;
+        vec2 dxy1 = gl_FragCoord.xy - uinnerRect_Stage2.zw;
+        vec2 dxy = max(max(dxy0, dxy1), 0.0);
+        float alpha = clamp(uradiusPlusHalf_Stage2.x - length(dxy), 0.0, 1.0);
+        alpha = 1.0 - alpha;
+        output_Stage2 = output_Stage1 * alpha;
+    }
+    vec4 output_Stage3;
+    {
+        float xCoverage, yCoverage;
+        {
+            float x, y;
+            {
+                x = max(urectH_Stage3.x - gl_FragCoord.x, gl_FragCoord.x - urectH_Stage3.z);
+                y = max(urectH_Stage3.y - gl_FragCoord.y, gl_FragCoord.y - urectH_Stage3.w);
+            }
+            xCoverage = texture(uTextureSampler_0_Stage3, vec2(x * uinvSixSigma_Stage3, 0.5)).w;
+            yCoverage = texture(uTextureSampler_0_Stage3, vec2(y * uinvSixSigma_Stage3, 0.5)).w;
+            output_Stage3 = (output_Stage2 * xCoverage) * yCoverage;
+        }
+        output_Stage3 = (output_Stage2 * xCoverage) * yCoverage;
+    }
+    {
+        sk_FragColor = 1.0 - output_Stage3;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+in vec2 position;
+in vec4 color;
+flat out vec4 vcolor_Stage0;
+void main() {
+    vcolor_Stage0 = color;
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

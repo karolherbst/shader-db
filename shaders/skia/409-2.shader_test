@@ -1,0 +1,153 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+#extension GL_KHR_blend_equation_advanced : require
+#extension GL_ARB_fragment_coord_conventions : require
+layout(origin_upper_left) in vec4 gl_FragCoord;
+out vec4 sk_FragColor;
+layout (blend_support_all_equations) out ;
+uniform vec4 uColor_Stage0;
+uniform float uCoverage_Stage0;
+uniform vec4 uinnerRect_Stage1_c0_c0_c1_c0;
+uniform vec2 uradiusPlusHalf_Stage1_c0_c0_c1_c0;
+uniform vec2 uScale_Stage1_c1_c0_c0_c0_c0_c0;
+uniform vec4 uTexDom_Stage1_c1_c0_c0_c0_c0_c0;
+uniform vec3 uDecalParams_Stage1_c1_c0_c0_c0_c0_c0;
+uniform vec4 uinnerRect_Stage1_c1_c0_c0_c0_c1_c0;
+uniform vec4 uinvRadiiLTRB_Stage1_c1_c0_c0_c0_c1_c0;
+uniform vec4 uinnerRect_Stage1_c1_c0_c1_c0;
+uniform vec2 uradiusPlusHalf_Stage1_c1_c0_c1_c0;
+uniform sampler2D uTextureSampler_0_Stage1;
+uniform sampler2D uTextureSampler_1_Stage1;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+noperspective in vec2 vTransformedCoords_1_Stage0;
+vec4 ConfigConversionEffect_Stage1_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    _output = floor(_input * 255.0 + 0.5) / 255.0;
+    {
+        _output.xyz = floor((_output.xyz * _output.w) * 255.0 + 0.5) / 255.0;
+    }
+    return _output;
+}
+vec4 CircularRRect_Stage1_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec2 dxy0 = uinnerRect_Stage1_c0_c0_c1_c0.xy - gl_FragCoord.xy;
+    vec2 dxy1 = gl_FragCoord.xy - uinnerRect_Stage1_c0_c0_c1_c0.zw;
+    vec2 dxy = max(max(dxy0, dxy1), 0.0);
+    float alpha = clamp(uradiusPlusHalf_Stage1_c0_c0_c1_c0.x - length(dxy), 0.0, 1.0);
+    alpha = 1.0 - alpha;
+    _output = _input * alpha;
+    return _output;
+}
+vec4 blend_modulate(vec4 src, vec4 dst) {
+    return src * dst;
+}
+vec4 ComposeTwo_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_modulate(ConfigConversionEffect_Stage1_c0_c0_c0_c0(inputColor), CircularRRect_Stage1_c0_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 DisplacementMap_Stage1_c1_c0_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 dColor = texture(uTextureSampler_0_Stage1, vTransformedCoords_0_Stage0);
+    dColor.xyz = dColor.w < 9.9999999747524271e-07 ? vec3(0.0) : clamp(dColor.xyz / dColor.w, 0.0, 1.0);
+    vec2 cCoords = vTransformedCoords_1_Stage0 + uScale_Stage1_c1_c0_c0_c0_c0_c0 * (dColor.zz - vec2(0.5));
+    {
+        vec2 origCoord = cCoords;
+        vec2 clampedCoord;
+        clampedCoord = clamp(origCoord, uTexDom_Stage1_c1_c0_c0_c0_c0_c0.xy, uTexDom_Stage1_c1_c0_c0_c0_c0_c0.zw);
+        vec4 textureColor = texture(uTextureSampler_1_Stage1, clampedCoord);
+        float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage1_c1_c0_c0_c0_c0_c0.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage1_c1_c0_c0_c0_c0_c0.y);
+        if (err > uDecalParams_Stage1_c1_c0_c0_c0_c0_c0.z) {
+            err = 1.0;
+        } else if (uDecalParams_Stage1_c1_c0_c0_c0_c0_c0.z < 1.0) {
+            err = 0.0;
+        }
+        _output = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+    }
+    return _output;
+}
+vec4 EllipticalRRect_Stage1_c1_c0_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec2 dxy0 = uinnerRect_Stage1_c1_c0_c0_c0_c1_c0.xy - gl_FragCoord.xy;
+    vec2 dxy1 = gl_FragCoord.xy - uinnerRect_Stage1_c1_c0_c0_c0_c1_c0.zw;
+    vec2 dxy = max(max(dxy0, dxy1), 0.0);
+    vec2 Z = max(max(dxy0 * uinvRadiiLTRB_Stage1_c1_c0_c0_c0_c1_c0.xy, dxy1 * uinvRadiiLTRB_Stage1_c1_c0_c0_c0_c1_c0.zw), 0.0);
+    float implicit = dot(Z, dxy) - 1.0;
+    float grad_dot = 4.0 * dot(Z, Z);
+    grad_dot = max(grad_dot, 9.9999997473787516e-05);
+    float approx_dist = implicit * inversesqrt(grad_dot);
+    float alpha = clamp(0.5 + approx_dist, 0.0, 1.0);
+    _output = _input * alpha;
+    return _output;
+}
+vec4 blend_src_over(vec4 src, vec4 dst) {
+    return src + (1.0 - src.w) * dst;
+}
+vec4 ComposeTwo_Stage1_c1_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_src_over(DisplacementMap_Stage1_c1_c0_c0_c0_c0_c0(inputColor), EllipticalRRect_Stage1_c1_c0_c0_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 CircularRRect_Stage1_c1_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec2 dxy0 = uinnerRect_Stage1_c1_c0_c1_c0.xy - gl_FragCoord.xy;
+    vec2 dxy1 = gl_FragCoord.xy - uinnerRect_Stage1_c1_c0_c1_c0.zw;
+    vec2 dxy = max(max(dxy0, dxy1), 0.0);
+    float alpha = clamp(uradiusPlusHalf_Stage1_c1_c0_c1_c0.x - length(dxy), 0.0, 1.0);
+    alpha = 1.0 - alpha;
+    _output = _input * alpha;
+    return _output;
+}
+vec4 blend_src_atop(vec4 src, vec4 dst) {
+    return dst.w * src + (1.0 - src.w) * dst;
+}
+vec4 ComposeTwo_Stage1_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_src_atop(ComposeTwo_Stage1_c1_c0_c0_c0(inputColor), CircularRRect_Stage1_c1_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+void main() {
+    vec4 outputColor_Stage0;
+    vec4 outputCoverage_Stage0;
+    {
+        outputColor_Stage0 = uColor_Stage0;
+        outputCoverage_Stage0 = vec4(uCoverage_Stage0);
+    }
+    vec4 output_Stage1;
+    {
+        vec4 inputColor = vec4(outputColor_Stage0.xyz, 1.0);
+        output_Stage1 = blend_modulate(ComposeTwo_Stage1_c0_c0(inputColor), ComposeTwo_Stage1_c1_c0(inputColor));
+        output_Stage1 *= outputColor_Stage0.w;
+    }
+    {
+        sk_FragColor = outputCoverage_Stage0 * output_Stage1;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+uniform mat3 uCoordTransformMatrix_1_Stage0;
+in vec2 inPosition;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+noperspective out vec2 vTransformedCoords_1_Stage0;
+void main() {
+    vec2 pos2 = inPosition;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inPosition, 1.0)).xy;
+    vTransformedCoords_1_Stage0 = (uCoordTransformMatrix_1_Stage0 * vec3(inPosition, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

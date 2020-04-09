@@ -1,0 +1,42 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+flat in vec4 vcolor_Stage0;
+noperspective in float vcoverage_Stage0;
+flat in vec4 vgeomDomain_Stage0;
+void main() {
+    {
+        float coverage = vcoverage_Stage0;
+        vec4 geoDomain;
+        geoDomain = vgeomDomain_Stage0;
+        if (coverage < 0.5) {
+            vec4 dists4 = clamp(vec4(1.0, 1.0, -1.0, -1.0) * (gl_FragCoord.xyxy - geoDomain), 0.0, 1.0);
+            vec2 dists2 = dists4.xy * dists4.zw;
+            coverage = min(coverage, dists2.x * dists2.y);
+        }
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+in vec2 position;
+in float coverage;
+in vec4 color;
+in vec4 geomDomain;
+flat out vec4 vcolor_Stage0;
+noperspective out float vcoverage_Stage0;
+flat out vec4 vgeomDomain_Stage0;
+void main() {
+    vec2 position = position;
+    vcolor_Stage0 = color;
+    vcoverage_Stage0 = coverage;
+    vgeomDomain_Stage0 = geomDomain;
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

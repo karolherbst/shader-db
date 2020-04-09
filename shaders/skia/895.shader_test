@@ -1,0 +1,120 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+#extension GL_ARB_fragment_coord_conventions : require
+layout(origin_upper_left) in vec4 gl_FragCoord;
+out vec4 sk_FragColor;
+uniform vec4 urectUniform_Stage2;
+uniform vec4 ucolor_Stage3;
+uniform vec4 uinnerRect_Stage4;
+uniform vec2 uradiusPlusHalf_Stage4;
+uniform vec4 urectH_Stage5;
+uniform float uinvSixSigma_Stage5;
+uniform sampler2D uTextureSampler_0_Stage5;
+noperspective in vec2 vEllipseOffsets0_Stage0;
+noperspective in vec2 vEllipseOffsets1_Stage0;
+noperspective in vec4 vinColor_Stage0;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+void main() {
+    vec4 outputCoverage_Stage0;
+    {
+        vec2 scaledOffset = vEllipseOffsets0_Stage0;
+        float test = dot(scaledOffset, scaledOffset) - 1.0;
+        vec2 duvdx = dFdx(vEllipseOffsets0_Stage0);
+        vec2 duvdy = -dFdy(vEllipseOffsets0_Stage0);
+        vec2 grad = vec2(vEllipseOffsets0_Stage0.x * duvdx.x + vEllipseOffsets0_Stage0.y * duvdx.y, vEllipseOffsets0_Stage0.x * duvdy.x + vEllipseOffsets0_Stage0.y * duvdy.y);
+        float grad_dot = 4.0 * dot(grad, grad);
+        grad_dot = max(grad_dot, 1.1754999560161448e-38);
+        float invlen = inversesqrt(grad_dot);
+        float edgeAlpha = clamp(0.5 - test * invlen, 0.0, 1.0);
+        outputCoverage_Stage0 = vec4(edgeAlpha);
+    }
+    vec4 output_Stage1;
+    {
+        output_Stage1 = outputCoverage_Stage0;
+        float value;
+        {
+            uint x = uint(vTransformedCoords_0_Stage0.x);
+            uint y = uint(vTransformedCoords_0_Stage0.y);
+            uint m = (((((y & 1u) << 5u | (x & 1u) << 4u) | (y & 2u) << 2u) | (x & 2u) << 1u) | (y & 4u) >> 1u) | (x & 4u) >> 2u;
+            value = float(m) / 64.0 - 0.4921875;
+        }
+        output_Stage1 = vec4(clamp(output_Stage1.xyz + value * 0.01587301678955555, 0.0, output_Stage1.w), output_Stage1.w);
+    }
+    vec4 output_Stage2;
+    {
+        float alpha;
+        {
+            float xSub, ySub;
+            xSub = min(gl_FragCoord.x - urectUniform_Stage2.x, 0.0);
+            xSub += min(urectUniform_Stage2.z - gl_FragCoord.x, 0.0);
+            ySub = min(gl_FragCoord.y - urectUniform_Stage2.y, 0.0);
+            ySub += min(urectUniform_Stage2.w - gl_FragCoord.y, 0.0);
+            alpha = (1.0 + max(xSub, -1.0)) * (1.0 + max(ySub, -1.0));
+        }
+        {
+            alpha = 1.0 - alpha;
+        }
+        output_Stage2 = output_Stage1 * alpha;
+    }
+    vec4 output_Stage3;
+    {
+        {
+            output_Stage3 = output_Stage2 * ucolor_Stage3;
+        }
+    }
+    vec4 output_Stage4;
+    {
+        vec2 dxy0 = uinnerRect_Stage4.xy - gl_FragCoord.xy;
+        vec2 dxy1 = gl_FragCoord.xy - uinnerRect_Stage4.zw;
+        vec2 dxy = max(max(dxy0, dxy1), 0.0);
+        float alpha = clamp(uradiusPlusHalf_Stage4.x - length(dxy), 0.0, 1.0);
+        output_Stage4 = output_Stage3 * alpha;
+    }
+    vec4 output_Stage5;
+    {
+        float xCoverage, yCoverage;
+        {
+            float x, y;
+            {
+                x = max(urectH_Stage5.x - gl_FragCoord.x, gl_FragCoord.x - urectH_Stage5.z);
+                y = max(urectH_Stage5.y - gl_FragCoord.y, gl_FragCoord.y - urectH_Stage5.w);
+            }
+            xCoverage = texture(uTextureSampler_0_Stage5, vec2(x * uinvSixSigma_Stage5, 0.5)).w;
+            yCoverage = texture(uTextureSampler_0_Stage5, vec2(y * uinvSixSigma_Stage5, 0.5)).w;
+            output_Stage5 = (output_Stage4 * xCoverage) * yCoverage;
+        }
+        output_Stage5 = (output_Stage4 * xCoverage) * yCoverage;
+    }
+    {
+        sk_FragColor = output_Stage5;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uViewM_Stage0;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+in vec2 inPosition;
+in vec4 inColor;
+in vec2 inEllipseOffsets0;
+in vec2 inEllipseOffsets1;
+noperspective out vec2 vEllipseOffsets0_Stage0;
+noperspective out vec2 vEllipseOffsets1_Stage0;
+noperspective out vec4 vinColor_Stage0;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+void main() {
+    vEllipseOffsets0_Stage0 = inEllipseOffsets0;
+    vEllipseOffsets1_Stage0 = inEllipseOffsets1;
+    vinColor_Stage0 = inColor;
+    vec2 pos2 = (uViewM_Stage0 * vec3(inPosition, 1.0)).xy;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inPosition, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

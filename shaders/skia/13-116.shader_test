@@ -1,0 +1,58 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec2 uImageIncrement_Stage1;
+uniform vec4 uKernel_Stage1[2];
+uniform sampler2D uTextureSampler_0_Stage1;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+void main() {
+    vec4 output_Stage1;
+    {
+        output_Stage1 = vec4(0.0, 0.0, 0.0, 0.0);
+        vec2 coord = vTransformedCoords_0_Stage0 - 3.0 * uImageIncrement_Stage1;
+        vec2 coordSampled = vec2(0.0, 0.0);
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[0].x;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[0].y;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[0].z;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[0].w;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[1].x;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[1].y;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[1].z;
+        coord += uImageIncrement_Stage1;
+    }
+    {
+        sk_FragColor = output_Stage1;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+in vec2 position;
+in vec2 localCoord;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+void main() {
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(localCoord, 1.0)).xy;
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

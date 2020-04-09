@@ -1,0 +1,62 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+flat in vec4 vcolor_Stage0;
+in vec2 varccoord_Stage0;
+void main() {
+    vec4 outputColor_Stage0;
+    vec4 outputCoverage_Stage0;
+    {
+        outputColor_Stage0 = vcolor_Stage0;
+        outputCoverage_Stage0 = vec4(1.0);
+        if (vec2(0.0) != varccoord_Stage0) {
+            float fn = dot(varccoord_Stage0, varccoord_Stage0) - 1.0;
+            if (fn > 0.0) {
+                outputCoverage_Stage0 = vec4(0.0);
+            }
+        }
+    }
+    {
+        sk_FragColor = outputColor_Stage0 * outputCoverage_Stage0;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+in vec4 radii_selector;
+in vec4 corner_and_radius_outsets;
+in vec3 persp_x;
+in vec3 persp_y;
+in vec3 persp_z;
+in vec4 radii_x;
+in vec4 radii_y;
+in vec4 color;
+flat out vec4 vcolor_Stage0;
+out vec2 varccoord_Stage0;
+void main() {
+    vcolor_Stage0 = color;
+    vec2 corner = corner_and_radius_outsets.xy;
+    vec2 radius_outset = corner_and_radius_outsets.zw;
+    vec2 radii;
+    radii.x = dot(radii_selector, radii_x);
+    radii.y = dot(radii_selector, radii_y);
+    bool is_arc_section = radii.x > 0.0;
+    radii = abs(radii);
+    vec2 vertexpos = corner + radius_outset * radii;
+    mat3 persp_matrix = mat3(persp_x, persp_y, persp_z);
+    vec3 devcoord = vec3(vertexpos, 1.0) * persp_matrix;
+    if (is_arc_section) {
+        varccoord_Stage0.xy = 1.0 - abs(radius_outset);
+    } else {
+        varccoord_Stage0 = vec2(0.0);
+    }
+    gl_Position = vec4(devcoord.x, devcoord.y, 0.0, devcoord.z);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

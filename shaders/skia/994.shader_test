@@ -1,0 +1,185 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+#extension GL_KHR_blend_equation_advanced : require
+out vec4 sk_FragColor;
+layout (blend_support_all_equations) out ;
+uniform vec4 uColor_Stage0;
+uniform vec4 uboundsUniform_Stage1;
+uniform float uxInvZoom_Stage1;
+uniform float uyInvZoom_Stage1;
+uniform float uxInvInset_Stage1;
+uniform float uyInvInset_Stage1;
+uniform vec2 uoffset_Stage1;
+uniform vec4 urectUniform_Stage2;
+uniform vec4 uleftBorderColor_Stage3_c0_c0;
+uniform vec4 urightBorderColor_Stage3_c0_c0;
+uniform float ubias_Stage3_c0_c0_c0_c0;
+uniform float uscale_Stage3_c0_c0_c0_c0;
+uniform vec4 uscale01_Stage3_c0_c0_c1_c0;
+uniform vec4 ubias01_Stage3_c0_c0_c1_c0;
+uniform vec4 uscale23_Stage3_c0_c0_c1_c0;
+uniform vec4 ubias23_Stage3_c0_c0_c1_c0;
+uniform float uthreshold_Stage3_c0_c0_c1_c0;
+uniform float uPixelSize_Stage4;
+uniform vec2 uRange_Stage4;
+uniform vec4 ucolor_Stage5;
+uniform float ucornerRadius_Stage6;
+uniform vec4 uproxyRect_Stage6;
+uniform float ublurRadius_Stage6;
+uniform sampler2D uTextureSampler_0_Stage1;
+uniform sampler2D uTextureSampler_0_Stage4;
+uniform sampler2D uTextureSampler_0_Stage6;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+noperspective in vec2 vTransformedCoords_1_Stage0;
+noperspective in vec2 vTransformedCoords_2_Stage0;
+vec4 SweepGradientLayout_Stage3_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    float angle;
+    {
+        angle = atan(-vTransformedCoords_1_Stage0.y, -vTransformedCoords_1_Stage0.x);
+    }
+    float t = ((angle * 0.15915493667125702 + 0.5) + ubias_Stage3_c0_c0_c0_c0) * uscale_Stage3_c0_c0_c0_c0;
+    _output = vec4(t, 1.0, 0.0, 0.0);
+    return _output;
+}
+vec4 DualIntervalGradientColorizer_Stage3_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    float t = _input.x;
+    vec4 scale, bias;
+    if (t < uthreshold_Stage3_c0_c0_c1_c0) {
+        scale = uscale01_Stage3_c0_c0_c1_c0;
+        bias = ubias01_Stage3_c0_c0_c1_c0;
+    } else {
+        scale = uscale23_Stage3_c0_c0_c1_c0;
+        bias = ubias23_Stage3_c0_c0_c1_c0;
+    }
+    _output = t * scale + bias;
+    return _output;
+}
+vec4 ClampedGradientEffect_Stage3_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 t = SweepGradientLayout_Stage3_c0_c0_c0_c0(vec4(1.0));
+    if (t.x < 0.0) {
+        _output = uleftBorderColor_Stage3_c0_c0;
+    } else if (t.x > 1.0) {
+        _output = urightBorderColor_Stage3_c0_c0;
+    } else {
+        _output = DualIntervalGradientColorizer_Stage3_c0_c0_c1_c0(t);
+    }
+    {
+        _output.xyz *= _output.w;
+    }
+    return _output;
+}
+vec4 blend_src_in(vec4 src, vec4 dst) {
+    return src * dst.w;
+}
+vec4 blend_dst_in(vec4 src, vec4 dst) {
+    return blend_src_in(dst, src);
+}
+void main() {
+    vec4 outputColor_Stage0;
+    {
+        outputColor_Stage0 = uColor_Stage0;
+    }
+    vec4 output_Stage1;
+    {
+        vec2 coord = vTransformedCoords_0_Stage0;
+        vec2 zoom_coord = uoffset_Stage1 + coord * vec2(uxInvZoom_Stage1, uyInvZoom_Stage1);
+        vec2 delta = (coord - uboundsUniform_Stage1.xy) * uboundsUniform_Stage1.zw;
+        delta = min(delta, vec2(1.0, 1.0) - delta);
+        delta *= vec2(uxInvInset_Stage1, uyInvInset_Stage1);
+        float weight = 0.0;
+        if (delta.x < 2.0 && delta.y < 2.0) {
+            delta = vec2(2.0, 2.0) - delta;
+            float dist = length(delta);
+            dist = max(2.0 - dist, 0.0);
+            weight = min(dist * dist, 1.0);
+        } else {
+            vec2 delta_squared = delta * delta;
+            weight = min(min(delta_squared.x, delta_squared.y), 1.0);
+        }
+        output_Stage1 = texture(uTextureSampler_0_Stage1, mix(coord, zoom_coord, weight));
+    }
+    vec4 output_Stage2;
+    {
+        float alpha;
+        {
+            float xSub, ySub;
+            xSub = min(gl_FragCoord.x - urectUniform_Stage2.x, 0.0);
+            xSub += min(urectUniform_Stage2.z - gl_FragCoord.x, 0.0);
+            ySub = min(gl_FragCoord.y - urectUniform_Stage2.y, 0.0);
+            ySub += min(urectUniform_Stage2.w - gl_FragCoord.y, 0.0);
+            alpha = (1.0 + max(xSub, -1.0)) * (1.0 + max(ySub, -1.0));
+        }
+        output_Stage2 = output_Stage1 * alpha;
+    }
+    vec4 output_Stage3;
+    {
+        output_Stage3 = blend_dst_in(output_Stage2, ClampedGradientEffect_Stage3_c0_c0(vec4(1.0)));
+    }
+    vec4 output_Stage4;
+    {
+        output_Stage4 = vec4(1.0, 1.0, 1.0, 1.0);
+        vec2 coord = vTransformedCoords_2_Stage0;
+        coord.y -= 9.0 * uPixelSize_Stage4;
+        for (int i = 0;i < 19; i++) {
+            output_Stage4 = min(output_Stage4, texture(uTextureSampler_0_Stage4, coord));
+            coord.y += uPixelSize_Stage4;
+        }
+        output_Stage4 *= output_Stage3;
+    }
+    vec4 output_Stage5;
+    {
+        {
+            output_Stage5 = ucolor_Stage5;
+        }
+    }
+    vec4 output_Stage6;
+    {
+        vec2 translatedFragPos = gl_FragCoord.xy - uproxyRect_Stage6.xy;
+        float threshold = ucornerRadius_Stage6 + 2.0 * ublurRadius_Stage6;
+        vec2 middle = (uproxyRect_Stage6.zw - uproxyRect_Stage6.xy) - 2.0 * threshold;
+        if (translatedFragPos.x >= threshold && translatedFragPos.x < middle.x + threshold) {
+            translatedFragPos.x = threshold;
+        } else if (translatedFragPos.x >= middle.x + threshold) {
+            translatedFragPos.x -= middle.x - 1.0;
+        }
+        if (translatedFragPos.y > threshold && translatedFragPos.y < middle.y + threshold) {
+            translatedFragPos.y = threshold;
+        } else if (translatedFragPos.y >= middle.y + threshold) {
+            translatedFragPos.y -= middle.y - 1.0;
+        }
+        vec2 proxyDims = vec2(2.0 * threshold + 1.0);
+        vec2 texCoord = translatedFragPos / proxyDims;
+        output_Stage6 = output_Stage5 * texture(uTextureSampler_0_Stage6, texCoord);
+    }
+    {
+        sk_FragColor = output_Stage6 * outputColor_Stage0;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+uniform mat3 uCoordTransformMatrix_1_Stage0;
+uniform mat3 uCoordTransformMatrix_2_Stage0;
+in vec2 inPosition;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+noperspective out vec2 vTransformedCoords_1_Stage0;
+noperspective out vec2 vTransformedCoords_2_Stage0;
+void main() {
+    vec2 pos2 = inPosition;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inPosition, 1.0)).xy;
+    vTransformedCoords_1_Stage0 = (uCoordTransformMatrix_1_Stage0 * vec3(inPosition, 1.0)).xy;
+    vTransformedCoords_2_Stage0 = (uCoordTransformMatrix_2_Stage0 * vec3(inPosition, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

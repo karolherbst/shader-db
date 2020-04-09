@@ -1,0 +1,97 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 uColor_Stage0;
+uniform float uCoverage_Stage0;
+uniform vec4 uinnerRect_Stage1;
+uniform vec4 uinvRadiiLTRB_Stage1;
+uniform vec4 uleftBorderColor_Stage3_c0_c0;
+uniform vec4 urightBorderColor_Stage3_c0_c0;
+uniform vec4 ustart_Stage3_c0_c0_c1_c0;
+uniform vec4 uend_Stage3_c0_c0_c1_c0;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+vec4 RadialGradientLayout_Stage3_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    float t = length(vTransformedCoords_0_Stage0);
+    _output = vec4(t, 1.0, 0.0, 0.0);
+    return _output;
+}
+vec4 SingleIntervalGradientColorizer_Stage3_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    float t = _input.x;
+    _output = (1.0 - t) * ustart_Stage3_c0_c0_c1_c0 + t * uend_Stage3_c0_c0_c1_c0;
+    return _output;
+}
+vec4 ClampedGradientEffect_Stage3_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 t = RadialGradientLayout_Stage3_c0_c0_c0_c0(vec4(1.0));
+    if (t.x < 0.0) {
+        _output = uleftBorderColor_Stage3_c0_c0;
+    } else if (t.x > 1.0) {
+        _output = urightBorderColor_Stage3_c0_c0;
+    } else {
+        _output = SingleIntervalGradientColorizer_Stage3_c0_c0_c1_c0(t);
+    }
+    {
+        _output.xyz *= _output.w;
+    }
+    return _output;
+}
+vec4 blend_src_in(vec4 src, vec4 dst) {
+    return src * dst.w;
+}
+vec4 blend_dst_in(vec4 src, vec4 dst) {
+    return blend_src_in(dst, src);
+}
+void main() {
+    vec4 outputColor_Stage0;
+    vec4 outputCoverage_Stage0;
+    {
+        outputColor_Stage0 = uColor_Stage0;
+        outputCoverage_Stage0 = vec4(uCoverage_Stage0);
+    }
+    vec4 output_Stage1;
+    {
+        vec2 dxy0 = uinnerRect_Stage1.xy - gl_FragCoord.xy;
+        vec2 dxy1 = gl_FragCoord.xy - uinnerRect_Stage1.zw;
+        vec2 dxy = max(max(dxy0, dxy1), 0.0);
+        vec2 Z = max(max(dxy0 * uinvRadiiLTRB_Stage1.xy, dxy1 * uinvRadiiLTRB_Stage1.zw), 0.0);
+        float implicit = dot(Z, dxy) - 1.0;
+        float grad_dot = 4.0 * dot(Z, Z);
+        grad_dot = max(grad_dot, 9.9999997473787516e-05);
+        float approx_dist = implicit * inversesqrt(grad_dot);
+        float alpha = clamp(0.5 - approx_dist, 0.0, 1.0);
+        output_Stage1 = outputColor_Stage0 * alpha;
+    }
+    vec4 output_Stage2;
+    {
+        output_Stage2 = output_Stage1;
+    }
+    vec4 output_Stage3;
+    {
+        output_Stage3 = blend_dst_in(outputCoverage_Stage0, ClampedGradientEffect_Stage3_c0_c0(vec4(1.0)));
+    }
+    {
+        sk_FragColor = output_Stage2 * output_Stage3;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uViewM_Stage0;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+in vec2 inPosition;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+void main() {
+    vec2 pos2 = (uViewM_Stage0 * vec3(inPosition, 1.0)).xy;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inPosition, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

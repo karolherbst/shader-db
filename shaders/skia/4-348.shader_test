@@ -1,0 +1,68 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform float uDistanceAdjust_Stage0;
+uniform sampler2D uTextureSampler_0_Stage0;
+uniform sampler2D uTextureSampler_1_Stage0;
+uniform sampler2D uTextureSampler_2_Stage0;
+uniform sampler2D uTextureSampler_3_Stage0;
+noperspective in vec4 vinColor_Stage0;
+noperspective in vec2 vTextureCoords_Stage0;
+flat in int vTexIndex_Stage0;
+noperspective in vec2 vIntTextureCoords_Stage0;
+void main() {
+    vec4 outputColor_Stage0;
+    vec4 outputCoverage_Stage0;
+    {
+        outputColor_Stage0 = vinColor_Stage0;
+        vec2 uv = vTextureCoords_Stage0;
+        vec4 texColor;
+        if (vTexIndex_Stage0 == 0) {
+            texColor = texture(uTextureSampler_0_Stage0, uv);
+        } else if (vTexIndex_Stage0 == 1) {
+            texColor = texture(uTextureSampler_1_Stage0, uv);
+        } else if (vTexIndex_Stage0 == 2) {
+            texColor = texture(uTextureSampler_2_Stage0, uv);
+        } else {
+            texColor = texture(uTextureSampler_3_Stage0, uv);
+        }
+        float distance = 7.96875 * (texColor.x - 0.50196081399917603);
+        distance -= uDistanceAdjust_Stage0;
+        float afwidth;
+        afwidth = abs(0.64999997615814209 * -dFdy(vIntTextureCoords_Stage0.y));
+        float val = smoothstep(-afwidth, afwidth, distance);
+        outputCoverage_Stage0 = vec4(val);
+    }
+    {
+        sk_FragColor = outputColor_Stage0 * outputCoverage_Stage0;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform vec2 uAtlasDimensionsInv_Stage0;
+in vec2 inPosition;
+in vec4 inColor;
+in uvec2 inTextureCoords;
+noperspective out vec4 vinColor_Stage0;
+noperspective out vec2 vTextureCoords_Stage0;
+flat out int vTexIndex_Stage0;
+noperspective out vec2 vIntTextureCoords_Stage0;
+void main() {
+    vinColor_Stage0 = inColor;
+    ivec2 signedCoords = ivec2(int(inTextureCoords.x), int(inTextureCoords.y));
+    vec2 unormTexCoords = vec2(float(signedCoords.x / 2), float(signedCoords.y / 2));
+    int texIdx = 2 * (signedCoords.x & 1) + (signedCoords.y & 1);
+    vTextureCoords_Stage0 = unormTexCoords * uAtlasDimensionsInv_Stage0;
+    vTexIndex_Stage0 = texIdx;
+    vIntTextureCoords_Stage0 = unormTexCoords;
+    gl_Position = vec4(inPosition.x, inPosition.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

@@ -1,0 +1,61 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+flat in vec4 vcolor_Stage0;
+noperspective in vec4 varccoord_Stage0;
+void main() {
+    vec4 outputCoverage_Stage0;
+    {
+        outputCoverage_Stage0 = vec4(1.0);
+        if (vec2(0.0) != varccoord_Stage0.xy) {
+            float fn = dot(varccoord_Stage0.xy, varccoord_Stage0.xy) - 1.0;
+            if (fn > 0.0) {
+                outputCoverage_Stage0 = vec4(0.0);
+            }
+        }
+    }
+    {
+        sk_FragColor = outputCoverage_Stage0;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+in vec4 radii_selector;
+in vec4 corner_and_radius_outsets;
+in vec4 skew;
+in vec2 translate;
+in vec4 radii_x;
+in vec4 radii_y;
+in vec4 color;
+flat out vec4 vcolor_Stage0;
+noperspective out vec4 varccoord_Stage0;
+void main() {
+    vcolor_Stage0 = color;
+    vec2 corner = corner_and_radius_outsets.xy;
+    vec2 radius_outset = corner_and_radius_outsets.zw;
+    vec2 radii;
+    radii.x = dot(radii_selector, radii_x);
+    radii.y = dot(radii_selector, radii_y);
+    bool is_arc_section = radii.x > 0.0;
+    radii = abs(radii);
+    vec2 vertexpos = corner + radius_outset * radii;
+    mat2 skewmatrix = mat2(skew.xy, skew.zw);
+    vec2 devcoord = vertexpos * skewmatrix + translate;
+    if (is_arc_section) {
+        varccoord_Stage0.xy = 1.0 - abs(radius_outset);
+        mat2 derivatives = inverse(skewmatrix);
+        varccoord_Stage0.zw = derivatives * (((varccoord_Stage0.xy / radii) * corner) * 2.0);
+    } else {
+        varccoord_Stage0 = vec4(0.0);
+    }
+    gl_Position = vec4(devcoord.x, devcoord.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

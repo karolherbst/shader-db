@@ -1,0 +1,155 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+#extension GL_KHR_blend_equation_advanced : require
+out vec4 sk_FragColor;
+layout (blend_support_all_equations) out ;
+uniform vec4 ucircleData_Stage1_c0_c0;
+uniform vec4 ucircleData_Stage1_c1_c0_c0_c0_c0_c0;
+uniform float ucornerRadius_Stage1_c1_c0_c1_c0_c0_c0;
+uniform vec4 uproxyRect_Stage1_c1_c0_c1_c0_c0_c0;
+uniform float ublurRadius_Stage1_c1_c0_c1_c0_c0_c0;
+uniform float ucornerRadius_Stage1_c1_c0_c1_c0_c1_c0;
+uniform vec4 uproxyRect_Stage1_c1_c0_c1_c0_c1_c0;
+uniform float ublurRadius_Stage1_c1_c0_c1_c0_c1_c0;
+uniform sampler2D uTextureSampler_0_Stage1;
+uniform sampler2D uTextureSampler_1_Stage1;
+uniform sampler2D uTextureSampler_2_Stage1;
+uniform sampler2D uTextureSampler_3_Stage1;
+noperspective in vec4 vcolor_Stage0;
+noperspective in float vinCoverage_Stage0;
+vec4 CircleBlurFragmentProcessor_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec2 vec = vec2((gl_FragCoord.x - ucircleData_Stage1_c0_c0.x) * ucircleData_Stage1_c0_c0.w, (gl_FragCoord.y - ucircleData_Stage1_c0_c0.y) * ucircleData_Stage1_c0_c0.w);
+    float dist = length(vec) + (0.5 - ucircleData_Stage1_c0_c0.z) * ucircleData_Stage1_c0_c0.w;
+    _output = _input * texture(uTextureSampler_0_Stage1, vec2(dist, 0.5)).w;
+    return _output;
+}
+vec4 CircleBlurFragmentProcessor_Stage1_c1_c0_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec2 vec = vec2((gl_FragCoord.x - ucircleData_Stage1_c1_c0_c0_c0_c0_c0.x) * ucircleData_Stage1_c1_c0_c0_c0_c0_c0.w, (gl_FragCoord.y - ucircleData_Stage1_c1_c0_c0_c0_c0_c0.y) * ucircleData_Stage1_c1_c0_c0_c0_c0_c0.w);
+    float dist = length(vec) + (0.5 - ucircleData_Stage1_c1_c0_c0_c0_c0_c0.z) * ucircleData_Stage1_c1_c0_c0_c0_c0_c0.w;
+    _output = _input * texture(uTextureSampler_1_Stage1, vec2(dist, 0.5)).w;
+    return _output;
+}
+vec4 Big_Ole_Key_Stage1_c1_c0_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    _output = _input;
+    return _output;
+}
+vec4 blend_dst_atop(vec4 src, vec4 dst) {
+    return (1.0 - dst.w) * src + src.w * dst;
+}
+vec4 ComposeTwo_Stage1_c1_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_dst_atop(CircleBlurFragmentProcessor_Stage1_c1_c0_c0_c0_c0_c0(inputColor), Big_Ole_Key_Stage1_c1_c0_c0_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 RRectBlurEffect_Stage1_c1_c0_c1_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec2 translatedFragPos = gl_FragCoord.xy - uproxyRect_Stage1_c1_c0_c1_c0_c0_c0.xy;
+    float threshold = ucornerRadius_Stage1_c1_c0_c1_c0_c0_c0 + 2.0 * ublurRadius_Stage1_c1_c0_c1_c0_c0_c0;
+    vec2 middle = (uproxyRect_Stage1_c1_c0_c1_c0_c0_c0.zw - uproxyRect_Stage1_c1_c0_c1_c0_c0_c0.xy) - 2.0 * threshold;
+    if (translatedFragPos.x >= threshold && translatedFragPos.x < middle.x + threshold) {
+        translatedFragPos.x = threshold;
+    } else if (translatedFragPos.x >= middle.x + threshold) {
+        translatedFragPos.x -= middle.x - 1.0;
+    }
+    if (translatedFragPos.y > threshold && translatedFragPos.y < middle.y + threshold) {
+        translatedFragPos.y = threshold;
+    } else if (translatedFragPos.y >= middle.y + threshold) {
+        translatedFragPos.y -= middle.y - 1.0;
+    }
+    vec2 proxyDims = vec2(2.0 * threshold + 1.0);
+    vec2 texCoord = translatedFragPos / proxyDims;
+    _output = _input * texture(uTextureSampler_2_Stage1, texCoord);
+    return _output;
+}
+vec4 RRectBlurEffect_Stage1_c1_c0_c1_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec2 translatedFragPos = gl_FragCoord.xy - uproxyRect_Stage1_c1_c0_c1_c0_c1_c0.xy;
+    float threshold = ucornerRadius_Stage1_c1_c0_c1_c0_c1_c0 + 2.0 * ublurRadius_Stage1_c1_c0_c1_c0_c1_c0;
+    vec2 middle = (uproxyRect_Stage1_c1_c0_c1_c0_c1_c0.zw - uproxyRect_Stage1_c1_c0_c1_c0_c1_c0.xy) - 2.0 * threshold;
+    if (translatedFragPos.x >= threshold && translatedFragPos.x < middle.x + threshold) {
+        translatedFragPos.x = threshold;
+    } else if (translatedFragPos.x >= middle.x + threshold) {
+        translatedFragPos.x -= middle.x - 1.0;
+    }
+    if (translatedFragPos.y > threshold && translatedFragPos.y < middle.y + threshold) {
+        translatedFragPos.y = threshold;
+    } else if (translatedFragPos.y >= middle.y + threshold) {
+        translatedFragPos.y -= middle.y - 1.0;
+    }
+    vec2 proxyDims = vec2(2.0 * threshold + 1.0);
+    vec2 texCoord = translatedFragPos / proxyDims;
+    _output = _input * texture(uTextureSampler_3_Stage1, texCoord);
+    return _output;
+}
+vec4 blend_plus(vec4 src, vec4 dst) {
+    return min(src + dst, 1.0);
+}
+vec4 ComposeTwo_Stage1_c1_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_plus(RRectBlurEffect_Stage1_c1_c0_c1_c0_c0_c0(inputColor), RRectBlurEffect_Stage1_c1_c0_c1_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 ComposeTwo_Stage1_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_plus(ComposeTwo_Stage1_c1_c0_c0_c0(inputColor), ComposeTwo_Stage1_c1_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 blend_src_over(vec4 src, vec4 dst) {
+    return src + (1.0 - src.w) * dst;
+}
+vec4 blend_darken(vec4 src, vec4 dst) {
+    vec4 result = blend_src_over(src, dst);
+    result.xyz = min(result.xyz, (1.0 - dst.w) * src.xyz + dst.xyz);
+    return result;
+}
+void main() {
+    vec4 outputColor_Stage0;
+    vec4 outputCoverage_Stage0;
+    {
+        outputColor_Stage0 = vcolor_Stage0;
+        float alpha = 1.0;
+        alpha = vinCoverage_Stage0;
+        outputCoverage_Stage0 = vec4(alpha);
+    }
+    vec4 output_Stage1;
+    {
+        vec4 inputColor = vec4(outputColor_Stage0.xyz, 1.0);
+        output_Stage1 = blend_darken(CircleBlurFragmentProcessor_Stage1_c0_c0(inputColor), ComposeTwo_Stage1_c1_c0(inputColor));
+        output_Stage1 *= outputColor_Stage0.w;
+    }
+    {
+        sk_FragColor = outputCoverage_Stage0 * output_Stage1;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+in vec2 inPosition;
+in vec4 inColor;
+in float inCoverage;
+noperspective out vec4 vcolor_Stage0;
+noperspective out float vinCoverage_Stage0;
+void main() {
+    vec4 color = inColor;
+    vcolor_Stage0 = color;
+    vec2 pos2 = inPosition;
+    vinCoverage_Stage0 = inCoverage;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

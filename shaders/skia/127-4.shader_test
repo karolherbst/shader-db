@@ -1,0 +1,68 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform sampler2D uTextureSampler_0_Stage0;
+in vec2 vTextureCoords_Stage0;
+flat in int vTexIndex_Stage0;
+in vec2 vIntTextureCoords_Stage0;
+in vec4 vinColor_Stage0;
+void main() {
+    vec4 outputColor_Stage0;
+    vec4 outputCoverage_Stage0;
+    {
+        outputColor_Stage0 = vinColor_Stage0;
+        vec2 uv = vTextureCoords_Stage0;
+        vec4 texColor;
+        {
+            texColor = texture(uTextureSampler_0_Stage0, uv);
+        }
+        float distance = 7.96875 * (texColor.x - 0.50196081399917603);
+        float afwidth;
+        vec2 dist_grad = vec2(dFdx(distance), -dFdy(distance));
+        float dg_len2 = dot(dist_grad, dist_grad);
+        if (dg_len2 < 9.9999997473787516e-05) {
+            dist_grad = vec2(0.70709997415542603, 0.70709997415542603);
+        } else {
+            dist_grad = dist_grad * inversesqrt(dg_len2);
+        }
+        vec2 Jdx = dFdx(vIntTextureCoords_Stage0);
+        vec2 Jdy = -dFdy(vIntTextureCoords_Stage0);
+        vec2 grad = vec2(dist_grad.x * Jdx.x + dist_grad.y * Jdy.x, dist_grad.x * Jdx.y + dist_grad.y * Jdy.y);
+        afwidth = 0.64999997615814209 * length(grad);
+        float val = smoothstep(-afwidth, afwidth, distance);
+        outputCoverage_Stage0 = vec4(val);
+    }
+    {
+        sk_FragColor = outputColor_Stage0 * outputCoverage_Stage0;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform vec2 uAtlasDimensionsInv_Stage0;
+uniform mat3 uViewM_Stage0;
+in vec2 inPosition;
+in vec4 inColor;
+in uvec2 inTextureCoords;
+out vec2 vTextureCoords_Stage0;
+flat out int vTexIndex_Stage0;
+out vec2 vIntTextureCoords_Stage0;
+out vec4 vinColor_Stage0;
+void main() {
+    ivec2 signedCoords = ivec2(int(inTextureCoords.x), int(inTextureCoords.y));
+    vec2 unormTexCoords = vec2(float(signedCoords.x / 2), float(signedCoords.y / 2));
+    vTextureCoords_Stage0 = unormTexCoords * uAtlasDimensionsInv_Stage0;
+    vTexIndex_Stage0 = 0;
+    vIntTextureCoords_Stage0 = unormTexCoords;
+    vinColor_Stage0 = inColor;
+    vec3 pos3 = uViewM_Stage0 * vec3(inPosition, 1.0);
+    gl_Position = vec4(pos3.x, pos3.y, 0.0, pos3.z);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

@@ -1,0 +1,52 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 uColor_Stage0;
+noperspective in vec4 vConicCoeffs_Stage0;
+void main() {
+    vec4 outputColor_Stage0;
+    vec4 outputCoverage_Stage0;
+    {
+        outputColor_Stage0 = uColor_Stage0;
+        float edgeAlpha;
+        vec3 dklmdx;
+        vec3 dklmdy;
+        float dfdx;
+        float dfdy;
+        vec2 gF;
+        float gFM;
+        float func;
+        dklmdx = dFdx(vConicCoeffs_Stage0.xyz);
+        dklmdy = -dFdy(vConicCoeffs_Stage0.xyz);
+        dfdx = ((2.0 * vConicCoeffs_Stage0.x) * dklmdx.x - vConicCoeffs_Stage0.y * dklmdx.z) - vConicCoeffs_Stage0.z * dklmdx.y;
+        dfdy = ((2.0 * vConicCoeffs_Stage0.x) * dklmdy.x - vConicCoeffs_Stage0.y * dklmdy.z) - vConicCoeffs_Stage0.z * dklmdy.y;
+        gF = vec2(dfdx, dfdy);
+        gFM = sqrt(dot(gF, gF));
+        func = vConicCoeffs_Stage0.x * vConicCoeffs_Stage0.x - vConicCoeffs_Stage0.y * vConicCoeffs_Stage0.z;
+        edgeAlpha = func / gFM;
+        edgeAlpha = clamp(0.5 - edgeAlpha, 0.0, 1.0);
+        outputCoverage_Stage0 = vec4(edgeAlpha);
+    }
+    {
+        sk_FragColor = outputColor_Stage0 * outputCoverage_Stage0;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+in vec2 inPosition;
+in vec4 inConicCoeffs;
+noperspective out vec4 vConicCoeffs_Stage0;
+void main() {
+    vConicCoeffs_Stage0 = inConicCoeffs;
+    vec2 pos2 = inPosition;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

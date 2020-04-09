@@ -1,0 +1,146 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+uniform vec2 uImageIncrement_Stage1;
+uniform vec4 uKernel_Stage1[6];
+uniform float uinnerThreshold_Stage2;
+uniform float uouterThreshold_Stage2;
+uniform vec4 ucolor_Stage3;
+uniform sampler2D uTextureSampler_0_Stage1;
+uniform sampler2D uTextureSampler_0_Stage2;
+noperspective in vec4 vinCircleEdge_Stage0;
+noperspective in vec4 vinColor_Stage0;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+noperspective in vec2 vTransformedCoords_1_Stage0;
+void main() {
+    vec4 outputCoverage_Stage0;
+    {
+        vec4 circleEdge;
+        circleEdge = vinCircleEdge_Stage0;
+        float d = length(circleEdge.xy);
+        float distanceToOuterEdge = circleEdge.z * (1.0 - d);
+        float edgeAlpha = clamp(distanceToOuterEdge, 0.0, 1.0);
+        float distanceToInnerEdge = circleEdge.z * (d - circleEdge.w);
+        float innerAlpha = clamp(distanceToInnerEdge, 0.0, 1.0);
+        edgeAlpha *= innerAlpha;
+        outputCoverage_Stage0 = vec4(edgeAlpha);
+    }
+    vec4 output_Stage1;
+    {
+        output_Stage1 = vec4(0.0, 0.0, 0.0, 0.0);
+        vec2 coord = vTransformedCoords_0_Stage0 - 11.0 * uImageIncrement_Stage1;
+        vec2 coordSampled = vec2(0.0, 0.0);
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[0].x;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[0].y;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[0].z;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[0].w;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[1].x;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[1].y;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[1].z;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[1].w;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[2].x;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[2].y;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[2].z;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[2].w;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[3].x;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[3].y;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[3].z;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[3].w;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[4].x;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[4].y;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[4].z;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[4].w;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[5].x;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[5].y;
+        coord += uImageIncrement_Stage1;
+        coordSampled = coord;
+        output_Stage1 += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1[5].z;
+        coord += uImageIncrement_Stage1;
+        output_Stage1 *= outputCoverage_Stage0;
+    }
+    {
+        vec4 color = output_Stage1;
+        vec4 mask_color = texture(uTextureSampler_0_Stage2, vTransformedCoords_1_Stage0);
+        if (mask_color.w < 0.5) {
+            if (color.w > uouterThreshold_Stage2) {
+                float scale = uouterThreshold_Stage2 / color.w;
+                color.xyz *= scale;
+                color.w = uouterThreshold_Stage2;
+            }
+        } else if (color.w < uinnerThreshold_Stage2) {
+            float scale = uinnerThreshold_Stage2 / max(0.0010000000474974513, color.w);
+            color.xyz *= scale;
+            color.w = uinnerThreshold_Stage2;
+        }
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+uniform mat3 uCoordTransformMatrix_1_Stage0;
+in vec2 inPosition;
+in vec4 inColor;
+in vec4 inCircleEdge;
+noperspective out vec4 vinCircleEdge_Stage0;
+noperspective out vec4 vinColor_Stage0;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+noperspective out vec2 vTransformedCoords_1_Stage0;
+void main() {
+    vinCircleEdge_Stage0 = inCircleEdge;
+    vinColor_Stage0 = inColor;
+    vec2 pos2 = inPosition;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inPosition, 1.0)).xy;
+    vTransformedCoords_1_Stage0 = (uCoordTransformMatrix_1_Stage0 * vec3(inPosition, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

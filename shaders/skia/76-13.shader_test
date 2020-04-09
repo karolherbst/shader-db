@@ -1,0 +1,67 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+#extension GL_ARB_fragment_coord_conventions : require
+layout(origin_upper_left) in vec4 gl_FragCoord;
+out vec4 sk_FragColor;
+uniform vec2 uDstTextureUpperLeft_Stage1;
+uniform vec2 uDstTextureCoordScale_Stage1;
+uniform sampler2D uTextureSampler_0_Stage0;
+uniform sampler2D uDstTextureSampler_Stage1;
+noperspective in vec2 vTextureCoords_Stage0;
+flat in int vTexIndex_Stage0;
+noperspective in vec4 vinColor_Stage0;
+vec4 blend_exclusion(vec4 src, vec4 dst) {
+    return vec4((dst.xyz + src.xyz) - (2.0 * dst.xyz) * src.xyz, src.w + (1.0 - src.w) * dst.w);
+}
+void main() {
+    vec4 outputColor_Stage0;
+    vec4 outputCoverage_Stage0;
+    {
+        outputColor_Stage0 = vinColor_Stage0;
+        vec4 texColor;
+        {
+            texColor = texture(uTextureSampler_0_Stage0, vTextureCoords_Stage0);
+        }
+        outputCoverage_Stage0 = texColor;
+    }
+    {
+        if (all(lessThanEqual(outputCoverage_Stage0.xyz, vec3(0.0)))) {
+            discard;
+        }
+        vec2 _dstTexCoord = (gl_FragCoord.xy - uDstTextureUpperLeft_Stage1) * uDstTextureCoordScale_Stage1;
+        _dstTexCoord.y = 1.0 - _dstTexCoord.y;
+        vec4 _dstColor = texture(uDstTextureSampler_Stage1, _dstTexCoord);
+        sk_FragColor = blend_exclusion(outputColor_Stage0, _dstColor);
+        float lerpRed = mix(_dstColor.w, sk_FragColor.w, outputCoverage_Stage0.x);
+        float lerpBlue = mix(_dstColor.w, sk_FragColor.w, outputCoverage_Stage0.y);
+        float lerpGreen = mix(_dstColor.w, sk_FragColor.w, outputCoverage_Stage0.z);
+        sk_FragColor = outputCoverage_Stage0 * sk_FragColor + (vec4(1.0) - outputCoverage_Stage0) * _dstColor;
+        sk_FragColor.w = max(max(lerpRed, lerpBlue), lerpGreen);
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform vec2 uAtlasSizeInv_Stage0;
+in vec2 inPosition;
+in vec4 inColor;
+in uvec2 inTextureCoords;
+noperspective out vec2 vTextureCoords_Stage0;
+flat out int vTexIndex_Stage0;
+noperspective out vec4 vinColor_Stage0;
+void main() {
+    ivec2 signedCoords = ivec2(int(inTextureCoords.x), int(inTextureCoords.y));
+    vec2 unormTexCoords = vec2(float(signedCoords.x / 2), float(signedCoords.y / 2));
+    vTextureCoords_Stage0 = unormTexCoords * uAtlasSizeInv_Stage0;
+    vTexIndex_Stage0 = 0;
+    vinColor_Stage0 = inColor;
+    gl_Position = vec4(inPosition.x, inPosition.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

@@ -1,0 +1,166 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+#extension GL_KHR_blend_equation_advanced : require
+out vec4 sk_FragColor;
+layout (blend_support_all_equations) out ;
+uniform vec4 uColor_Stage0;
+uniform vec4 ucircle_Stage1;
+uniform vec2 ubaseFrequency_Stage2_c0_c0;
+uniform vec4 uellipse_Stage3;
+uniform vec4 uscale01_Stage4_c1_c0_c1_c0;
+uniform vec4 ubias01_Stage4_c1_c0_c1_c0;
+uniform vec4 uscale23_Stage4_c1_c0_c1_c0;
+uniform vec4 ubias23_Stage4_c1_c0_c1_c0;
+uniform float uthreshold_Stage4_c1_c0_c1_c0;
+uniform sampler2D uTextureSampler_0_Stage2;
+uniform sampler2D uTextureSampler_1_Stage2;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+noperspective in vec2 vTransformedCoords_1_Stage0;
+float perlinnoise_Stage2_c0_c0(float chanCoord, vec2 noiseVec) {
+    vec4 floorVal;
+    floorVal.xy = floor(noiseVec);
+    floorVal.zw = floorVal.xy + vec2(1.0);
+    vec2 fractVal = fract(noiseVec);
+    vec2 noiseSmooth = (fractVal * fractVal) * (vec2(3.0) - vec2(2.0) * fractVal);
+    floorVal = fract(floor(mod(floorVal, 256.0)) / vec4(256.0));
+    vec2 latticeIdx;
+    latticeIdx.x = texture(uTextureSampler_0_Stage2, vec2(floorVal.x, 0.5)).x;
+    latticeIdx.y = texture(uTextureSampler_0_Stage2, vec2(floorVal.z, 0.5)).x;
+    vec4 bcoords = fract(latticeIdx.xyxy + floorVal.yyww);
+    vec2 uv;
+    vec4 lattice = texture(uTextureSampler_1_Stage2, vec2(bcoords.x, chanCoord)).zyxw;
+    uv.x = dot((lattice.yw + lattice.xz * vec2(0.00390625)) * vec2(2.0) - vec2(1.0), fractVal);
+    fractVal.x -= 1.0;
+    lattice = texture(uTextureSampler_1_Stage2, vec2(bcoords.y, chanCoord)).zyxw;
+    uv.y = dot((lattice.yw + lattice.xz * vec2(0.00390625)) * vec2(2.0) - vec2(1.0), fractVal);
+    vec2 ab;
+    ab.x = mix(uv.x, uv.y, noiseSmooth.x);
+    fractVal.y -= 1.0;
+    lattice = texture(uTextureSampler_1_Stage2, vec2(bcoords.w, chanCoord)).zyxw;
+    uv.y = dot((lattice.yw + lattice.xz * vec2(0.00390625)) * vec2(2.0) - vec2(1.0), fractVal);
+    fractVal.x += 1.0;
+    lattice = texture(uTextureSampler_1_Stage2, vec2(bcoords.z, chanCoord)).zyxw;
+    uv.x = dot((lattice.yw + lattice.xz * vec2(0.00390625)) * vec2(2.0) - vec2(1.0), fractVal);
+    ab.y = mix(uv.x, uv.y, noiseSmooth.x);
+    return mix(ab.x, ab.y, noiseSmooth.y);
+}
+vec4 PerlinNoise_Stage2_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec2 noiseVec = floor(vTransformedCoords_0_Stage0) * ubaseFrequency_Stage2_c0_c0;
+    _output = vec4(0.0);
+    float ratio = 1.0;
+    for (int octave = 0;octave < 5; ++octave) {
+        _output += abs(vec4(perlinnoise_Stage2_c0_c0(0.125, noiseVec), perlinnoise_Stage2_c0_c0(0.375, noiseVec), perlinnoise_Stage2_c0_c0(0.625, noiseVec), perlinnoise_Stage2_c0_c0(0.875, noiseVec))) * ratio;
+        noiseVec *= vec2(2.0);
+        ratio *= 0.5;
+    }
+    _output = clamp(_output, 0.0, 1.0);
+    _output = vec4(_output.xyz * _output.www, _output.w);
+    return _output;
+}
+vec4 LinearGradientLayout_Stage4_c1_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    float t = vTransformedCoords_1_Stage0.x + 9.9999997473787516e-06;
+    _output = vec4(t, 1.0, 0.0, 0.0);
+    return _output;
+}
+vec4 DualIntervalGradientColorizer_Stage4_c1_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    float t = _input.x;
+    vec4 scale, bias;
+    if (t < uthreshold_Stage4_c1_c0_c1_c0) {
+        scale = uscale01_Stage4_c1_c0_c1_c0;
+        bias = ubias01_Stage4_c1_c0_c1_c0;
+    } else {
+        scale = uscale23_Stage4_c1_c0_c1_c0;
+        bias = ubias23_Stage4_c1_c0_c1_c0;
+    }
+    _output = t * scale + bias;
+    return _output;
+}
+vec4 TiledGradientEffect_Stage4_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec4 t = LinearGradientLayout_Stage4_c1_c0_c0_c0(vec4(1.0));
+    {
+        {
+            t.x = fract(t.x);
+        }
+        _output = DualIntervalGradientColorizer_Stage4_c1_c0_c1_c0(t);
+    }
+    {
+        _output.xyz *= _output.w;
+    }
+    return _output;
+}
+vec4 blend_src_in(vec4 src, vec4 dst) {
+    return src * dst.w;
+}
+vec4 blend_dst_in(vec4 src, vec4 dst) {
+    return blend_src_in(dst, src);
+}
+void main() {
+    vec4 outputColor_Stage0;
+    {
+        outputColor_Stage0 = uColor_Stage0;
+    }
+    vec4 output_Stage1;
+    {
+        float d;
+        {
+            d = (length((ucircle_Stage1.xy - gl_FragCoord.xy) * ucircle_Stage1.w) - 1.0) * ucircle_Stage1.z;
+        }
+        {
+            output_Stage1 = d > 0.5 ? vec4(1.0) : vec4(0.0);
+        }
+    }
+    vec4 output_Stage2;
+    {
+        output_Stage2 = blend_dst_in(output_Stage1, PerlinNoise_Stage2_c0_c0(vec4(1.0)));
+    }
+    vec4 output_Stage3;
+    {
+        vec2 d = gl_FragCoord.xy - uellipse_Stage3.xy;
+        vec2 Z = d * uellipse_Stage3.zw;
+        float implicit = dot(Z, d) - 1.0;
+        float grad_dot = 4.0 * dot(Z, Z);
+        {
+            grad_dot = max(grad_dot, 1.1754999560161448e-38);
+        }
+        float approx_dist = implicit * inversesqrt(grad_dot);
+        float alpha;
+        {
+            alpha = clamp(0.5 - approx_dist, 0.0, 1.0);
+        }
+        output_Stage3 = output_Stage2 * alpha;
+    }
+    vec4 output_Stage4;
+    {
+        output_Stage4 = blend_dst_in(output_Stage3, TiledGradientEffect_Stage4_c1_c0(vec4(1.0)));
+    }
+    {
+        sk_FragColor = output_Stage4 * outputColor_Stage0;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uViewM_Stage0;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+uniform mat3 uCoordTransformMatrix_1_Stage0;
+in vec2 inPosition;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+noperspective out vec2 vTransformedCoords_1_Stage0;
+void main() {
+    vec2 pos2 = (uViewM_Stage0 * vec3(inPosition, 1.0)).xy;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inPosition, 1.0)).xy;
+    vTransformedCoords_1_Stage0 = (uCoordTransformMatrix_1_Stage0 * vec3(inPosition, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

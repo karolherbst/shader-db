@@ -1,0 +1,147 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 uleftBorderColor_Stage1_c0_c0;
+uniform vec4 urightBorderColor_Stage1_c0_c0;
+uniform float ubias_Stage1_c0_c0_c0_c0;
+uniform float uscale_Stage1_c0_c0_c0_c0;
+uniform vec4 uscale0_1_Stage1_c0_c0_c1_c0;
+uniform vec4 uscale2_3_Stage1_c0_c0_c1_c0;
+uniform vec4 uscale4_5_Stage1_c0_c0_c1_c0;
+uniform vec4 uscale6_7_Stage1_c0_c0_c1_c0;
+uniform vec4 uscale8_9_Stage1_c0_c0_c1_c0;
+uniform vec4 uscale10_11_Stage1_c0_c0_c1_c0;
+uniform vec4 ubias0_1_Stage1_c0_c0_c1_c0;
+uniform vec4 ubias2_3_Stage1_c0_c0_c1_c0;
+uniform vec4 ubias4_5_Stage1_c0_c0_c1_c0;
+uniform vec4 ubias6_7_Stage1_c0_c0_c1_c0;
+uniform vec4 ubias8_9_Stage1_c0_c0_c1_c0;
+uniform vec4 ubias10_11_Stage1_c0_c0_c1_c0;
+uniform vec4 uthresholds1_7_Stage1_c0_c0_c1_c0;
+uniform vec4 uthresholds9_13_Stage1_c0_c0_c1_c0;
+flat in vec4 vcolor_Stage0;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+noperspective in vec4 varccoord_Stage0;
+vec4 SweepGradientLayout_Stage1_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    float angle;
+    {
+        angle = atan(-vTransformedCoords_0_Stage0.y, -vTransformedCoords_0_Stage0.x);
+    }
+    float t = ((angle * 0.15915493667125702 + 0.5) + ubias_Stage1_c0_c0_c0_c0) * uscale_Stage1_c0_c0_c0_c0;
+    _output = vec4(t, 1.0, 0.0, 0.0);
+    return _output;
+}
+vec4 UnrolledBinaryGradientColorizer_Stage1_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    float t = _input.x;
+    vec4 scale, bias;
+    if (t < uthresholds1_7_Stage1_c0_c0_c1_c0.w) {
+        if (t < uthresholds1_7_Stage1_c0_c0_c1_c0.y) {
+            if (t < uthresholds1_7_Stage1_c0_c0_c1_c0.x) {
+                scale = uscale0_1_Stage1_c0_c0_c1_c0;
+                bias = ubias0_1_Stage1_c0_c0_c1_c0;
+            } else {
+                scale = uscale2_3_Stage1_c0_c0_c1_c0;
+                bias = ubias2_3_Stage1_c0_c0_c1_c0;
+            }
+        } else {
+            if (t < uthresholds1_7_Stage1_c0_c0_c1_c0.z) {
+                scale = uscale4_5_Stage1_c0_c0_c1_c0;
+                bias = ubias4_5_Stage1_c0_c0_c1_c0;
+            } else {
+                scale = uscale6_7_Stage1_c0_c0_c1_c0;
+                bias = ubias6_7_Stage1_c0_c0_c1_c0;
+            }
+        }
+    } else {
+        {
+            if (t < uthresholds9_13_Stage1_c0_c0_c1_c0.x) {
+                scale = uscale8_9_Stage1_c0_c0_c1_c0;
+                bias = ubias8_9_Stage1_c0_c0_c1_c0;
+            } else {
+                scale = uscale10_11_Stage1_c0_c0_c1_c0;
+                bias = ubias10_11_Stage1_c0_c0_c1_c0;
+            }
+        }
+    }
+    _output = t * scale + bias;
+    return _output;
+}
+vec4 ClampedGradientEffect_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 t = SweepGradientLayout_Stage1_c0_c0_c0_c0(vec4(1.0));
+    if (t.x < 0.0) {
+        _output = uleftBorderColor_Stage1_c0_c0;
+    } else if (t.x > 1.0) {
+        _output = urightBorderColor_Stage1_c0_c0;
+    } else {
+        _output = UnrolledBinaryGradientColorizer_Stage1_c0_c0_c1_c0(t);
+    }
+    return _output;
+}
+void main() {
+    vec4 outputCoverage_Stage0;
+    {
+        outputCoverage_Stage0 = vec4(1.0);
+        if (vec2(0.0) != varccoord_Stage0.xy) {
+            float fn = dot(varccoord_Stage0.xy, varccoord_Stage0.xy) - 1.0;
+            if (fn > 0.0) {
+                outputCoverage_Stage0 = vec4(0.0);
+            }
+        }
+    }
+    vec4 output_Stage1;
+    {
+        output_Stage1 = ClampedGradientEffect_Stage1_c0_c0(vec4(1.0, 1.0, 1.0, 1.0));
+    }
+    {
+        sk_FragColor = output_Stage1 * outputCoverage_Stage0;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+in vec4 radii_selector;
+in vec4 corner_and_radius_outsets;
+in vec4 skew;
+in vec2 translate;
+in vec4 radii_x;
+in vec4 radii_y;
+in vec4 color;
+in vec4 local_rect;
+flat out vec4 vcolor_Stage0;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+noperspective out vec4 varccoord_Stage0;
+void main() {
+    vcolor_Stage0 = color;
+    vec2 corner = corner_and_radius_outsets.xy;
+    vec2 radius_outset = corner_and_radius_outsets.zw;
+    vec2 radii;
+    radii.x = dot(radii_selector, radii_x);
+    radii.y = dot(radii_selector, radii_y);
+    bool is_arc_section = radii.x > 0.0;
+    radii = abs(radii);
+    vec2 vertexpos = corner + radius_outset * radii;
+    vec2 localcoord = (local_rect.xy * (1.0 - vertexpos) + local_rect.zw * (1.0 + vertexpos)) * 0.5;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(localcoord, 1.0)).xy;
+    mat2 skewmatrix = mat2(skew.xy, skew.zw);
+    vec2 devcoord = vertexpos * skewmatrix + translate;
+    if (is_arc_section) {
+        varccoord_Stage0.xy = 1.0 - abs(radius_outset);
+        mat2 derivatives = inverse(skewmatrix);
+        varccoord_Stage0.zw = derivatives * (((varccoord_Stage0.xy / radii) * corner) * 2.0);
+    } else {
+        varccoord_Stage0 = vec4(0.0);
+    }
+    gl_Position = vec4(devcoord.x, devcoord.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

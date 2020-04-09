@@ -1,0 +1,88 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 uniformColor_Stage1_c0_c0;
+uniform vec4 ucolor_Stage1_c0_c0_c0_c0;
+uniform vec4 ucolor_Stage2;
+uniform vec4 ucolor_Stage3_c1_c0;
+noperspective in vec4 vcolor_Stage0;
+vec4 ConstColorProcessor_Stage1_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    {
+        _output = _input.w * ucolor_Stage1_c0_c0_c0_c0;
+    }
+    return _output;
+}
+vec4 OverrideInputFragmentProcessor_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 constColor;
+    {
+        constColor = uniformColor_Stage1_c0_c0;
+    }
+    _output = ConstColorProcessor_Stage1_c0_c0_c0_c0(constColor);
+    return _output;
+}
+vec4 ConstColorProcessor_Stage3_c1_c0(vec4 _input) {
+    vec4 _output;
+    {
+        _output = ucolor_Stage3_c1_c0;
+    }
+    return _output;
+}
+vec4 blend_difference(vec4 src, vec4 dst) {
+    return vec4((src.xyz + dst.xyz) - 2.0 * min(src.xyz * dst.w, dst.xyz * src.w), src.w + (1.0 - src.w) * dst.w);
+}
+vec4 blend_src_over(vec4 src, vec4 dst) {
+    return src + (1.0 - src.w) * dst;
+}
+vec4 blend_darken(vec4 src, vec4 dst) {
+    vec4 result = blend_src_over(src, dst);
+    result.xyz = min(result.xyz, (1.0 - dst.w) * src.xyz + dst.xyz);
+    return result;
+}
+void main() {
+    vec4 outputColor_Stage0;
+    {
+        outputColor_Stage0 = vcolor_Stage0;
+    }
+    vec4 output_Stage1;
+    {
+        output_Stage1 = blend_difference(OverrideInputFragmentProcessor_Stage1_c0_c0(vec4(1.0)), outputColor_Stage0);
+    }
+    vec4 output_Stage2;
+    {
+        {
+            output_Stage2 = output_Stage1 * ucolor_Stage2;
+        }
+    }
+    vec4 output_Stage3;
+    {
+        output_Stage3 = blend_darken(ConstColorProcessor_Stage3_c1_c0(vec4(1.0)), output_Stage2);
+    }
+    {
+        sk_FragColor = output_Stage3;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uViewM_Stage0;
+in vec2 position;
+in vec4 inColor;
+noperspective out vec4 vcolor_Stage0;
+void main() {
+    vec4 color = inColor;
+    color = color.zyxw;
+    color = vec4(color.xyz * color.w, color.w);
+    vcolor_Stage0 = color;
+    vec2 pos2 = (uViewM_Stage0 * vec3(position, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

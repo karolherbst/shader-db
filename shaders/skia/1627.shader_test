@@ -1,0 +1,40 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform sampler2D uTextureSampler_0_Stage0;
+flat in vec4 vcolor_Stage0;
+noperspective in vec2 vlocalCoord_Stage0;
+void main() {
+    vec4 outputColor_Stage0;
+    {
+        outputColor_Stage0 = vcolor_Stage0;
+        vec2 texCoord;
+        texCoord = vlocalCoord_Stage0;
+        outputColor_Stage0 = texture(uTextureSampler_0_Stage0, texCoord) * outputColor_Stage0;
+        outputColor_Stage0 = clamp(outputColor_Stage0, 0.0, 1.0);
+    }
+    {
+        sk_FragColor = outputColor_Stage0;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+in vec2 position;
+in vec4 color;
+in vec2 localCoord;
+flat out vec4 vcolor_Stage0;
+noperspective out vec2 vlocalCoord_Stage0;
+void main() {
+    vcolor_Stage0 = color;
+    vlocalCoord_Stage0 = localCoord;
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

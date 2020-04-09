@@ -1,0 +1,135 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 uniformColor_Stage1_c0_c0;
+uniform vec4 ucolor_Stage1_c0_c0_c0_c0;
+uniform vec4 ucolor_Stage2;
+uniform vec4 ucolor_Stage3_c1_c0;
+noperspective in vec4 vcolor_Stage0;
+vec4 ConstColorProcessor_Stage1_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    {
+        _output = _input.w * ucolor_Stage1_c0_c0_c0_c0;
+    }
+    return _output;
+}
+vec4 OverrideInputFragmentProcessor_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 constColor;
+    {
+        constColor = uniformColor_Stage1_c0_c0;
+    }
+    _output = ConstColorProcessor_Stage1_c0_c0_c0_c0(constColor);
+    return _output;
+}
+vec4 ConstColorProcessor_Stage3_c1_c0(vec4 _input) {
+    vec4 _output;
+    {
+        _output = ucolor_Stage3_c1_c0;
+    }
+    return _output;
+}
+float _blend_color_saturation(vec3 color) {
+    return max(max(color.x, color.y), color.z) - min(min(color.x, color.y), color.z);
+}
+vec3 _blend_set_color_saturation_helper(vec3 minMidMax, float sat) {
+    if (minMidMax.x < minMidMax.z) {
+        return vec3(0.0, (sat * (minMidMax.y - minMidMax.x)) / (minMidMax.z - minMidMax.x), sat);
+    }
+    return vec3(0.0);
+}
+vec3 _blend_set_color_saturation(vec3 hueLumColor, vec3 satColor) {
+    float sat = _blend_color_saturation(satColor);
+    if (hueLumColor.x <= hueLumColor.y) {
+        if (hueLumColor.y <= hueLumColor.z) {
+            hueLumColor.xyz = _blend_set_color_saturation_helper(hueLumColor, sat);
+        } else if (hueLumColor.x <= hueLumColor.z) {
+            hueLumColor.xzy = _blend_set_color_saturation_helper(hueLumColor.xzy, sat);
+        } else {
+            hueLumColor.zxy = _blend_set_color_saturation_helper(hueLumColor.zxy, sat);
+        }
+    } else if (hueLumColor.x <= hueLumColor.z) {
+        hueLumColor.yxz = _blend_set_color_saturation_helper(hueLumColor.yxz, sat);
+    } else if (hueLumColor.y <= hueLumColor.z) {
+        hueLumColor.yzx = _blend_set_color_saturation_helper(hueLumColor.yzx, sat);
+    } else {
+        hueLumColor.zyx = _blend_set_color_saturation_helper(hueLumColor.zyx, sat);
+    }
+    return hueLumColor;
+}
+float _blend_color_luminance(vec3 color) {
+    return dot(vec3(0.30000001192092896, 0.5899999737739563, 0.10999999940395355), color);
+}
+vec3 _blend_set_color_luminance(vec3 hueSatColor, float alpha, vec3 lumColor) {
+    float lum = _blend_color_luminance(lumColor);
+    vec3 result = (lum - _blend_color_luminance(hueSatColor)) + hueSatColor;
+    float minComp = min(min(result.x, result.y), result.z);
+    float maxComp = max(max(result.x, result.y), result.z);
+    if (minComp < 0.0 && lum != minComp) {
+        result = lum + ((result - lum) * lum) / (lum - minComp);
+    }
+    if (maxComp > alpha && maxComp != lum) {
+        return lum + ((result - lum) * (alpha - lum)) / (maxComp - lum);
+    }
+    return result;
+}
+vec4 blend_saturation(vec4 src, vec4 dst) {
+    float alpha = dst.w * src.w;
+    vec3 sda = src.xyz * dst.w;
+    vec3 dsa = dst.xyz * src.w;
+    return vec4((((_blend_set_color_luminance(_blend_set_color_saturation(dsa, sda), alpha, dsa) + dst.xyz) - dsa) + src.xyz) - sda, (src.w + dst.w) - alpha);
+}
+vec4 blend_src_over(vec4 src, vec4 dst) {
+    return src + (1.0 - src.w) * dst;
+}
+vec4 blend_darken(vec4 src, vec4 dst) {
+    vec4 result = blend_src_over(src, dst);
+    result.xyz = min(result.xyz, (1.0 - dst.w) * src.xyz + dst.xyz);
+    return result;
+}
+void main() {
+    vec4 outputColor_Stage0;
+    {
+        outputColor_Stage0 = vcolor_Stage0;
+    }
+    vec4 output_Stage1;
+    {
+        output_Stage1 = blend_saturation(OverrideInputFragmentProcessor_Stage1_c0_c0(vec4(1.0)), outputColor_Stage0);
+    }
+    vec4 output_Stage2;
+    {
+        {
+            output_Stage2 = output_Stage1 * ucolor_Stage2;
+        }
+    }
+    vec4 output_Stage3;
+    {
+        output_Stage3 = blend_darken(ConstColorProcessor_Stage3_c1_c0(vec4(1.0)), output_Stage2);
+    }
+    {
+        sk_FragColor = output_Stage3;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uViewM_Stage0;
+in vec2 position;
+in vec4 inColor;
+noperspective out vec4 vcolor_Stage0;
+void main() {
+    vec4 color = inColor;
+    color = color.zyxw;
+    color = vec4(color.xyz * color.w, color.w);
+    vcolor_Stage0 = color;
+    vec2 pos2 = (uViewM_Stage0 * vec3(position, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

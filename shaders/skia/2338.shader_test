@@ -1,0 +1,91 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 ucolor_Stage1_c0_c0;
+in vec4 vcolor_Stage0;
+vec4 ConstColorProcessor_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    {
+        _output = ucolor_Stage1_c0_c0;
+    }
+    return _output;
+}
+void main() {
+    vec4 output_Stage1;
+    {
+        output_Stage1 = ConstColorProcessor_Stage1_c0_c0(vec4(1.0));
+    }
+    {
+        sk_FragColor = output_Stage1;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform float uSrcTF_Stage0[7];
+uniform mat3 uColorXform_Stage0;
+uniform float uDstTF_Stage0[7];
+uniform mat3 uViewM_Stage0;
+in vec2 position;
+in vec4 inColor;
+out vec4 vcolor_Stage0;
+float src_tf_Stage0(float x) {
+    float G = uSrcTF_Stage0[0];
+    float A = uSrcTF_Stage0[1];
+    float B = uSrcTF_Stage0[2];
+    float C = uSrcTF_Stage0[3];
+    float D = uSrcTF_Stage0[4];
+    float E = uSrcTF_Stage0[5];
+    float F = uSrcTF_Stage0[6];
+    float s = sign(x);
+    x = abs(x);
+    x = x < D ? C * x + F : pow(A * x + B, G) + E;
+    return s * x;
+}
+float dst_tf_Stage0(float x) {
+    float G = uDstTF_Stage0[0];
+    float A = uDstTF_Stage0[1];
+    float B = uDstTF_Stage0[2];
+    float C = uDstTF_Stage0[3];
+    float D = uDstTF_Stage0[4];
+    float E = uDstTF_Stage0[5];
+    float F = uDstTF_Stage0[6];
+    float s = sign(x);
+    x = abs(x);
+    x = x < D ? C * x + F : pow(A * x + B, G) + E;
+    return s * x;
+}
+vec4 gamut_xform_Stage0(vec4 color) {
+    color.xyz = uColorXform_Stage0 * color.xyz;
+    return color;
+}
+vec4 color_xform_Stage0(vec4 color) {
+    float nonZeroAlpha = max(color.w, 9.9999997473787516e-05);
+    color = vec4(color.xyz / nonZeroAlpha, nonZeroAlpha);
+    color.x = src_tf_Stage0(color.x);
+    color.y = src_tf_Stage0(color.y);
+    color.z = src_tf_Stage0(color.z);
+    color = gamut_xform_Stage0(color);
+    color.x = dst_tf_Stage0(color.x);
+    color.y = dst_tf_Stage0(color.y);
+    color.z = dst_tf_Stage0(color.z);
+    color.xyz *= color.w;
+    return color;
+}
+void main() {
+    vec4 color = inColor;
+    color = color.zyxw;
+    color = color_xform_Stage0(color);
+    color = vec4(color.xyz * color.w, color.w);
+    vcolor_Stage0 = color;
+    vec3 pos3 = uViewM_Stage0 * vec3(position, 1.0);
+    gl_Position = vec4(pos3.x, pos3.y, 0.0, pos3.z);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

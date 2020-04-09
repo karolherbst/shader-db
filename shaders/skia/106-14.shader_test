@@ -1,0 +1,52 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+in vec2 vEllipseOffsets0_Stage0;
+in vec2 vEllipseOffsets1_Stage0;
+in vec4 vinColor_Stage0;
+void main() {
+    {
+        vec2 scaledOffset = vEllipseOffsets0_Stage0;
+        float test = dot(scaledOffset, scaledOffset) - 1.0;
+        vec2 duvdx = dFdx(vEllipseOffsets0_Stage0);
+        vec2 duvdy = dFdy(vEllipseOffsets0_Stage0);
+        vec2 grad = vec2(vEllipseOffsets0_Stage0.x * duvdx.x + vEllipseOffsets0_Stage0.y * duvdx.y, vEllipseOffsets0_Stage0.x * duvdy.x + vEllipseOffsets0_Stage0.y * duvdy.y);
+        float grad_dot = 4.0 * dot(grad, grad);
+        grad_dot = max(grad_dot, 1.1754999560161448e-38);
+        float invlen = inversesqrt(grad_dot);
+        float edgeAlpha = clamp(0.5 - test * invlen, 0.0, 1.0);
+        scaledOffset = vEllipseOffsets1_Stage0;
+        test = dot(scaledOffset, scaledOffset) - 1.0;
+        duvdx = dFdx(vEllipseOffsets1_Stage0);
+        duvdy = dFdy(vEllipseOffsets1_Stage0);
+        grad = vec2(vEllipseOffsets1_Stage0.x * duvdx.x + vEllipseOffsets1_Stage0.y * duvdx.y, vEllipseOffsets1_Stage0.x * duvdy.x + vEllipseOffsets1_Stage0.y * duvdy.y);
+        grad_dot = 4.0 * dot(grad, grad);
+        invlen = inversesqrt(grad_dot);
+        edgeAlpha *= clamp(0.5 + test * invlen, 0.0, 1.0);
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uViewM_Stage0;
+in vec2 inPosition;
+in vec4 inColor;
+in vec2 inEllipseOffsets0;
+in vec2 inEllipseOffsets1;
+out vec2 vEllipseOffsets0_Stage0;
+out vec2 vEllipseOffsets1_Stage0;
+out vec4 vinColor_Stage0;
+void main() {
+    vEllipseOffsets0_Stage0 = inEllipseOffsets0;
+    vEllipseOffsets1_Stage0 = inEllipseOffsets1;
+    vinColor_Stage0 = inColor;
+    vec3 pos3 = uViewM_Stage0 * vec3(inPosition, 1.0);
+    gl_Position = vec4(pos3.x, pos3.y, 0.0, pos3.z);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

@@ -1,0 +1,98 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+#extension GL_KHR_blend_equation_advanced : require
+out vec4 sk_FragColor;
+layout (blend_support_all_equations) out ;
+uniform float ucornerRadius_Stage1_c0_c0_c0_c0;
+uniform vec4 uproxyRect_Stage1_c0_c0_c0_c0;
+uniform float ublurRadius_Stage1_c0_c0_c0_c0;
+uniform mat4 um_Stage1_c0_c0_c1_c0;
+uniform vec4 uv_Stage1_c0_c0_c1_c0;
+uniform sampler2D uTextureSampler_0_Stage1;
+uniform sampler2D uTextureSampler_1_Stage1;
+vec4 RRectBlurEffect_Stage1_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec2 translatedFragPos = gl_FragCoord.xy - uproxyRect_Stage1_c0_c0_c0_c0.xy;
+    float threshold = ucornerRadius_Stage1_c0_c0_c0_c0 + 2.0 * ublurRadius_Stage1_c0_c0_c0_c0;
+    vec2 middle = (uproxyRect_Stage1_c0_c0_c0_c0.zw - uproxyRect_Stage1_c0_c0_c0_c0.xy) - 2.0 * threshold;
+    if (translatedFragPos.x >= threshold && translatedFragPos.x < middle.x + threshold) {
+        translatedFragPos.x = threshold;
+    } else if (translatedFragPos.x >= middle.x + threshold) {
+        translatedFragPos.x -= middle.x - 1.0;
+    }
+    if (translatedFragPos.y > threshold && translatedFragPos.y < middle.y + threshold) {
+        translatedFragPos.y = threshold;
+    } else if (translatedFragPos.y >= middle.y + threshold) {
+        translatedFragPos.y -= middle.y - 1.0;
+    }
+    vec2 proxyDims = vec2(2.0 * threshold + 1.0);
+    vec2 texCoord = translatedFragPos / proxyDims;
+    _output = _input * texture(uTextureSampler_0_Stage1, texCoord);
+    return _output;
+}
+vec4 ColorMatrixFragmentProcessor_Stage1_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = _input;
+    {
+        float nonZeroAlpha = max(inputColor.w, 9.9999997473787516e-05);
+        inputColor = vec4(inputColor.xyz / nonZeroAlpha, inputColor.w);
+    }
+    _output = um_Stage1_c0_c0_c1_c0 * inputColor + uv_Stage1_c0_c0_c1_c0;
+    {
+        _output.w = clamp(_output.w, 0.0, 1.0);
+    }
+    {
+        _output.xyz *= _output.w;
+    }
+    return _output;
+}
+vec4 blend_dst_out(vec4 src, vec4 dst) {
+    return (1.0 - src.w) * dst;
+}
+vec4 ComposeTwo_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_dst_out(RRectBlurEffect_Stage1_c0_c0_c0_c0(inputColor), ColorMatrixFragmentProcessor_Stage1_c0_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 ColorTableEffect_Stage1_c1_c0(vec4 _input) {
+    vec4 _output;
+    float nonZeroAlpha = max(_input.w, 9.9999997473787516e-05);
+    vec4 coord = vec4(_input.xyz / nonZeroAlpha, nonZeroAlpha);
+    coord = coord * 0.9960939884185791 + vec4(0.0019529999699443579, 0.0019529999699443579, 0.0019529999699443579, 0.0019529999699443579);
+    _output.w = texture(uTextureSampler_1_Stage1, vec2(coord.w, 0.125)).w;
+    _output.x = texture(uTextureSampler_1_Stage1, vec2(coord.x, 0.375)).w;
+    _output.y = texture(uTextureSampler_1_Stage1, vec2(coord.y, 0.625)).w;
+    _output.z = texture(uTextureSampler_1_Stage1, vec2(coord.z, 0.875)).w;
+    _output.xyz *= _output.w;
+    return _output;
+}
+vec4 blend_screen(vec4 src, vec4 dst) {
+    return src + (1.0 - src) * dst;
+}
+void main() {
+    vec4 output_Stage1;
+    {
+        vec4 inputColor = vec4(vec4(1.0).xyz, 1.0);
+        output_Stage1 = blend_screen(ComposeTwo_Stage1_c0_c0(inputColor), ColorTableEffect_Stage1_c1_c0(inputColor));
+    }
+    {
+        sk_FragColor = output_Stage1;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+in vec2 position;
+void main() {
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

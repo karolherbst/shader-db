@@ -1,0 +1,41 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+in vec2 vbboxcoord_Stage0;
+void main() {
+    vec4 outputColor_Stage0;
+    vec4 outputCoverage_Stage0;
+    {
+        float x = abs(vbboxcoord_Stage0.x), y = abs(vbboxcoord_Stage0.y);
+        float fn = (pow(x, 5.0832038853381789) + pow(y, 5.0832038853381789)) - 1.0;
+        float fnwidth = fwidth(fn);
+        fnwidth += 1.000000013351432e-10;
+        float coverage = clamp(0.5 - fn / fnwidth, 0.0, 1.0);
+        outputColor_Stage0 = vec4(0.50999999046325684, 0.41999998688697815, 0.70999997854232788, 1.0) * 0.88999998569488525;
+        outputCoverage_Stage0 = vec4(coverage);
+    }
+    {
+        sk_FragColor = outputColor_Stage0 * outputCoverage_Stage0;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uviewmatrix_Stage0;
+in vec2 bboxcoord;
+out vec2 vbboxcoord_Stage0;
+void main() {
+    mat2 R = mat2(cos(0.05000000074505806), sin(0.05000000074505806), -sin(0.05000000074505806), cos(0.05000000074505806));
+    vbboxcoord_Stage0 = bboxcoord * 1.25;
+    vec3 vertexpos = vec3((bboxcoord * 100.0) * R + 100.0, 1.0);
+    vertexpos = uviewmatrix_Stage0 * vertexpos;
+    gl_Position = vec4(vertexpos.x, vertexpos.y, 0.0, vertexpos.z);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

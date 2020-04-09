@@ -1,0 +1,59 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 uColor_Stage0;
+uniform vec4 uCoordTransformMatrix_1_Stage0;
+uniform sampler2D uTextureSampler_0_Stage1;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+vec4 TextureEffect_Stage1_c0_c0_c0_c0(vec4 _input, vec2 _coords) {
+    _coords = _coords * uCoordTransformMatrix_1_Stage0.xz + uCoordTransformMatrix_1_Stage0.yw;
+    vec4 _output;
+    _output = texture(uTextureSampler_0_Stage1, _coords) * _input;
+    return _output;
+}
+vec4 Bicubic_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    float coord = vTransformedCoords_0_Stage0.y - 0.5;
+    float f = fract(coord);
+    coord += 0.5 - f;
+    float f2 = f * f;
+    vec4 w = mat4(0.055555555555555552, 0.88888888888888884, 0.055555555555555552, 0.0, -0.5, 0.0, 0.5, 0.0, 0.83333333333333337, -2.0, 1.5, -0.33333333333333331, -0.3888888888888889, 1.1666666666666667, -1.1666666666666667, 0.3888888888888889) * vec4(1.0, f, f2, f2 * f);
+    vec4 c[4];
+    c[0] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), vec2(vTransformedCoords_0_Stage0.x, coord + -1.0));
+    c[1] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), vec2(vTransformedCoords_0_Stage0.x, coord));
+    c[2] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), vec2(vTransformedCoords_0_Stage0.x, coord + 1.0));
+    c[3] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), vec2(vTransformedCoords_0_Stage0.x, coord + 2.0));
+    vec4 bicubicColor = ((c[0] * w.x + c[1] * w.y) + c[2] * w.z) + c[3] * w.w;
+    bicubicColor.xyz = max(vec3(0.0), min(bicubicColor.xyz, bicubicColor.www));
+    _output = bicubicColor * _input;
+    return _output;
+}
+void main() {
+    vec4 output_Stage1;
+    {
+        output_Stage1 = Bicubic_Stage1_c0_c0(vec4(1.0));
+    }
+    {
+        sk_FragColor = output_Stage1;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uViewM_Stage0;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+in vec2 inPosition;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+void main() {
+    vec2 pos2 = (uViewM_Stage0 * vec3(inPosition, 1.0)).xy;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inPosition, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

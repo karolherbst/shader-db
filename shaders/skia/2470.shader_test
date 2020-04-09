@@ -1,0 +1,54 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 uColor_Stage0;
+uniform float uinnerThreshold_Stage1_c0_c0;
+uniform float uouterThreshold_Stage1_c0_c0;
+uniform sampler2D uTextureSampler_0_Stage1;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+vec4 AlphaThresholdFragmentProcessor_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 color = _input;
+    vec4 mask_color = texture(uTextureSampler_0_Stage1, vTransformedCoords_0_Stage0);
+    if (mask_color.w < 0.5) {
+        if (color.w > uouterThreshold_Stage1_c0_c0) {
+            float scale = uouterThreshold_Stage1_c0_c0 / color.w;
+            color.xyz *= scale;
+            color.w = uouterThreshold_Stage1_c0_c0;
+        }
+    } else if (color.w < uinnerThreshold_Stage1_c0_c0) {
+        float scale = uinnerThreshold_Stage1_c0_c0 / max(0.0010000000474974513, color.w);
+        color.xyz *= scale;
+        color.w = uinnerThreshold_Stage1_c0_c0;
+    }
+    _output = color;
+    return _output;
+}
+void main() {
+    vec4 output_Stage1;
+    {
+        output_Stage1 = AlphaThresholdFragmentProcessor_Stage1_c0_c0(vec4(1.0));
+    }
+    {
+        sk_FragColor = output_Stage1;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+in vec2 inPosition;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+void main() {
+    vec2 pos2 = inPosition;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inPosition, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

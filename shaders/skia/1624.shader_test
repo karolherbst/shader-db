@@ -1,0 +1,318 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+uniform vec2 uImageIncrement_Stage1;
+uniform vec4 uKernel_Stage1[5];
+uniform vec2 uKernelOffset_Stage1;
+uniform float uGain_Stage1;
+uniform float uBias_Stage1;
+uniform vec4 uTexDom_Stage1;
+uniform vec4 uleftBorderColor_Stage2_c0_c0;
+uniform vec4 urightBorderColor_Stage2_c0_c0;
+uniform vec4 ustart_Stage2_c0_c0_c1_c0;
+uniform vec4 uend_Stage2_c0_c0_c1_c0;
+uniform sampler2D uTextureSampler_0_Stage1;
+noperspective in vec4 vcolor_Stage0;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+noperspective in vec2 vTransformedCoords_1_Stage0;
+vec4 LinearGradientLayout_Stage2_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    float t = vTransformedCoords_1_Stage0.x + 9.9999997473787516e-06;
+    _output = vec4(t, 1.0, 0.0, 0.0);
+    return _output;
+}
+vec4 SingleIntervalGradientColorizer_Stage2_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    float t = _input.x;
+    _output = (1.0 - t) * ustart_Stage2_c0_c0_c1_c0 + t * uend_Stage2_c0_c0_c1_c0;
+    return _output;
+}
+vec4 ClampedGradientEffect_Stage2_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 t = LinearGradientLayout_Stage2_c0_c0_c0_c0(vec4(1.0));
+    if (t.x < 0.0) {
+        _output = uleftBorderColor_Stage2_c0_c0;
+    } else if (t.x > 1.0) {
+        _output = urightBorderColor_Stage2_c0_c0;
+    } else {
+        _output = SingleIntervalGradientColorizer_Stage2_c0_c0_c1_c0(t);
+    }
+    {
+        _output.xyz *= _output.w;
+    }
+    return _output;
+}
+vec4 blend_src_in(vec4 src, vec4 dst) {
+    return src * dst.w;
+}
+vec4 blend_dst_in(vec4 src, vec4 dst) {
+    return blend_src_in(dst, src);
+}
+void main() {
+    vec4 output_Stage1;
+    {
+        vec4 sum = vec4(0.0, 0.0, 0.0, 0.0);
+        vec2 coord = vTransformedCoords_0_Stage0 - uKernelOffset_Stage1 * uImageIncrement_Stage1;
+        vec4 c;
+        {
+            float k = uKernel_Stage1[0].x;
+            {
+                vec2 origCoord = coord;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            float k = uKernel_Stage1[0].y;
+            {
+                vec2 origCoord = coord + vec2(1.0, 0.0) * uImageIncrement_Stage1;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            float k = uKernel_Stage1[0].z;
+            {
+                vec2 origCoord = coord + vec2(2.0, 0.0) * uImageIncrement_Stage1;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            float k = uKernel_Stage1[0].w;
+            {
+                vec2 origCoord = coord + vec2(3.0, 0.0) * uImageIncrement_Stage1;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            float k = uKernel_Stage1[1].x;
+            {
+                vec2 origCoord = coord + vec2(4.0, 0.0) * uImageIncrement_Stage1;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            float k = uKernel_Stage1[1].y;
+            {
+                vec2 origCoord = coord + vec2(5.0, 0.0) * uImageIncrement_Stage1;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            float k = uKernel_Stage1[1].z;
+            {
+                vec2 origCoord = coord + vec2(6.0, 0.0) * uImageIncrement_Stage1;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            float k = uKernel_Stage1[1].w;
+            {
+                vec2 origCoord = coord + vec2(7.0, 0.0) * uImageIncrement_Stage1;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            float k = uKernel_Stage1[2].x;
+            {
+                vec2 origCoord = coord + vec2(8.0, 0.0) * uImageIncrement_Stage1;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            float k = uKernel_Stage1[2].y;
+            {
+                vec2 origCoord = coord + vec2(9.0, 0.0) * uImageIncrement_Stage1;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            float k = uKernel_Stage1[2].z;
+            {
+                vec2 origCoord = coord + vec2(10.0, 0.0) * uImageIncrement_Stage1;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            float k = uKernel_Stage1[2].w;
+            {
+                vec2 origCoord = coord + vec2(11.0, 0.0) * uImageIncrement_Stage1;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            float k = uKernel_Stage1[3].x;
+            {
+                vec2 origCoord = coord + vec2(12.0, 0.0) * uImageIncrement_Stage1;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            float k = uKernel_Stage1[3].y;
+            {
+                vec2 origCoord = coord + vec2(13.0, 0.0) * uImageIncrement_Stage1;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            float k = uKernel_Stage1[3].z;
+            {
+                vec2 origCoord = coord + vec2(14.0, 0.0) * uImageIncrement_Stage1;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            float k = uKernel_Stage1[3].w;
+            {
+                vec2 origCoord = coord + vec2(15.0, 0.0) * uImageIncrement_Stage1;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            float k = uKernel_Stage1[4].x;
+            {
+                vec2 origCoord = coord + vec2(16.0, 0.0) * uImageIncrement_Stage1;
+                vec2 clampedCoord;
+                clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+                vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+                c = textureColor;
+            }
+            c.xyz /= c.w;
+            c.xyz = clamp(c.xyz, 0.0, 1.0);
+            sum += c * k;
+        }
+        {
+            vec2 origCoord = vTransformedCoords_0_Stage0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1.xy, uTexDom_Stage1.zw);
+            vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        output_Stage1.w = c.w;
+        output_Stage1.xyz = clamp(sum.xyz * uGain_Stage1 + uBias_Stage1, 0.0, 1.0);
+        output_Stage1.xyz *= output_Stage1.w;
+    }
+    {
+        blend_dst_in(output_Stage1, ClampedGradientEffect_Stage2_c0_c0(vec4(1.0)));
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uViewM_Stage0;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+uniform mat3 uCoordTransformMatrix_1_Stage0;
+in vec2 inPosition;
+in vec4 inColor;
+noperspective out vec4 vcolor_Stage0;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+noperspective out vec2 vTransformedCoords_1_Stage0;
+void main() {
+    vec4 color = inColor;
+    vcolor_Stage0 = color;
+    vec2 pos2 = (uViewM_Stage0 * vec3(inPosition, 1.0)).xy;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inPosition, 1.0)).xy;
+    vTransformedCoords_1_Stage0 = (uCoordTransformMatrix_1_Stage0 * vec3(inPosition, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

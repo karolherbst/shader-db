@@ -1,0 +1,177 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+#extension GL_KHR_blend_equation_advanced : require
+#extension GL_ARB_fragment_coord_conventions : require
+layout(origin_upper_left) in vec4 gl_FragCoord;
+out vec4 sk_FragColor;
+layout (blend_support_all_equations) out ;
+uniform vec4 urectUniform_Stage1_c1_c0_c0_c0_c0_c0;
+uniform vec2 uImageIncrement_Stage1_c1_c0_c0_c0_c1_c0;
+uniform vec2 uBounds_Stage1_c1_c0_c0_c0_c1_c0;
+uniform vec4 uKernel_Stage1_c1_c0_c0_c0_c1_c0[4];
+uniform vec4 ucircle_Stage1_c1_c0_c1_c0;
+uniform sampler2D uTextureSampler_0_Stage1;
+noperspective in vec4 vinCircleEdge_Stage0;
+noperspective in vec4 vinColor_Stage0;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+vec4 ConfigConversionEffect_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    _output = floor(_input * 255.0 + 0.5) / 255.0;
+    {
+        _output.xyz = floor((_output.xyz * _output.w) * 255.0 + 0.5) / 255.0;
+    }
+    return _output;
+}
+vec4 AARectEffect_Stage1_c1_c0_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    float alpha;
+    {
+        alpha = float(all(greaterThan(vec4(gl_FragCoord.xy, urectUniform_Stage1_c1_c0_c0_c0_c0_c0.zw), vec4(urectUniform_Stage1_c1_c0_c0_c0_c0_c0.xy, gl_FragCoord.xy))) ? 1 : 0);
+    }
+    _output = _input * alpha;
+    return _output;
+}
+vec4 GaussianConvolution_Stage1_c1_c0_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    _output = vec4(0.0, 0.0, 0.0, 0.0);
+    vec2 coord = vTransformedCoords_0_Stage0 - 6.0 * uImageIncrement_Stage1_c1_c0_c0_c0_c1_c0;
+    vec2 coordSampled = vec2(0.0, 0.0);
+    coordSampled = coord;
+    coordSampled.x = mod(coord.x - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x, uBounds_Stage1_c1_c0_c0_c0_c1_c0.y - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x) + uBounds_Stage1_c1_c0_c0_c0_c1_c0.x;
+    _output += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1_c1_c0_c0_c0_c1_c0[0].x;
+    coord += uImageIncrement_Stage1_c1_c0_c0_c0_c1_c0;
+    coordSampled = coord;
+    coordSampled.x = mod(coord.x - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x, uBounds_Stage1_c1_c0_c0_c0_c1_c0.y - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x) + uBounds_Stage1_c1_c0_c0_c0_c1_c0.x;
+    _output += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1_c1_c0_c0_c0_c1_c0[0].y;
+    coord += uImageIncrement_Stage1_c1_c0_c0_c0_c1_c0;
+    coordSampled = coord;
+    coordSampled.x = mod(coord.x - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x, uBounds_Stage1_c1_c0_c0_c0_c1_c0.y - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x) + uBounds_Stage1_c1_c0_c0_c0_c1_c0.x;
+    _output += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1_c1_c0_c0_c0_c1_c0[0].z;
+    coord += uImageIncrement_Stage1_c1_c0_c0_c0_c1_c0;
+    coordSampled = coord;
+    coordSampled.x = mod(coord.x - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x, uBounds_Stage1_c1_c0_c0_c0_c1_c0.y - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x) + uBounds_Stage1_c1_c0_c0_c0_c1_c0.x;
+    _output += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1_c1_c0_c0_c0_c1_c0[0].w;
+    coord += uImageIncrement_Stage1_c1_c0_c0_c0_c1_c0;
+    coordSampled = coord;
+    coordSampled.x = mod(coord.x - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x, uBounds_Stage1_c1_c0_c0_c0_c1_c0.y - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x) + uBounds_Stage1_c1_c0_c0_c0_c1_c0.x;
+    _output += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1_c1_c0_c0_c0_c1_c0[1].x;
+    coord += uImageIncrement_Stage1_c1_c0_c0_c0_c1_c0;
+    coordSampled = coord;
+    coordSampled.x = mod(coord.x - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x, uBounds_Stage1_c1_c0_c0_c0_c1_c0.y - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x) + uBounds_Stage1_c1_c0_c0_c0_c1_c0.x;
+    _output += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1_c1_c0_c0_c0_c1_c0[1].y;
+    coord += uImageIncrement_Stage1_c1_c0_c0_c0_c1_c0;
+    coordSampled = coord;
+    coordSampled.x = mod(coord.x - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x, uBounds_Stage1_c1_c0_c0_c0_c1_c0.y - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x) + uBounds_Stage1_c1_c0_c0_c0_c1_c0.x;
+    _output += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1_c1_c0_c0_c0_c1_c0[1].z;
+    coord += uImageIncrement_Stage1_c1_c0_c0_c0_c1_c0;
+    coordSampled = coord;
+    coordSampled.x = mod(coord.x - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x, uBounds_Stage1_c1_c0_c0_c0_c1_c0.y - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x) + uBounds_Stage1_c1_c0_c0_c0_c1_c0.x;
+    _output += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1_c1_c0_c0_c0_c1_c0[1].w;
+    coord += uImageIncrement_Stage1_c1_c0_c0_c0_c1_c0;
+    coordSampled = coord;
+    coordSampled.x = mod(coord.x - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x, uBounds_Stage1_c1_c0_c0_c0_c1_c0.y - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x) + uBounds_Stage1_c1_c0_c0_c0_c1_c0.x;
+    _output += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1_c1_c0_c0_c0_c1_c0[2].x;
+    coord += uImageIncrement_Stage1_c1_c0_c0_c0_c1_c0;
+    coordSampled = coord;
+    coordSampled.x = mod(coord.x - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x, uBounds_Stage1_c1_c0_c0_c0_c1_c0.y - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x) + uBounds_Stage1_c1_c0_c0_c0_c1_c0.x;
+    _output += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1_c1_c0_c0_c0_c1_c0[2].y;
+    coord += uImageIncrement_Stage1_c1_c0_c0_c0_c1_c0;
+    coordSampled = coord;
+    coordSampled.x = mod(coord.x - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x, uBounds_Stage1_c1_c0_c0_c0_c1_c0.y - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x) + uBounds_Stage1_c1_c0_c0_c0_c1_c0.x;
+    _output += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1_c1_c0_c0_c0_c1_c0[2].z;
+    coord += uImageIncrement_Stage1_c1_c0_c0_c0_c1_c0;
+    coordSampled = coord;
+    coordSampled.x = mod(coord.x - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x, uBounds_Stage1_c1_c0_c0_c0_c1_c0.y - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x) + uBounds_Stage1_c1_c0_c0_c0_c1_c0.x;
+    _output += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1_c1_c0_c0_c0_c1_c0[2].w;
+    coord += uImageIncrement_Stage1_c1_c0_c0_c0_c1_c0;
+    coordSampled = coord;
+    coordSampled.x = mod(coord.x - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x, uBounds_Stage1_c1_c0_c0_c0_c1_c0.y - uBounds_Stage1_c1_c0_c0_c0_c1_c0.x) + uBounds_Stage1_c1_c0_c0_c0_c1_c0.x;
+    _output += texture(uTextureSampler_0_Stage1, coordSampled) * uKernel_Stage1_c1_c0_c0_c0_c1_c0[3].x;
+    coord += uImageIncrement_Stage1_c1_c0_c0_c0_c1_c0;
+    _output *= _input;
+    return _output;
+}
+vec4 blend_src_over(vec4 src, vec4 dst) {
+    return src + (1.0 - src.w) * dst;
+}
+vec4 ComposeTwo_Stage1_c1_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_src_over(AARectEffect_Stage1_c1_c0_c0_c0_c0_c0(inputColor), GaussianConvolution_Stage1_c1_c0_c0_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 CircleEffect_Stage1_c1_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    float d;
+    {
+        d = (length((ucircle_Stage1_c1_c0_c1_c0.xy - gl_FragCoord.xy) * ucircle_Stage1_c1_c0_c1_c0.w) - 1.0) * ucircle_Stage1_c1_c0_c1_c0.z;
+    }
+    {
+        _output = _input * clamp(d, 0.0, 1.0);
+    }
+    return _output;
+}
+vec4 blend_modulate(vec4 src, vec4 dst) {
+    return src * dst;
+}
+vec4 ComposeTwo_Stage1_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_modulate(ComposeTwo_Stage1_c1_c0_c0_c0(inputColor), CircleEffect_Stage1_c1_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 blend_screen(vec4 src, vec4 dst) {
+    return src + (1.0 - src) * dst;
+}
+void main() {
+    vec4 outputColor_Stage0;
+    vec4 outputCoverage_Stage0;
+    {
+        vec4 circleEdge;
+        circleEdge = vinCircleEdge_Stage0;
+        outputColor_Stage0 = vinColor_Stage0;
+        float d = length(circleEdge.xy);
+        float distanceToOuterEdge = circleEdge.z * (1.0 - d);
+        float edgeAlpha = clamp(distanceToOuterEdge, 0.0, 1.0);
+        float distanceToInnerEdge = circleEdge.z * (d - circleEdge.w);
+        float innerAlpha = clamp(distanceToInnerEdge, 0.0, 1.0);
+        edgeAlpha *= innerAlpha;
+        outputCoverage_Stage0 = vec4(edgeAlpha);
+    }
+    vec4 output_Stage1;
+    {
+        vec4 inputColor = vec4(outputColor_Stage0.xyz, 1.0);
+        output_Stage1 = blend_screen(ConfigConversionEffect_Stage1_c0_c0(inputColor), ComposeTwo_Stage1_c1_c0(inputColor));
+        output_Stage1 *= outputColor_Stage0.w;
+    }
+    {
+        sk_FragColor = outputCoverage_Stage0 * output_Stage1;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+in vec2 inPosition;
+in vec4 inColor;
+in vec4 inCircleEdge;
+noperspective out vec4 vinCircleEdge_Stage0;
+noperspective out vec4 vinColor_Stage0;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+void main() {
+    vinCircleEdge_Stage0 = inCircleEdge;
+    vinColor_Stage0 = inColor;
+    vec2 pos2 = inPosition;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inPosition, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

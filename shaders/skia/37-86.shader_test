@@ -1,0 +1,101 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 uCoordTransformMatrix_1_Stage0;
+uniform vec4 uclamp_Stage1_c0_c0_c0_c0;
+uniform sampler2D uTextureSampler_0_Stage1;
+uniform sampler2D uTextureSampler_0_Stage2;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+noperspective in vec2 vTransformedCoords_2_Stage0;
+flat in vec4 vcolor_Stage0;
+vec4 TextureEffect_Stage1_c0_c0_c0_c0(vec4 _input, vec2 _coords) {
+    _coords = _coords * uCoordTransformMatrix_1_Stage0.xz + uCoordTransformMatrix_1_Stage0.yw;
+    vec4 _output;
+    vec2 inCoord = _coords;
+    vec2 subsetCoord;
+    subsetCoord.x = inCoord.x;
+    subsetCoord.y = inCoord.y;
+    vec2 clampedCoord;
+    clampedCoord.x = clamp(subsetCoord.x, uclamp_Stage1_c0_c0_c0_c0.x, uclamp_Stage1_c0_c0_c0_c0.z);
+    clampedCoord.y = clamp(subsetCoord.y, uclamp_Stage1_c0_c0_c0_c0.y, uclamp_Stage1_c0_c0_c0_c0.w);
+    vec4 textureColor = texture(uTextureSampler_0_Stage1, clampedCoord);
+    _output = _input * textureColor;
+    return _output;
+}
+vec4 Bicubic_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec2 coord = vTransformedCoords_0_Stage0 - vec2(0.5);
+    vec2 f = fract(coord);
+    coord += 0.5 - f;
+    vec4 wx = mat4(0.055555555555555552, 0.88888888888888884, 0.055555555555555552, 0.0, -0.5, 0.0, 0.5, 0.0, 0.83333333333333337, -2.0, 1.5, -0.33333333333333331, -0.3888888888888889, 1.1666666666666667, -1.1666666666666667, 0.3888888888888889) * vec4(1.0, f.x, f.x * f.x, (f.x * f.x) * f.x);
+    vec4 wy = mat4(0.055555555555555552, 0.88888888888888884, 0.055555555555555552, 0.0, -0.5, 0.0, 0.5, 0.0, 0.83333333333333337, -2.0, 1.5, -0.33333333333333331, -0.3888888888888889, 1.1666666666666667, -1.1666666666666667, 0.3888888888888889) * vec4(1.0, f.y, f.y * f.y, (f.y * f.y) * f.y);
+    vec4 rowColors[4];
+    rowColors[0] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), coord + vec2(-1.0, -1.0));
+    rowColors[1] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), coord + vec2(0.0, -1.0));
+    rowColors[2] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), coord + vec2(1.0, -1.0));
+    rowColors[3] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), coord + vec2(2.0, -1.0));
+    vec4 s0 = ((wx.x * rowColors[0] + wx.y * rowColors[1]) + wx.z * rowColors[2]) + wx.w * rowColors[3];
+    rowColors[0] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), coord + vec2(-1.0, 0.0));
+    rowColors[1] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), coord);
+    rowColors[2] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), coord + vec2(1.0, 0.0));
+    rowColors[3] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), coord + vec2(2.0, 0.0));
+    vec4 s1 = ((wx.x * rowColors[0] + wx.y * rowColors[1]) + wx.z * rowColors[2]) + wx.w * rowColors[3];
+    rowColors[0] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), coord + vec2(-1.0, 1.0));
+    rowColors[1] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), coord + vec2(0.0, 1.0));
+    rowColors[2] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), coord + vec2(1.0, 1.0));
+    rowColors[3] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), coord + vec2(2.0, 1.0));
+    vec4 s2 = ((wx.x * rowColors[0] + wx.y * rowColors[1]) + wx.z * rowColors[2]) + wx.w * rowColors[3];
+    rowColors[0] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), coord + vec2(-1.0, 2.0));
+    rowColors[1] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), coord + vec2(0.0, 2.0));
+    rowColors[2] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), coord + vec2(1.0, 2.0));
+    rowColors[3] = TextureEffect_Stage1_c0_c0_c0_c0(vec4(1.0), coord + vec2(2.0, 2.0));
+    vec4 s3 = ((wx.x * rowColors[0] + wx.y * rowColors[1]) + wx.z * rowColors[2]) + wx.w * rowColors[3];
+    vec4 bicubicColor = ((wy.x * s0 + wy.y * s1) + wy.z * s2) + wy.w * s3;
+    bicubicColor.xyz = max(vec3(0.0), min(bicubicColor.xyz, bicubicColor.www));
+    _output = bicubicColor * _input;
+    return _output;
+}
+void main() {
+    vec4 outputColor_Stage0;
+    {
+        outputColor_Stage0 = vcolor_Stage0;
+    }
+    vec4 output_Stage1;
+    {
+        output_Stage1 = Bicubic_Stage1_c0_c0(vec4(1.0));
+        output_Stage1.xyz *= outputColor_Stage0.xyz;
+        output_Stage1 *= outputColor_Stage0.w;
+    }
+    vec4 output_Stage2;
+    {
+        output_Stage2 = texture(uTextureSampler_0_Stage2, vTransformedCoords_2_Stage0);
+    }
+    {
+        sk_FragColor = output_Stage1 * output_Stage2;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+uniform mat3 uCoordTransformMatrix_2_Stage0;
+in vec2 position;
+in vec4 color;
+in vec2 localCoord;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+noperspective out vec2 vTransformedCoords_2_Stage0;
+flat out vec4 vcolor_Stage0;
+void main() {
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(localCoord, 1.0)).xy;
+    vTransformedCoords_2_Stage0 = (uCoordTransformMatrix_2_Stage0 * vec3(localCoord, 1.0)).xy;
+    vcolor_Stage0 = color;
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

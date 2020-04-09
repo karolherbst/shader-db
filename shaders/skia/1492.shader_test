@@ -1,0 +1,121 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+#extension GL_KHR_blend_equation_advanced : require
+#extension GL_ARB_fragment_coord_conventions : require
+layout(origin_upper_left) in vec4 gl_FragCoord;
+out vec4 sk_FragColor;
+layout (blend_support_all_equations) out ;
+uniform vec4 uColor_Stage0;
+uniform vec4 ucircleData_Stage1;
+uniform mat4 um_Stage2;
+uniform vec4 uv_Stage2;
+uniform vec4 uellipse_Stage3;
+uniform vec4 ucircle_Stage6;
+uniform sampler2D uTextureSampler_0_Stage1;
+vec4 ConfigConversionEffect_Stage4_c0_c0(vec4 _input) {
+    vec4 _output;
+    _output = floor(_input * 255.0 + 0.5) / 255.0;
+    {
+        _output.xyz = _output.w <= 0.0 ? vec3(0.0) : floor((_output.xyz / _output.w) * 255.0 + 0.5) / 255.0;
+    }
+    return _output;
+}
+float _blend_color_luminance(vec3 color) {
+    return dot(vec3(0.30000001192092896, 0.5899999737739563, 0.10999999940395355), color);
+}
+vec3 _blend_set_color_luminance(vec3 hueSatColor, float alpha, vec3 lumColor) {
+    float lum = _blend_color_luminance(lumColor);
+    vec3 result = (lum - _blend_color_luminance(hueSatColor)) + hueSatColor;
+    float minComp = min(min(result.x, result.y), result.z);
+    float maxComp = max(max(result.x, result.y), result.z);
+    if (minComp < 0.0 && lum != minComp) {
+        result = lum + ((result - lum) * lum) / (lum - minComp);
+    }
+    if (maxComp > alpha && maxComp != lum) {
+        return lum + ((result - lum) * (alpha - lum)) / (maxComp - lum);
+    }
+    return result;
+}
+vec4 blend_luminosity(vec4 src, vec4 dst) {
+    float alpha = dst.w * src.w;
+    vec3 sda = src.xyz * dst.w;
+    vec3 dsa = dst.xyz * src.w;
+    return vec4((((_blend_set_color_luminance(dsa, alpha, sda) + dst.xyz) - dsa) + src.xyz) - sda, (src.w + dst.w) - alpha);
+}
+void main() {
+    vec4 outputColor_Stage0;
+    {
+        outputColor_Stage0 = uColor_Stage0;
+    }
+    vec4 output_Stage1;
+    {
+        vec2 vec = vec2((gl_FragCoord.x - ucircleData_Stage1.x) * ucircleData_Stage1.w, (gl_FragCoord.y - ucircleData_Stage1.y) * ucircleData_Stage1.w);
+        float dist = length(vec) + (0.5 - ucircleData_Stage1.z) * ucircleData_Stage1.w;
+        output_Stage1 = vec4(texture(uTextureSampler_0_Stage1, vec2(dist, 0.5)).w);
+    }
+    vec4 output_Stage2;
+    {
+        vec4 inputColor = output_Stage1;
+        output_Stage2 = um_Stage2 * inputColor + uv_Stage2;
+        {
+            output_Stage2 = clamp(output_Stage2, 0.0, 1.0);
+        }
+    }
+    vec4 output_Stage3;
+    {
+        vec2 d = gl_FragCoord.xy - uellipse_Stage3.xy;
+        vec2 Z = d * uellipse_Stage3.zw;
+        float implicit = dot(Z, d) - 1.0;
+        float grad_dot = 4.0 * dot(Z, Z);
+        {
+            grad_dot = max(grad_dot, 1.1754999560161448e-38);
+        }
+        float approx_dist = implicit * inversesqrt(grad_dot);
+        float alpha;
+        {
+            alpha = approx_dist > 0.0 ? 0.0 : 1.0;
+        }
+        output_Stage3 = output_Stage2 * alpha;
+    }
+    vec4 output_Stage4;
+    {
+        output_Stage4 = blend_luminosity(output_Stage3, ConfigConversionEffect_Stage4_c0_c0(vec4(1.0)));
+    }
+    vec4 output_Stage5;
+    {
+        output_Stage5 = floor(output_Stage4 * 255.0 + 0.5) / 255.0;
+        {
+            output_Stage5.xyz = output_Stage5.w <= 0.0 ? vec3(0.0) : floor((output_Stage5.xyz / output_Stage5.w) * 255.0 + 0.5) / 255.0;
+        }
+    }
+    vec4 output_Stage6;
+    {
+        float d;
+        {
+            d = (1.0 - length((ucircle_Stage6.xy - gl_FragCoord.xy) * ucircle_Stage6.w)) * ucircle_Stage6.z;
+        }
+        {
+            output_Stage6 = output_Stage5 * clamp(d, 0.0, 1.0);
+        }
+    }
+    {
+        sk_FragColor = output_Stage6 * outputColor_Stage0;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uViewM_Stage0;
+in vec2 inPosition;
+void main() {
+    vec2 pos2 = (uViewM_Stage0 * vec3(inPosition, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

@@ -1,0 +1,89 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+#extension GL_KHR_blend_equation_advanced : require
+#extension GL_ARB_fragment_coord_conventions : require
+layout(origin_upper_left) in vec4 gl_FragCoord;
+out vec4 sk_FragColor;
+layout (blend_support_all_equations) out ;
+uniform vec4 urectUniform_Stage1;
+uniform float uPixelSize_Stage2;
+uniform vec2 uRange_Stage2;
+uniform vec4 urectUniform_Stage3;
+uniform sampler2D uTextureSampler_0_Stage2;
+in vec4 vcolor_Stage0;
+in vec2 vTransformedCoords_0_Stage0;
+void main() {
+    vec4 outputColor_Stage0;
+    {
+        outputColor_Stage0 = vcolor_Stage0;
+    }
+    vec4 output_Stage1;
+    {
+        float alpha;
+        {
+            float xSub, ySub;
+            xSub = min(gl_FragCoord.x - urectUniform_Stage1.x, 0.0);
+            xSub += min(urectUniform_Stage1.z - gl_FragCoord.x, 0.0);
+            ySub = min(gl_FragCoord.y - urectUniform_Stage1.y, 0.0);
+            ySub += min(urectUniform_Stage1.w - gl_FragCoord.y, 0.0);
+            alpha = (1.0 + max(xSub, -1.0)) * (1.0 + max(ySub, -1.0));
+        }
+        {
+            alpha = 1.0 - alpha;
+        }
+        output_Stage1 = outputColor_Stage0 * alpha;
+    }
+    vec4 output_Stage2;
+    {
+        output_Stage2 = vec4(1.0, 1.0, 1.0, 1.0);
+        vec2 coord = vTransformedCoords_0_Stage0;
+        coord.y -= 3.0 * uPixelSize_Stage2;
+        for (int i = 0;i < 7; i++) {
+            output_Stage2 = min(output_Stage2, texture(uTextureSampler_0_Stage2, coord));
+            coord.y += uPixelSize_Stage2;
+        }
+    }
+    vec4 output_Stage3;
+    {
+        float alpha;
+        {
+            float xSub, ySub;
+            xSub = min(gl_FragCoord.x - urectUniform_Stage3.x, 0.0);
+            xSub += min(urectUniform_Stage3.z - gl_FragCoord.x, 0.0);
+            ySub = min(gl_FragCoord.y - urectUniform_Stage3.y, 0.0);
+            ySub += min(urectUniform_Stage3.w - gl_FragCoord.y, 0.0);
+            alpha = (1.0 + max(xSub, -1.0)) * (1.0 + max(ySub, -1.0));
+        }
+        output_Stage3 = output_Stage2 * alpha;
+    }
+    {
+        sk_FragColor = output_Stage3 * output_Stage1;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uViewM_Stage0;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+in vec2 position;
+in vec4 inColor;
+out vec4 vcolor_Stage0;
+out vec2 vTransformedCoords_0_Stage0;
+void main() {
+    vec4 color = inColor;
+    color = color.zyxw;
+    color = vec4(color.xyz * color.w, color.w);
+    vcolor_Stage0 = color;
+    vec3 pos3 = uViewM_Stage0 * vec3(position, 1.0);
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(position, 1.0)).xy;
+    gl_Position = vec4(pos3.x, pos3.y, 0.0, pos3.z);
+    gl_PointSize = 1.0;
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

@@ -1,0 +1,154 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec4 uleftBorderColor_Stage1_c0_c0_c0_c0;
+uniform vec4 urightBorderColor_Stage1_c0_c0_c0_c0;
+uniform vec4 uscale0_1_Stage1_c0_c0_c0_c0_c1_c0;
+uniform vec4 uscale2_3_Stage1_c0_c0_c0_c0_c1_c0;
+uniform vec4 uscale4_5_Stage1_c0_c0_c0_c0_c1_c0;
+uniform vec4 ubias0_1_Stage1_c0_c0_c0_c0_c1_c0;
+uniform vec4 ubias2_3_Stage1_c0_c0_c0_c0_c1_c0;
+uniform vec4 ubias4_5_Stage1_c0_c0_c0_c0_c1_c0;
+uniform vec4 uthresholds1_7_Stage1_c0_c0_c0_c0_c1_c0;
+uniform vec4 uthresholds9_13_Stage1_c0_c0_c0_c0_c1_c0;
+noperspective in vec4 vcolor_Stage0;
+noperspective in vec2 vTransformedCoords_0_Stage0;
+vec4 RadialGradientLayout_Stage1_c0_c0_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    float t = length(vTransformedCoords_0_Stage0);
+    _output = vec4(t, 1.0, 0.0, 0.0);
+    return _output;
+}
+vec4 UnrolledBinaryGradientColorizer_Stage1_c0_c0_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    float t = _input.x;
+    vec4 scale, bias;
+    {
+        if (t < uthresholds1_7_Stage1_c0_c0_c0_c0_c1_c0.y) {
+            if (t < uthresholds1_7_Stage1_c0_c0_c0_c0_c1_c0.x) {
+                scale = uscale0_1_Stage1_c0_c0_c0_c0_c1_c0;
+                bias = ubias0_1_Stage1_c0_c0_c0_c0_c1_c0;
+            } else {
+                scale = uscale2_3_Stage1_c0_c0_c0_c0_c1_c0;
+                bias = ubias2_3_Stage1_c0_c0_c0_c0_c1_c0;
+            }
+        } else {
+            {
+                scale = uscale4_5_Stage1_c0_c0_c0_c0_c1_c0;
+                bias = ubias4_5_Stage1_c0_c0_c0_c0_c1_c0;
+            }
+        }
+    }
+    _output = t * scale + bias;
+    return _output;
+}
+vec4 ClampedGradientEffect_Stage1_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 t = RadialGradientLayout_Stage1_c0_c0_c0_c0_c0_c0(vec4(1.0));
+    if (t.x < 0.0) {
+        _output = uleftBorderColor_Stage1_c0_c0_c0_c0;
+    } else if (t.x > 1.0) {
+        _output = urightBorderColor_Stage1_c0_c0_c0_c0;
+    } else {
+        _output = UnrolledBinaryGradientColorizer_Stage1_c0_c0_c0_c0_c1_c0(t);
+    }
+    {
+        _output.xyz *= _output.w;
+    }
+    return _output;
+}
+vec4 blend_src_in(vec4 src, vec4 dst) {
+    return src * dst.w;
+}
+vec4 blend_dst_in(vec4 src, vec4 dst) {
+    return blend_src_in(dst, src);
+}
+vec4 ComposeOne_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    _output = blend_dst_in(_input, ClampedGradientEffect_Stage1_c0_c0_c0_c0(vec4(1.0)));
+    return _output;
+}
+void main() {
+    vec4 output_Stage1;
+    {
+        output_Stage1 = ComposeOne_Stage1_c0_c0(vec4(1.0));
+    }
+    {
+        sk_FragColor = output_Stage1;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform float uSrcTF_Stage0[7];
+uniform mat3 uColorXform_Stage0;
+uniform float uDstTF_Stage0[7];
+uniform mat3 uViewM_Stage0;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+in vec2 position;
+in vec4 inColor;
+in vec2 inLocalCoord;
+noperspective out vec4 vcolor_Stage0;
+noperspective out vec2 vTransformedCoords_0_Stage0;
+float src_tf_Stage0(float x) {
+    float G = uSrcTF_Stage0[0];
+    float A = uSrcTF_Stage0[1];
+    float B = uSrcTF_Stage0[2];
+    float C = uSrcTF_Stage0[3];
+    float D = uSrcTF_Stage0[4];
+    float E = uSrcTF_Stage0[5];
+    float F = uSrcTF_Stage0[6];
+    float s = sign(x);
+    x = abs(x);
+    x = x < D ? C * x + F : pow(A * x + B, G) + E;
+    return s * x;
+}
+float dst_tf_Stage0(float x) {
+    float G = uDstTF_Stage0[0];
+    float A = uDstTF_Stage0[1];
+    float B = uDstTF_Stage0[2];
+    float C = uDstTF_Stage0[3];
+    float D = uDstTF_Stage0[4];
+    float E = uDstTF_Stage0[5];
+    float F = uDstTF_Stage0[6];
+    float s = sign(x);
+    x = abs(x);
+    x = x < D ? C * x + F : pow(A * x + B, G) + E;
+    return s * x;
+}
+vec4 gamut_xform_Stage0(vec4 color) {
+    color.xyz = uColorXform_Stage0 * color.xyz;
+    return color;
+}
+vec4 color_xform_Stage0(vec4 color) {
+    float nonZeroAlpha = max(color.w, 9.9999997473787516e-05);
+    color = vec4(color.xyz / nonZeroAlpha, nonZeroAlpha);
+    color.x = src_tf_Stage0(color.x);
+    color.y = src_tf_Stage0(color.y);
+    color.z = src_tf_Stage0(color.z);
+    color = gamut_xform_Stage0(color);
+    color.x = dst_tf_Stage0(color.x);
+    color.y = dst_tf_Stage0(color.y);
+    color.z = dst_tf_Stage0(color.z);
+    color.xyz *= color.w;
+    return color;
+}
+void main() {
+    vec4 color = inColor;
+    color = color.zyxw;
+    color = color_xform_Stage0(color);
+    color = vec4(color.xyz * color.w, color.w);
+    vcolor_Stage0 = color;
+    vec2 pos2 = (uViewM_Stage0 * vec3(position, 1.0)).xy;
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inLocalCoord, 1.0)).xy;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_PointSize = 1.0;
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

@@ -1,0 +1,154 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+#extension GL_ARB_fragment_coord_conventions : require
+layout(origin_upper_left) in vec4 gl_FragCoord;
+uniform vec4 uColor_Stage0;
+uniform float uinnerThreshold_Stage1_c0_c0;
+uniform float uouterThreshold_Stage1_c0_c0;
+uniform vec3 uedges_Stage1_c1_c0[1];
+uniform vec4 uboundsUniform_Stage2;
+uniform float uxInvZoom_Stage2;
+uniform float uyInvZoom_Stage2;
+uniform float uxInvInset_Stage2;
+uniform float uyInvInset_Stage2;
+uniform vec2 uoffset_Stage2;
+uniform vec4 urectUniform_Stage3_c2_c0;
+uniform vec4 uinnerRect_Stage4;
+uniform vec4 uinvRadiiLTRB_Stage4;
+uniform sampler2D uTextureSampler_0_Stage1;
+uniform sampler2D uTextureSampler_0_Stage2;
+in vec2 vTransformedCoords_0_Stage0;
+in vec2 vTransformedCoords_1_Stage0;
+vec4 AlphaThresholdFragmentProcessor_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 color = _input;
+    vec4 mask_color = texture(uTextureSampler_0_Stage1, vTransformedCoords_0_Stage0);
+    if (mask_color.w < 0.5) {
+        if (color.w > uouterThreshold_Stage1_c0_c0) {
+            float scale = uouterThreshold_Stage1_c0_c0 / color.w;
+            color.xyz *= scale;
+            color.w = uouterThreshold_Stage1_c0_c0;
+        }
+    } else if (color.w < uinnerThreshold_Stage1_c0_c0) {
+        float scale = uinnerThreshold_Stage1_c0_c0 / max(0.0010000000474974513, color.w);
+        color.xyz *= scale;
+        color.w = uinnerThreshold_Stage1_c0_c0;
+    }
+    _output = color;
+    return _output;
+}
+vec4 ConvexPoly_Stage1_c1_c0(vec4 _input) {
+    vec4 _output;
+    float alpha = 1.0;
+    float edge;
+    edge = dot(uedges_Stage1_c1_c0[0], vec3(gl_FragCoord.x, gl_FragCoord.y, 1.0));
+    edge = clamp(edge, 0.0, 1.0);
+    alpha *= edge;
+    alpha = 1.0 - alpha;
+    _output = _input * alpha;
+    return _output;
+}
+vec4 AARectEffect_Stage3_c2_c0(vec4 _input) {
+    vec4 _output;
+    float alpha;
+    {
+        alpha = float(all(greaterThan(vec4(gl_FragCoord.xy, urectUniform_Stage3_c2_c0.zw), vec4(urectUniform_Stage3_c2_c0.xy, gl_FragCoord.xy))) ? 1 : 0);
+    }
+    {
+        alpha = 1.0 - alpha;
+    }
+    _output = _input * alpha;
+    return _output;
+}
+vec4 blend_src_over(vec4 src, vec4 dst) {
+    return src + (1.0 - src.w) * dst;
+}
+float _guarded_divide(float n, float d) {
+    return n / d;
+}
+float _color_burn_component(float sc, float sa, float dc, float da) {
+    if (da == dc) {
+        return (sa * da + sc * (1.0 - da)) + dc * (1.0 - sa);
+    } else if (sc == 0.0) {
+        return dc * (1.0 - sa);
+    }
+    float d = max(0.0, da - _guarded_divide((da - dc) * sa, sc));
+    return (d * sa + sc * (1.0 - da)) + dc * (1.0 - sa);
+}
+vec4 blend_color_burn(vec4 src, vec4 dst) {
+    return vec4(_color_burn_component(src.x, src.w, dst.x, dst.w), _color_burn_component(src.y, src.w, dst.y, dst.w), _color_burn_component(src.z, src.w, dst.z, dst.w), src.w + (1.0 - src.w) * dst.w);
+}
+void main() {
+    {
+        vec4 inputColor = vec4(vec4(1.0).xyz, 1.0);
+        blend_src_over(AlphaThresholdFragmentProcessor_Stage1_c0_c0(inputColor), ConvexPoly_Stage1_c1_c0(inputColor));
+    }
+    vec4 output_Stage2;
+    {
+        vec2 coord = vTransformedCoords_1_Stage0;
+        vec2 zoom_coord = uoffset_Stage2 + coord * vec2(uxInvZoom_Stage2, uyInvZoom_Stage2);
+        vec2 delta = (coord - uboundsUniform_Stage2.xy) * uboundsUniform_Stage2.zw;
+        delta = min(delta, vec2(1.0, 1.0) - delta);
+        delta *= vec2(uxInvInset_Stage2, uyInvInset_Stage2);
+        float weight = 0.0;
+        if (delta.x < 2.0 && delta.y < 2.0) {
+            delta = vec2(2.0, 2.0) - delta;
+            float dist = length(delta);
+            dist = max(2.0 - dist, 0.0);
+            weight = min(dist * dist, 1.0);
+        } else {
+            vec2 delta_squared = delta * delta;
+            weight = min(min(delta_squared.x, delta_squared.y), 1.0);
+        }
+        output_Stage2 = texture(uTextureSampler_0_Stage2, mix(coord, zoom_coord, weight));
+    }
+    vec4 output_Stage3;
+    {
+        output_Stage3 = blend_color_burn(output_Stage2, AARectEffect_Stage3_c2_c0(vec4(1.0)));
+    }
+    vec4 output_Stage4;
+    {
+        vec2 dxy0 = uinnerRect_Stage4.xy - gl_FragCoord.xy;
+        vec2 dxy1 = gl_FragCoord.xy - uinnerRect_Stage4.zw;
+        vec2 dxy = max(max(dxy0, dxy1), 0.0);
+        vec2 Z = max(max(dxy0 * uinvRadiiLTRB_Stage4.xy, dxy1 * uinvRadiiLTRB_Stage4.zw), 0.0);
+        float implicit = dot(Z, dxy) - 1.0;
+        float grad_dot = 4.0 * dot(Z, Z);
+        grad_dot = max(grad_dot, 9.9999997473787516e-05);
+        float approx_dist = implicit * inversesqrt(grad_dot);
+        float alpha = clamp(0.5 + approx_dist, 0.0, 1.0);
+        output_Stage4 = output_Stage3 * alpha;
+    }
+    vec4 output_Stage5;
+    {
+        output_Stage5 = floor(output_Stage4 * 255.0 + 0.5) / 255.0;
+        {
+            output_Stage5.xyz = output_Stage5.w <= 0.0 ? vec3(0.0) : floor((output_Stage5.xyz / output_Stage5.w) * 255.0 + 0.5) / 255.0;
+        }
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uViewM_Stage0;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+uniform mat3 uCoordTransformMatrix_1_Stage0;
+in vec2 position;
+in vec2 inLocalCoord;
+out vec2 vTransformedCoords_0_Stage0;
+out vec2 vTransformedCoords_1_Stage0;
+void main() {
+    vec3 pos3 = uViewM_Stage0 * vec3(position, 1.0);
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inLocalCoord, 1.0)).xy;
+    vTransformedCoords_1_Stage0 = (uCoordTransformMatrix_1_Stage0 * vec3(inLocalCoord, 1.0)).xy;
+    gl_Position = vec4(pos3.x, pos3.y, 0.0, pos3.z);
+    gl_PointSize = 1.0;
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

@@ -1,0 +1,735 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+uniform vec2 ubaseFrequency_Stage1_c0_c0_c0_c0_c0_c0;
+uniform float uz_Stage1_c0_c0_c0_c0_c0_c0;
+uniform vec2 uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+uniform vec4 uKernel_Stage1_c0_c0_c1_c0_c0_c0[5];
+uniform vec2 uKernelOffset_Stage1_c0_c0_c1_c0_c0_c0;
+uniform float uGain_Stage1_c0_c0_c1_c0_c0_c0;
+uniform float uBias_Stage1_c0_c0_c1_c0_c0_c0;
+uniform vec4 uTexDom_Stage1_c0_c0_c1_c0_c0_c0;
+uniform vec2 uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+uniform float uSurfaceScale_Stage1_c0_c0_c1_c0_c1_c0;
+uniform vec3 uLightColor_Stage1_c0_c0_c1_c0_c1_c0;
+uniform float uKD_Stage1_c0_c0_c1_c0_c1_c0;
+uniform vec4 uTexDom_Stage1_c0_c0_c1_c0_c1_c0;
+uniform vec3 uDecalParams_Stage1_c0_c0_c1_c0_c1_c0;
+uniform vec3 uLightDirection_Stage1_c0_c0_c1_c0_c1_c0;
+uniform vec2 ubaseFrequency_Stage1_c1_c0_c0_c0_c0_c0;
+uniform float uz_Stage1_c1_c0_c0_c0_c0_c0;
+uniform vec4 ucircleData_Stage1_c1_c0_c0_c0_c1_c0;
+uniform vec3 uedges_Stage1_c1_c0_c1_c0_c0_c0[1];
+uniform vec4 uinnerRect_Stage1_c1_c0_c1_c0_c1_c0;
+uniform vec2 uradiusPlusHalf_Stage1_c1_c0_c1_c0_c1_c0;
+uniform vec2 uDstTextureUpperLeft_Stage2;
+uniform vec2 uDstTextureCoordScale_Stage2;
+uniform sampler2D uTextureSampler_0_Stage1;
+uniform sampler2D uTextureSampler_1_Stage1;
+uniform sampler2D uTextureSampler_2_Stage1;
+uniform sampler2D uTextureSampler_3_Stage1;
+uniform sampler2D uTextureSampler_4_Stage1;
+uniform sampler2D uTextureSampler_5_Stage1;
+uniform sampler2D uTextureSampler_6_Stage1;
+uniform sampler2D uDstTextureSampler_Stage2;
+in vec2 vEllipseOffsets0_Stage0;
+in vec2 vEllipseOffsets1_Stage0;
+in vec4 vinColor_Stage0;
+in vec2 vTransformedCoords_0_Stage0;
+in vec2 vTransformedCoords_1_Stage0;
+in vec2 vTransformedCoords_2_Stage0;
+in vec2 vTransformedCoords_3_Stage0;
+vec3 fade_Stage1_c0_c0_c0_c0_c0_c0(vec3 t) {
+    return ((t * t) * t) * (t * (t * 6.0 - 15.0) + 10.0);
+}
+float perm_Stage1_c0_c0_c0_c0_c0_c0(float x) {
+    return texture(uTextureSampler_0_Stage1, vec2(fract(x / 256.0), 0.0)).x * 255.0;
+}
+float grad_Stage1_c0_c0_c0_c0_c0_c0(float x, vec3 p) {
+    return dot(texture(uTextureSampler_1_Stage1, vec2(fract(x / 16.0), 0.0)).xyz * 255.0 - vec3(1.0), p);
+}
+float lerp_Stage1_c0_c0_c0_c0_c0_c0(float a, float b, float w) {
+    return a + w * (b - a);
+}
+float noise_Stage1_c0_c0_c0_c0_c0_c0(vec3 p) {
+    vec3 P = mod(floor(p), 256.0);
+    p -= floor(p);
+    vec3 f = fade_Stage1_c0_c0_c0_c0_c0_c0(p);
+    float A = perm_Stage1_c0_c0_c0_c0_c0_c0(P.x) + P.y;
+    float AA = perm_Stage1_c0_c0_c0_c0_c0_c0(A) + P.z;
+    float AB = perm_Stage1_c0_c0_c0_c0_c0_c0(A + 1.0) + P.z;
+    float B = perm_Stage1_c0_c0_c0_c0_c0_c0(P.x + 1.0) + P.y;
+    float BA = perm_Stage1_c0_c0_c0_c0_c0_c0(B) + P.z;
+    float BB = perm_Stage1_c0_c0_c0_c0_c0_c0(B + 1.0) + P.z;
+    float result = lerp_Stage1_c0_c0_c0_c0_c0_c0(lerp_Stage1_c0_c0_c0_c0_c0_c0(lerp_Stage1_c0_c0_c0_c0_c0_c0(grad_Stage1_c0_c0_c0_c0_c0_c0(perm_Stage1_c0_c0_c0_c0_c0_c0(AA), p), grad_Stage1_c0_c0_c0_c0_c0_c0(perm_Stage1_c0_c0_c0_c0_c0_c0(BA), p + vec3(-1.0, 0.0, 0.0)), f.x), lerp_Stage1_c0_c0_c0_c0_c0_c0(grad_Stage1_c0_c0_c0_c0_c0_c0(perm_Stage1_c0_c0_c0_c0_c0_c0(AB), p + vec3(0.0, -1.0, 0.0)), grad_Stage1_c0_c0_c0_c0_c0_c0(perm_Stage1_c0_c0_c0_c0_c0_c0(BB), p + vec3(-1.0, -1.0, 0.0)), f.x), f.y), lerp_Stage1_c0_c0_c0_c0_c0_c0(lerp_Stage1_c0_c0_c0_c0_c0_c0(grad_Stage1_c0_c0_c0_c0_c0_c0(perm_Stage1_c0_c0_c0_c0_c0_c0(AA + 1.0), p + vec3(0.0, 0.0, -1.0)), grad_Stage1_c0_c0_c0_c0_c0_c0(perm_Stage1_c0_c0_c0_c0_c0_c0(BA + 1.0), p + vec3(-1.0, 0.0, -1.0)), f.x), lerp_Stage1_c0_c0_c0_c0_c0_c0(grad_Stage1_c0_c0_c0_c0_c0_c0(perm_Stage1_c0_c0_c0_c0_c0_c0(AB + 1.0), p + vec3(0.0, -1.0, -1.0)), grad_Stage1_c0_c0_c0_c0_c0_c0(perm_Stage1_c0_c0_c0_c0_c0_c0(BB + 1.0), p + vec3(-1.0, -1.0, -1.0)), f.x), f.y), f.z);
+    return result;
+}
+float noiseOctaves_Stage1_c0_c0_c0_c0_c0_c0(vec3 p) {
+    float result = 0.0;
+    float ratio = 1.0;
+    for (float i = 0.0;i < 5.0; i++) {
+        result += noise_Stage1_c0_c0_c0_c0_c0_c0(p) / ratio;
+        p *= 2.0;
+        ratio *= 2.0;
+    }
+    return (result + 1.0) / 2.0;
+}
+vec4 ImprovedPerlinNoise_Stage1_c0_c0_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec2 coords = vTransformedCoords_0_Stage0 * ubaseFrequency_Stage1_c0_c0_c0_c0_c0_c0;
+    float r = noiseOctaves_Stage1_c0_c0_c0_c0_c0_c0(vec3(coords, uz_Stage1_c0_c0_c0_c0_c0_c0));
+    float g = noiseOctaves_Stage1_c0_c0_c0_c0_c0_c0(vec3(coords, uz_Stage1_c0_c0_c0_c0_c0_c0));
+    float b = noiseOctaves_Stage1_c0_c0_c0_c0_c0_c0(vec3(coords, uz_Stage1_c0_c0_c0_c0_c0_c0));
+    float a = noiseOctaves_Stage1_c0_c0_c0_c0_c0_c0(vec3(coords, uz_Stage1_c0_c0_c0_c0_c0_c0));
+    _output = vec4(r, g, b, a);
+    _output = clamp(_output, 0.0, 1.0);
+    _output = vec4(_output.xyz * _output.www, _output.w);
+    return _output;
+}
+vec4 ClampFragmentProcessor_Stage1_c0_c0_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    {
+        _output = clamp(_input, 0.0, 1.0);
+    }
+    return _output;
+}
+float _blend_color_luminance(vec3 color) {
+    return dot(vec3(0.30000001192092896, 0.5899999737739563, 0.10999999940395355), color);
+}
+vec3 _blend_set_color_luminance(vec3 hueSatColor, float alpha, vec3 lumColor) {
+    float lum = _blend_color_luminance(lumColor);
+    vec3 result = (lum - _blend_color_luminance(hueSatColor)) + hueSatColor;
+    float minComp = min(min(result.x, result.y), result.z);
+    float maxComp = max(max(result.x, result.y), result.z);
+    if (minComp < 0.0 && lum != minComp) {
+        result = lum + ((result - lum) * lum) / (lum - minComp);
+    }
+    if (maxComp > alpha && maxComp != lum) {
+        return lum + ((result - lum) * (alpha - lum)) / (maxComp - lum);
+    }
+    return result;
+}
+vec4 blend_luminosity(vec4 src, vec4 dst) {
+    float alpha = dst.w * src.w;
+    vec3 sda = src.xyz * dst.w;
+    vec3 dsa = dst.xyz * src.w;
+    return vec4((((_blend_set_color_luminance(dsa, alpha, sda) + dst.xyz) - dsa) + src.xyz) - sda, (src.w + dst.w) - alpha);
+}
+vec4 ComposeTwo_Stage1_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_luminosity(ImprovedPerlinNoise_Stage1_c0_c0_c0_c0_c0_c0(inputColor), ClampFragmentProcessor_Stage1_c0_c0_c0_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 MatrixConvolution_Stage1_c0_c0_c1_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 sum = vec4(0.0, 0.0, 0.0, 0.0);
+    vec2 coord = vTransformedCoords_1_Stage0 - uKernelOffset_Stage1_c0_c0_c1_c0_c0_c0 * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+    vec4 c;
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[0].x;
+        {
+            vec2 origCoord = coord;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[0].y;
+        {
+            vec2 origCoord = coord + vec2(1.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[0].z;
+        {
+            vec2 origCoord = coord + vec2(2.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[0].w;
+        {
+            vec2 origCoord = coord + vec2(3.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[1].x;
+        {
+            vec2 origCoord = coord + vec2(4.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[1].y;
+        {
+            vec2 origCoord = coord + vec2(5.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[1].z;
+        {
+            vec2 origCoord = coord + vec2(6.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[1].w;
+        {
+            vec2 origCoord = coord + vec2(7.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[2].x;
+        {
+            vec2 origCoord = coord + vec2(8.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[2].y;
+        {
+            vec2 origCoord = coord + vec2(9.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[2].z;
+        {
+            vec2 origCoord = coord + vec2(10.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[2].w;
+        {
+            vec2 origCoord = coord + vec2(11.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[3].x;
+        {
+            vec2 origCoord = coord + vec2(12.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[3].y;
+        {
+            vec2 origCoord = coord + vec2(13.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[3].z;
+        {
+            vec2 origCoord = coord + vec2(14.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[3].w;
+        {
+            vec2 origCoord = coord + vec2(15.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[4].x;
+        {
+            vec2 origCoord = coord + vec2(16.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[4].y;
+        {
+            vec2 origCoord = coord + vec2(17.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[4].z;
+        {
+            vec2 origCoord = coord + vec2(18.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    {
+        float k = uKernel_Stage1_c0_c0_c1_c0_c0_c0[4].w;
+        {
+            vec2 origCoord = coord + vec2(19.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c0_c0;
+            vec2 clampedCoord;
+            clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c0_c0.zw);
+            vec4 textureColor = texture(uTextureSampler_2_Stage1, clampedCoord);
+            c = textureColor;
+        }
+        sum += c * k;
+    }
+    _output = sum * uGain_Stage1_c0_c0_c1_c0_c0_c0 + uBias_Stage1_c0_c0_c1_c0_c0_c0;
+    _output.w = clamp(_output.w, 0.0, 1.0);
+    _output.xyz = clamp(_output.xyz, 0.0, _output.w);
+    _output *= _input;
+    return _output;
+}
+vec4 light_Stage1_c0_c0_c1_c0_c1_c0(vec3 normal, vec3 surfaceToLight, vec3 lightColor) {
+    float colorScale = uKD_Stage1_c0_c0_c1_c0_c1_c0 * dot(normal, surfaceToLight);
+    return vec4(lightColor * clamp(colorScale, 0.0, 1.0), 1.0);
+}
+float sobel_Stage1_c0_c0_c1_c0_c1_c0(float a, float b, float c, float d, float e, float f, float scale) {
+    return (((((-a + b) - 2.0 * c) + 2.0 * d) - e) + f) * scale;
+}
+vec3 pointToNormal_Stage1_c0_c0_c1_c0_c1_c0(float x, float y, float scale) {
+    return normalize(vec3(-x * scale, -y * scale, 1.0));
+}
+vec3 normal_Stage1_c0_c0_c1_c0_c1_c0(float m[9], float surfaceScale) {
+    return pointToNormal_Stage1_c0_c0_c1_c0_c1_c0(sobel_Stage1_c0_c0_c1_c0_c1_c0(m[1], m[2], m[4], m[5], m[7], m[8], 0.5), sobel_Stage1_c0_c0_c1_c0_c1_c0(0.0, 0.0, m[1], m[7], m[2], m[8], 0.33333298563957214), surfaceScale);
+}
+vec4 DiffuseLighting_Stage1_c0_c0_c1_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec2 coord = vTransformedCoords_2_Stage0;
+    float m[9];
+    vec4 temp0;
+    {
+        vec2 origCoord = coord + vec2(-1.0, 1.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+        vec2 clampedCoord;
+        clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.zw);
+        vec4 textureColor = texture(uTextureSampler_3_Stage1, clampedCoord);
+        float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.y);
+        if (err > uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z) {
+            err = 1.0;
+        } else if (uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z < 1.0) {
+            err = 0.0;
+        }
+        temp0 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+    }
+    m[0] = temp0.w;
+    vec4 temp1;
+    {
+        vec2 origCoord = coord + vec2(0.0, 1.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+        vec2 clampedCoord;
+        clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.zw);
+        vec4 textureColor = texture(uTextureSampler_3_Stage1, clampedCoord);
+        float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.y);
+        if (err > uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z) {
+            err = 1.0;
+        } else if (uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z < 1.0) {
+            err = 0.0;
+        }
+        temp1 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+    }
+    m[1] = temp1.w;
+    vec4 temp2;
+    {
+        vec2 origCoord = coord + uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+        vec2 clampedCoord;
+        clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.zw);
+        vec4 textureColor = texture(uTextureSampler_3_Stage1, clampedCoord);
+        float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.y);
+        if (err > uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z) {
+            err = 1.0;
+        } else if (uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z < 1.0) {
+            err = 0.0;
+        }
+        temp2 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+    }
+    m[2] = temp2.w;
+    vec4 temp3;
+    {
+        vec2 origCoord = coord + vec2(-1.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+        vec2 clampedCoord;
+        clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.zw);
+        vec4 textureColor = texture(uTextureSampler_3_Stage1, clampedCoord);
+        float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.y);
+        if (err > uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z) {
+            err = 1.0;
+        } else if (uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z < 1.0) {
+            err = 0.0;
+        }
+        temp3 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+    }
+    m[3] = temp3.w;
+    vec4 temp4;
+    {
+        vec2 origCoord = coord;
+        vec2 clampedCoord;
+        clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.zw);
+        vec4 textureColor = texture(uTextureSampler_3_Stage1, clampedCoord);
+        float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.y);
+        if (err > uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z) {
+            err = 1.0;
+        } else if (uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z < 1.0) {
+            err = 0.0;
+        }
+        temp4 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+    }
+    m[4] = temp4.w;
+    vec4 temp5;
+    {
+        vec2 origCoord = coord + vec2(1.0, 0.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+        vec2 clampedCoord;
+        clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.zw);
+        vec4 textureColor = texture(uTextureSampler_3_Stage1, clampedCoord);
+        float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.y);
+        if (err > uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z) {
+            err = 1.0;
+        } else if (uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z < 1.0) {
+            err = 0.0;
+        }
+        temp5 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+    }
+    m[5] = temp5.w;
+    vec4 temp6;
+    {
+        vec2 origCoord = coord + vec2(-1.0, -1.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+        vec2 clampedCoord;
+        clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.zw);
+        vec4 textureColor = texture(uTextureSampler_3_Stage1, clampedCoord);
+        float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.y);
+        if (err > uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z) {
+            err = 1.0;
+        } else if (uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z < 1.0) {
+            err = 0.0;
+        }
+        temp6 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+    }
+    m[6] = temp6.w;
+    vec4 temp7;
+    {
+        vec2 origCoord = coord + vec2(0.0, -1.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+        vec2 clampedCoord;
+        clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.zw);
+        vec4 textureColor = texture(uTextureSampler_3_Stage1, clampedCoord);
+        float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.y);
+        if (err > uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z) {
+            err = 1.0;
+        } else if (uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z < 1.0) {
+            err = 0.0;
+        }
+        temp7 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+    }
+    m[7] = temp7.w;
+    vec4 temp8;
+    {
+        vec2 origCoord = coord + vec2(1.0, -1.0) * uImageIncrement_Stage1_c0_c0_c1_c0_c1_c0;
+        vec2 clampedCoord;
+        clampedCoord = clamp(origCoord, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.xy, uTexDom_Stage1_c0_c0_c1_c0_c1_c0.zw);
+        vec4 textureColor = texture(uTextureSampler_3_Stage1, clampedCoord);
+        float err = max(abs(clampedCoord.x - origCoord.x) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.x, abs(clampedCoord.y - origCoord.y) * uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.y);
+        if (err > uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z) {
+            err = 1.0;
+        } else if (uDecalParams_Stage1_c0_c0_c1_c0_c1_c0.z < 1.0) {
+            err = 0.0;
+        }
+        temp8 = mix(textureColor, vec4(0.0, 0.0, 0.0, 0.0), err);
+    }
+    m[8] = temp8.w;
+    vec3 surfaceToLight = uLightDirection_Stage1_c0_c0_c1_c0_c1_c0;
+    _output = light_Stage1_c0_c0_c1_c0_c1_c0(normal_Stage1_c0_c0_c1_c0_c1_c0(m, uSurfaceScale_Stage1_c0_c0_c1_c0_c1_c0), surfaceToLight, uLightColor_Stage1_c0_c0_c1_c0_c1_c0);
+    _output *= _input;
+    return _output;
+}
+vec4 ComposeTwo_Stage1_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_luminosity(MatrixConvolution_Stage1_c0_c0_c1_c0_c0_c0(inputColor), DiffuseLighting_Stage1_c0_c0_c1_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 blend_modulate(vec4 src, vec4 dst) {
+    return src * dst;
+}
+vec4 ComposeTwo_Stage1_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_modulate(ComposeTwo_Stage1_c0_c0_c0_c0(inputColor), ComposeTwo_Stage1_c0_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec3 fade_Stage1_c1_c0_c0_c0_c0_c0(vec3 t) {
+    return ((t * t) * t) * (t * (t * 6.0 - 15.0) + 10.0);
+}
+float perm_Stage1_c1_c0_c0_c0_c0_c0(float x) {
+    return texture(uTextureSampler_4_Stage1, vec2(fract(x / 256.0), 0.0)).x * 255.0;
+}
+float grad_Stage1_c1_c0_c0_c0_c0_c0(float x, vec3 p) {
+    return dot(texture(uTextureSampler_5_Stage1, vec2(fract(x / 16.0), 0.0)).xyz * 255.0 - vec3(1.0), p);
+}
+float lerp_Stage1_c1_c0_c0_c0_c0_c0(float a, float b, float w) {
+    return a + w * (b - a);
+}
+float noise_Stage1_c1_c0_c0_c0_c0_c0(vec3 p) {
+    vec3 P = mod(floor(p), 256.0);
+    p -= floor(p);
+    vec3 f = fade_Stage1_c1_c0_c0_c0_c0_c0(p);
+    float A = perm_Stage1_c1_c0_c0_c0_c0_c0(P.x) + P.y;
+    float AA = perm_Stage1_c1_c0_c0_c0_c0_c0(A) + P.z;
+    float AB = perm_Stage1_c1_c0_c0_c0_c0_c0(A + 1.0) + P.z;
+    float B = perm_Stage1_c1_c0_c0_c0_c0_c0(P.x + 1.0) + P.y;
+    float BA = perm_Stage1_c1_c0_c0_c0_c0_c0(B) + P.z;
+    float BB = perm_Stage1_c1_c0_c0_c0_c0_c0(B + 1.0) + P.z;
+    float result = lerp_Stage1_c1_c0_c0_c0_c0_c0(lerp_Stage1_c1_c0_c0_c0_c0_c0(lerp_Stage1_c1_c0_c0_c0_c0_c0(grad_Stage1_c1_c0_c0_c0_c0_c0(perm_Stage1_c1_c0_c0_c0_c0_c0(AA), p), grad_Stage1_c1_c0_c0_c0_c0_c0(perm_Stage1_c1_c0_c0_c0_c0_c0(BA), p + vec3(-1.0, 0.0, 0.0)), f.x), lerp_Stage1_c1_c0_c0_c0_c0_c0(grad_Stage1_c1_c0_c0_c0_c0_c0(perm_Stage1_c1_c0_c0_c0_c0_c0(AB), p + vec3(0.0, -1.0, 0.0)), grad_Stage1_c1_c0_c0_c0_c0_c0(perm_Stage1_c1_c0_c0_c0_c0_c0(BB), p + vec3(-1.0, -1.0, 0.0)), f.x), f.y), lerp_Stage1_c1_c0_c0_c0_c0_c0(lerp_Stage1_c1_c0_c0_c0_c0_c0(grad_Stage1_c1_c0_c0_c0_c0_c0(perm_Stage1_c1_c0_c0_c0_c0_c0(AA + 1.0), p + vec3(0.0, 0.0, -1.0)), grad_Stage1_c1_c0_c0_c0_c0_c0(perm_Stage1_c1_c0_c0_c0_c0_c0(BA + 1.0), p + vec3(-1.0, 0.0, -1.0)), f.x), lerp_Stage1_c1_c0_c0_c0_c0_c0(grad_Stage1_c1_c0_c0_c0_c0_c0(perm_Stage1_c1_c0_c0_c0_c0_c0(AB + 1.0), p + vec3(0.0, -1.0, -1.0)), grad_Stage1_c1_c0_c0_c0_c0_c0(perm_Stage1_c1_c0_c0_c0_c0_c0(BB + 1.0), p + vec3(-1.0, -1.0, -1.0)), f.x), f.y), f.z);
+    return result;
+}
+float noiseOctaves_Stage1_c1_c0_c0_c0_c0_c0(vec3 p) {
+    float result = 0.0;
+    float ratio = 1.0;
+    for (float i = 0.0;i < 3.0; i++) {
+        result += noise_Stage1_c1_c0_c0_c0_c0_c0(p) / ratio;
+        p *= 2.0;
+        ratio *= 2.0;
+    }
+    return (result + 1.0) / 2.0;
+}
+vec4 ImprovedPerlinNoise_Stage1_c1_c0_c0_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec2 coords = vTransformedCoords_3_Stage0 * ubaseFrequency_Stage1_c1_c0_c0_c0_c0_c0;
+    float r = noiseOctaves_Stage1_c1_c0_c0_c0_c0_c0(vec3(coords, uz_Stage1_c1_c0_c0_c0_c0_c0));
+    float g = noiseOctaves_Stage1_c1_c0_c0_c0_c0_c0(vec3(coords, uz_Stage1_c1_c0_c0_c0_c0_c0));
+    float b = noiseOctaves_Stage1_c1_c0_c0_c0_c0_c0(vec3(coords, uz_Stage1_c1_c0_c0_c0_c0_c0));
+    float a = noiseOctaves_Stage1_c1_c0_c0_c0_c0_c0(vec3(coords, uz_Stage1_c1_c0_c0_c0_c0_c0));
+    _output = vec4(r, g, b, a);
+    _output = clamp(_output, 0.0, 1.0);
+    _output = vec4(_output.xyz * _output.www, _output.w);
+    return _output;
+}
+vec4 CircleBlurFragmentProcessor_Stage1_c1_c0_c0_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec2 vec = vec2((gl_FragCoord.x - ucircleData_Stage1_c1_c0_c0_c0_c1_c0.x) * ucircleData_Stage1_c1_c0_c0_c0_c1_c0.w, (gl_FragCoord.y - ucircleData_Stage1_c1_c0_c0_c0_c1_c0.y) * ucircleData_Stage1_c1_c0_c0_c0_c1_c0.w);
+    float dist = length(vec) + (0.5 - ucircleData_Stage1_c1_c0_c0_c0_c1_c0.z) * ucircleData_Stage1_c1_c0_c0_c0_c1_c0.w;
+    _output = _input * texture(uTextureSampler_6_Stage1, vec2(dist, 0.5)).w;
+    return _output;
+}
+vec4 ComposeTwo_Stage1_c1_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_luminosity(ImprovedPerlinNoise_Stage1_c1_c0_c0_c0_c0_c0(inputColor), CircleBlurFragmentProcessor_Stage1_c1_c0_c0_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 ConvexPoly_Stage1_c1_c0_c1_c0_c0_c0(vec4 _input) {
+    vec4 _output;
+    float alpha = 1.0;
+    float edge;
+    edge = dot(uedges_Stage1_c1_c0_c1_c0_c0_c0[0], vec3(gl_FragCoord.x, gl_FragCoord.y, 1.0));
+    edge = edge >= 0.5 ? 1.0 : 0.0;
+    alpha *= edge;
+    _output = _input * alpha;
+    return _output;
+}
+vec4 CircularRRect_Stage1_c1_c0_c1_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec2 dxy0 = uinnerRect_Stage1_c1_c0_c1_c0_c1_c0.xy - gl_FragCoord.xy;
+    vec2 dxy1 = gl_FragCoord.xy - uinnerRect_Stage1_c1_c0_c1_c0_c1_c0.zw;
+    vec2 dxy = max(max(dxy0, dxy1), 0.0);
+    float alpha = clamp(uradiusPlusHalf_Stage1_c1_c0_c1_c0_c1_c0.x - length(dxy), 0.0, 1.0);
+    alpha = 1.0 - alpha;
+    _output = _input * alpha;
+    return _output;
+}
+float _blend_color_saturation(vec3 color) {
+    return max(max(color.x, color.y), color.z) - min(min(color.x, color.y), color.z);
+}
+vec3 _blend_set_color_saturation_helper(vec3 minMidMax, float sat) {
+    if (minMidMax.x < minMidMax.z) {
+        return vec3(0.0, (sat * (minMidMax.y - minMidMax.x)) / (minMidMax.z - minMidMax.x), sat);
+    }
+    return vec3(0.0);
+}
+vec3 _blend_set_color_saturation(vec3 hueLumColor, vec3 satColor) {
+    float sat = _blend_color_saturation(satColor);
+    if (hueLumColor.x <= hueLumColor.y) {
+        if (hueLumColor.y <= hueLumColor.z) {
+            hueLumColor.xyz = _blend_set_color_saturation_helper(hueLumColor, sat);
+        } else if (hueLumColor.x <= hueLumColor.z) {
+            hueLumColor.xzy = _blend_set_color_saturation_helper(hueLumColor.xzy, sat);
+        } else {
+            hueLumColor.zxy = _blend_set_color_saturation_helper(hueLumColor.zxy, sat);
+        }
+    } else if (hueLumColor.x <= hueLumColor.z) {
+        hueLumColor.yxz = _blend_set_color_saturation_helper(hueLumColor.yxz, sat);
+    } else if (hueLumColor.y <= hueLumColor.z) {
+        hueLumColor.yzx = _blend_set_color_saturation_helper(hueLumColor.yzx, sat);
+    } else {
+        hueLumColor.zyx = _blend_set_color_saturation_helper(hueLumColor.zyx, sat);
+    }
+    return hueLumColor;
+}
+vec4 blend_hue(vec4 src, vec4 dst) {
+    float alpha = dst.w * src.w;
+    vec3 sda = src.xyz * dst.w;
+    vec3 dsa = dst.xyz * src.w;
+    return vec4((((_blend_set_color_luminance(_blend_set_color_saturation(sda, dsa), alpha, dsa) + dst.xyz) - dsa) + src.xyz) - sda, (src.w + dst.w) - alpha);
+}
+vec4 ComposeTwo_Stage1_c1_c0_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_hue(ConvexPoly_Stage1_c1_c0_c1_c0_c0_c0(inputColor), CircularRRect_Stage1_c1_c0_c1_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 ComposeTwo_Stage1_c1_c0(vec4 _input) {
+    vec4 _output;
+    vec4 inputColor = vec4(_input.xyz, 1.0);
+    _output = blend_hue(ComposeTwo_Stage1_c1_c0_c0_c0(inputColor), ComposeTwo_Stage1_c1_c0_c1_c0(inputColor));
+    _output *= _input.w;
+    return _output;
+}
+vec4 blend_dst_out(vec4 src, vec4 dst) {
+    return (1.0 - src.w) * dst;
+}
+vec4 blend_dst_atop(vec4 src, vec4 dst) {
+    return (1.0 - dst.w) * src + src.w * dst;
+}
+void main() {
+    vec4 outputColor_Stage0;
+    vec4 outputCoverage_Stage0;
+    {
+        outputColor_Stage0 = vinColor_Stage0;
+        vec2 scaledOffset = vEllipseOffsets0_Stage0;
+        float test = dot(scaledOffset, scaledOffset) - 1.0;
+        vec2 duvdx = dFdx(vEllipseOffsets0_Stage0);
+        vec2 duvdy = dFdy(vEllipseOffsets0_Stage0);
+        vec2 grad = vec2(vEllipseOffsets0_Stage0.x * duvdx.x + vEllipseOffsets0_Stage0.y * duvdx.y, vEllipseOffsets0_Stage0.x * duvdy.x + vEllipseOffsets0_Stage0.y * duvdy.y);
+        float grad_dot = 4.0 * dot(grad, grad);
+        grad_dot = max(grad_dot, 1.1754999560161448e-38);
+        float invlen = inversesqrt(grad_dot);
+        float edgeAlpha = clamp(1.0 - test * invlen, 0.0, 1.0);
+        edgeAlpha *= clamp(1.0 + test * invlen, 0.0, 1.0);
+        outputCoverage_Stage0 = vec4(edgeAlpha);
+    }
+    vec4 output_Stage1;
+    {
+        vec4 inputColor = vec4(outputColor_Stage0.xyz, 1.0);
+        output_Stage1 = blend_dst_out(ComposeTwo_Stage1_c0_c0(inputColor), ComposeTwo_Stage1_c1_c0(inputColor));
+        output_Stage1 *= outputColor_Stage0.w;
+    }
+    {
+        if (all(lessThanEqual(outputCoverage_Stage0.xyz, vec3(0.0)))) {
+            discard;
+        }
+        vec2 _dstTexCoord = (gl_FragCoord.xy - uDstTextureUpperLeft_Stage2) * uDstTextureCoordScale_Stage2;
+        vec4 _dstColor = texture(uDstTextureSampler_Stage2, _dstTexCoord);
+        sk_FragColor = blend_dst_atop(output_Stage1, _dstColor);
+        sk_FragColor = outputCoverage_Stage0 * sk_FragColor + (vec4(1.0) - outputCoverage_Stage0) * _dstColor;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+uniform mat3 uViewM_Stage0;
+uniform mat3 uCoordTransformMatrix_0_Stage0;
+uniform mat3 uCoordTransformMatrix_1_Stage0;
+uniform mat3 uCoordTransformMatrix_2_Stage0;
+uniform mat3 uCoordTransformMatrix_3_Stage0;
+in vec2 inPosition;
+in vec4 inColor;
+in vec2 inEllipseOffsets0;
+in vec2 inEllipseOffsets1;
+out vec2 vEllipseOffsets0_Stage0;
+out vec2 vEllipseOffsets1_Stage0;
+out vec4 vinColor_Stage0;
+out vec2 vTransformedCoords_0_Stage0;
+out vec2 vTransformedCoords_1_Stage0;
+out vec2 vTransformedCoords_2_Stage0;
+out vec2 vTransformedCoords_3_Stage0;
+void main() {
+    vEllipseOffsets0_Stage0 = inEllipseOffsets0;
+    vEllipseOffsets1_Stage0 = inEllipseOffsets1;
+    vinColor_Stage0 = inColor;
+    vec3 pos3 = uViewM_Stage0 * vec3(inPosition, 1.0);
+    vTransformedCoords_0_Stage0 = (uCoordTransformMatrix_0_Stage0 * vec3(inPosition, 1.0)).xy;
+    vTransformedCoords_1_Stage0 = (uCoordTransformMatrix_1_Stage0 * vec3(inPosition, 1.0)).xy;
+    vTransformedCoords_2_Stage0 = (uCoordTransformMatrix_2_Stage0 * vec3(inPosition, 1.0)).xy;
+    vTransformedCoords_3_Stage0 = (uCoordTransformMatrix_3_Stage0 * vec3(inPosition, 1.0)).xy;
+    gl_Position = vec4(pos3.x, pos3.y, 0.0, pos3.z);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+

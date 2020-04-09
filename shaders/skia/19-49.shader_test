@@ -1,0 +1,120 @@
+[require]
+GLSL >= 1.40
+
+[fragment shader]
+#version 140
+
+out vec4 sk_FragColor;
+noperspective in vec4 vinCircleEdge_Stage0;
+flat in vec4 vinDashParams_Stage0;
+flat in vec4 vwrapDashes_Stage0;
+flat in float vlastIntervalLength_Stage0;
+flat in vec4 vinColor_Stage0;
+float coverage_from_dash_edge_Stage0(float angleToEdge, float diameter) {
+    float linearDist;
+    angleToEdge = clamp(angleToEdge, -3.1414999961853027, 3.1414999961853027);
+    linearDist = diameter * sin(angleToEdge / 2.0);
+    return clamp(linearDist + 0.5, 0.0, 1.0);
+}
+void main() {
+    vec4 outputColor_Stage0;
+    vec4 outputCoverage_Stage0;
+    {
+        vec4 circleEdge;
+        circleEdge = vinCircleEdge_Stage0;
+        vec4 dashParams;
+        dashParams = vinDashParams_Stage0;
+        vec4 wrapDashes = vwrapDashes_Stage0;
+        float lastIntervalLength = vlastIntervalLength_Stage0;
+        outputColor_Stage0 = vinColor_Stage0;
+        float d = length(circleEdge.xy) * circleEdge.z;
+        float distanceToOuterEdge = circleEdge.z - d;
+        float edgeAlpha = clamp(distanceToOuterEdge, 0.0, 1.0);
+        float distanceToInnerEdge = d - circleEdge.z * circleEdge.w;
+        float innerAlpha = clamp(distanceToInnerEdge, 0.0, 1.0);
+        edgeAlpha *= innerAlpha;
+        float angleFromStart = atan(circleEdge.y, circleEdge.x) - dashParams.z;
+        angleFromStart = mod(angleFromStart, 6.2831854820251465);
+        float x = mod(angleFromStart, dashParams.y);
+        d *= 2.0;
+        vec2 currDash = vec2(-dashParams.w, dashParams.x - dashParams.w);
+        vec2 nextDash = vec2(dashParams.y - dashParams.w, (dashParams.y + dashParams.x) - dashParams.w);
+        vec2 prevDash = vec2(-dashParams.y - dashParams.w, (-dashParams.y + dashParams.x) - dashParams.w);
+        float dashAlpha = 0.0;
+        if ((angleFromStart - x) + dashParams.y >= 6.2831854820251465) {
+            dashAlpha += coverage_from_dash_edge_Stage0(x - wrapDashes.z, d) * coverage_from_dash_edge_Stage0(wrapDashes.w - x, d);
+            currDash.y = min(currDash.y, lastIntervalLength);
+            if (nextDash.x >= lastIntervalLength) {
+                nextDash.xy = vec2(1000.0);
+            } else {
+                nextDash.y = min(nextDash.y, lastIntervalLength);
+            }
+        }
+        if ((angleFromStart - x) - dashParams.y < -0.0099999997764825821) {
+            dashAlpha += coverage_from_dash_edge_Stage0(x - wrapDashes.x, d) * coverage_from_dash_edge_Stage0(wrapDashes.y - x, d);
+            currDash.x = max(currDash.x, 0.0);
+            if (prevDash.y <= 0.0) {
+                prevDash.xy = vec2(1000.0);
+            } else {
+                prevDash.x = max(prevDash.x, 0.0);
+            }
+        }
+        dashAlpha += coverage_from_dash_edge_Stage0(x - currDash.x, d) * coverage_from_dash_edge_Stage0(currDash.y - x, d);
+        dashAlpha += coverage_from_dash_edge_Stage0(x - nextDash.x, d) * coverage_from_dash_edge_Stage0(nextDash.y - x, d);
+        dashAlpha += coverage_from_dash_edge_Stage0(x - prevDash.x, d) * coverage_from_dash_edge_Stage0(prevDash.y - x, d);
+        dashAlpha = min(dashAlpha, 1.0);
+        edgeAlpha *= dashAlpha;
+        outputCoverage_Stage0 = vec4(edgeAlpha);
+    }
+    {
+        sk_FragColor = outputColor_Stage0 * outputCoverage_Stage0;
+    }
+}
+
+[vertex shader]
+#version 140
+
+uniform vec4 sk_RTAdjust;
+in vec2 inPosition;
+in vec4 inColor;
+in vec4 inCircleEdge;
+in vec4 inDashParams;
+noperspective out vec4 vinCircleEdge_Stage0;
+flat out vec4 vinDashParams_Stage0;
+flat out vec4 vwrapDashes_Stage0;
+flat out float vlastIntervalLength_Stage0;
+flat out vec4 vinColor_Stage0;
+void main() {
+    vinCircleEdge_Stage0 = inCircleEdge;
+    vinDashParams_Stage0 = inDashParams;
+    vec4 dashParams = inDashParams;
+    vec4 wrapDashes;
+    float lastIntervalLength = mod(6.2831854820251465, dashParams.y);
+    if (0.0 == lastIntervalLength) {
+        lastIntervalLength = dashParams.y;
+    }
+    float offset = 0.0;
+    if (-dashParams.w >= lastIntervalLength) {
+        offset = -dashParams.y;
+    } else if (dashParams.w > dashParams.y - lastIntervalLength) {
+        offset = dashParams.y;
+    }
+    wrapDashes.x = (-lastIntervalLength + offset) - dashParams.w;
+    wrapDashes.y = min(wrapDashes.x + dashParams.x, 0.0);
+    offset = 0.0;
+    if (dashParams.w >= dashParams.x) {
+        offset = dashParams.y;
+    } else if (-dashParams.w > dashParams.y - dashParams.x) {
+        offset = -dashParams.y;
+    }
+    wrapDashes.z = (lastIntervalLength + offset) - dashParams.w;
+    wrapDashes.w = wrapDashes.z + dashParams.x;
+    wrapDashes.z = max(wrapDashes.z, lastIntervalLength);
+    vwrapDashes_Stage0 = wrapDashes;
+    vlastIntervalLength_Stage0 = lastIntervalLength;
+    vinColor_Stage0 = inColor;
+    vec2 pos2 = inPosition;
+    gl_Position = vec4(pos2.x, pos2.y, 0.0, 1.0);
+    gl_Position = vec4(gl_Position.xy * sk_RTAdjust.xz + gl_Position.ww * sk_RTAdjust.yw, 0.0, gl_Position.w);
+}
+
