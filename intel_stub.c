@@ -280,6 +280,7 @@ ioctl(int fd, unsigned long request, ...)
                         case I915_PARAM_HAS_WAIT_TIMEOUT:
                         case I915_PARAM_HAS_EXEC_NO_RELOC:
                         case I915_PARAM_HAS_CONTEXT_ISOLATION:
+                        case I915_PARAM_SUBSLICE_TOTAL:
                                 *getparam->value = 1;
                                 break;
                         case I915_PARAM_CHIPSET_ID:
