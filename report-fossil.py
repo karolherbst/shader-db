@@ -42,6 +42,7 @@ class Result:
 
     name: str = attr.ib()
     instructions: typing.Optional[int] = attr.ib()
+    sends: typing.Optional[int] = attr.ib()
     loops: typing.Optional[int] = attr.ib()
     cycles: typing.Optional[int] = attr.ib()
     spills: typing.Optional[int] = attr.ib()
@@ -70,6 +71,7 @@ class ResultFactory:
         return Result(
             name=shader_name,
             instructions=get('Instruction Count', int),
+            sends=get('SEND Count', int),
             loops=get('Loop Count', int),
             cycles=get('Cycle Count', int),
             spills=get('Spill Count', int),
@@ -117,13 +119,14 @@ class Diff:
 class Report:
 
     instructions: Diff = attr.ib(factory=lambda: Diff('Instructions'))
+    sends: Diff = attr.ib(factory=lambda: Diff('SENDs'))
     loops: Diff = attr.ib(factory=lambda: Diff('Loops'))
     cycles: Diff = attr.ib(factory=lambda: Diff('Cycles'))
     spills: Diff = attr.ib(factory=lambda: Diff('Spills'))
     fills: Diff = attr.ib(factory=lambda: Diff('Fills'))
 
     def include(self, name: str, d0: Result, d1: Result) -> None:
-        for m in ['instructions', 'loops', 'cycles', 'spills', 'fills']:
+        for m in ['instructions', 'sends', 'loops', 'cycles', 'spills', 'fills']:
             self._include(name, getattr(self, m), getattr(d0, m), getattr(d1, m))
 
     def _include(self, name: str, member: Diff, d0: typing.Optional[int],
