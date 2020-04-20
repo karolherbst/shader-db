@@ -120,3 +120,12 @@ You can then compare two different csv files using the report-fossil.py script:
 
 A fossilize.sh script is provided to assist in capturing fossils, you may
 need to modify it based on where fossil lives on your system.
+
+For steam games, fossils are currently captured automatically.  Once the game
+has been run for a while, you can find the fossils at
+`$HOME/.local/share/Steam/steamapps/shadercache/$APP_ID/fozpipelinesv4/steamapp_pipeline_cache.foz`.
+Note that you need to use the file named `steamapp_pipeline_cache.foz` and not
+the fossil file named `steam_*` because the later one may contain fossilized
+pipelines from other drivers which may use extensions not supported by your
+driver.  The `steamapp_pipeline_cache.foz` file contains only those pipelines
+which have actually been seen during the run on your actual driver.
