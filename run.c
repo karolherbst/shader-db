@@ -846,6 +846,7 @@ main(int argc, char **argv)
             if (type == TYPE_CORE || type == TYPE_COMPAT || type == TYPE_ES) {
                 GLuint prog = glCreateProgram();
                 GLint param;
+                int gl_version = epoxy_gl_version();
 
                 glObjectLabel(GL_PROGRAM, prog, strlen(current_shader_name),
                               current_shader_name);
@@ -858,17 +859,26 @@ main(int argc, char **argv)
                     glShaderSource(s, 1, &shader[i].text, &shader[i].length);
                     glCompileShader(s);
 
-                    glGetShaderiv(s, GL_COMPILE_STATUS, &param);
+                    if (gl_version < 20)
+                        glGetObjectParameterivARB(s, GL_COMPILE_STATUS, &param);
+                    else
+                        glGetShaderiv(s, GL_COMPILE_STATUS, &param);
                     if (unlikely(!param)) {
                         GLchar log[4096];
                         GLsizei length;
-                        glGetShaderInfoLog(s, 4096, &length, log);
+                        if (gl_version < 20)
+                            glGetInfoLogARB(s, 4096, &length, log);
+                        else
+                            glGetShaderInfoLog(s, 4096, &length, log);
 
                         fprintf(stderr, "ERROR: %s failed to compile:\n%s\n",
                                 current_shader_name, log);
                     }
                     glAttachShader(prog, s);
-                    glDeleteShader(s);
+                    if (gl_version < 20)
+                        glDeleteObjectARB(s);
+                    else
+                        glDeleteShader(s);
                 }
 
                 /* takes care of pre-bindings */
@@ -882,11 +892,17 @@ main(int argc, char **argv)
 
                 glLinkProgram(prog);
 
-                glGetProgramiv(prog, GL_LINK_STATUS, &param);
+                if (gl_version < 20)
+                    glGetObjectParameterivARB(prog, GL_LINK_STATUS, &param);
+                else
+                    glGetProgramiv(prog, GL_LINK_STATUS, &param);
                 if (unlikely(!param)) {
                     GLchar log[4096];
                     GLsizei length;
-                    glGetProgramInfoLog(prog, sizeof(log), &length, log);
+                    if (gl_version < 20)
+                        glGetInfoLogARB(prog, 4096, &length, log);
+                    else
+                        glGetProgramInfoLog(prog, sizeof(log), &length, log);
 
                     fprintf(stderr, "ERROR: failed to link program:\n%s\n",
                             log);
@@ -942,7 +958,10 @@ main(int argc, char **argv)
                     free(prog_buf);
                 }
 
-                glDeleteProgram(prog);
+                if (gl_version < 20)
+                    glDeleteObjectARB(prog);
+                else
+                    glDeleteProgram(prog);
             } else {
                 for (unsigned i = 0; i < num_shaders; i++) {
                     GLuint prog;
