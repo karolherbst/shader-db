@@ -23,15 +23,9 @@ CFLAGS ?= -g -O2 -march=native -pipe
 CFLAGS += -std=gnu99 -fopenmp
 LDLIBS = -lepoxy -lgbm
 
-INTEL_STUB_CFLAGS = -g -fPIC -shared -Wall `pkg-config libdrm_intel --cflags`
-INTEL_STUB_LIBS = -ldl
-
-all: intel_stub.so run
-
-intel_stub.so: intel_stub.c
-	$(CC) $(INTEL_STUB_CFLAGS) $< -o $@ $(INTEL_STUB_LIBS)
+all: run
 
 run:
 
 clean:
-	rm -f intel_stub.so run
+	rm -f run

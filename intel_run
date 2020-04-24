@@ -1,5 +1,0 @@
-#!/bin/bash
-# -*- mode: sh -*-
-
-export LD_PRELOAD=${PWD}/intel_stub.so${LD_PRELOAD:+:${LD_PRELOAD}}
-exec $DEBUGGER ./run -o i965 $@

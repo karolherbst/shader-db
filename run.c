@@ -447,7 +447,7 @@ main(int argc, char **argv)
 
     max_threads = omp_get_max_threads();
 
-    while ((opt = getopt(argc, argv, "d:j:o:p:b")) != -1) {
+    while ((opt = getopt(argc, argv, "d:j:o:b")) != -1) {
         switch(opt) {
         case 'd': {
             char *endptr;
@@ -463,10 +463,6 @@ main(int argc, char **argv)
             printf("### Overriding driver for %s ###\n", optarg);
             setenv("MESA_LOADER_DRIVER_OVERRIDE", optarg, 1);
             break;
-        case 'p':
-	    printf("### Compiling for %s ###\n", optarg);
-	    setenv("INTEL_DEVID_OVERRIDE", optarg, 1);
-	    break;
         case 'j':
             max_threads = atoi(optarg);
             omp_set_num_threads(max_threads);
