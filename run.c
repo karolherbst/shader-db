@@ -374,25 +374,6 @@ abort_handler(int signo)
 }
 #pragma GCC diagnostic pop
 
-struct platform {
-    const char *name;
-    const char *pci_id;
-};
-
-const struct platform platforms[] = {
-    "i965", "0x2A02",
-    "g4x",  "0x2A42",
-    "ilk",  "0x0042",
-    "snb",  "0x0126",
-    "ivb",  "0x016a",
-    "hsw",  "0x0D2E",
-    "byt",  "0x0F33",
-    "bdw",  "0x162E",
-    "skl",  "0x191D",
-    "icl",  "0x8A50",
-    "tgl",  "0x9A49",
-};
-
 void print_usage(const char *prog_name)
 {
     fprintf(stderr,
@@ -482,37 +463,10 @@ main(int argc, char **argv)
             printf("### Overriding driver for %s ###\n", optarg);
             setenv("MESA_LOADER_DRIVER_OVERRIDE", optarg, 1);
             break;
-        case 'p': {
-            const struct platform *platform = NULL;
-            for (unsigned i = 0; i < ARRAY_SIZE(platforms); i++) {
-                if (strcasecmp(optarg, platforms[i].name) == 0) {
-                    platform = platforms + i;
-                    break;
-                }
-            }
-
-            if (platform) {
-                printf("### Compiling for %s(PCI_ID=%s) ###\n", platform->name,
-                       platform->pci_id);
-                setenv("INTEL_DEVID_OVERRIDE", platform->pci_id, 1);
-                break;
-            }
-
-            /* Also allow a numeric PCI ID */
-            if (strtol(optarg, NULL, 0) > 0) {
-                setenv("INTEL_DEVID_OVERRIDE", optarg, 1);
-                printf("### Compiling for PCI_ID=%s ###\n", optarg);
-                break;
-            }
-
-            fprintf(stderr, "Invalid platform.\nValid platforms are:");
-            for (unsigned i = 0; i < ARRAY_SIZE(platforms); i++)
-                fprintf(stderr, " %s", platforms[i].name);
-
-            fprintf(stderr, "\n");
-            fprintf(stderr, "Or\nPCI-ID of other supported platform.\n");
-            return -1;
-        }
+        case 'p':
+	    printf("### Compiling for %s ###\n", optarg);
+	    setenv("INTEL_DEVID_OVERRIDE", optarg, 1);
+	    break;
         case 'j':
             max_threads = atoi(optarg);
             omp_set_num_threads(max_threads);
