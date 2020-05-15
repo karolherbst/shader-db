@@ -1,0 +1,240 @@
+[require]
+GLSL >= 1.50
+
+[vertex shader]
+#version 150
+#ifdef GL_ES
+#if __VERSION__ == 300
+#define attribute in
+#define varying out
+#endif // 300
+#else // GL_ES
+#define highp
+#define mediump
+#define lowp
+#if __VERSION__ == 150
+#define attribute in
+#define varying out
+#endif
+#endif // GL_ES
+
+
+/*=========================================================================
+
+  Program:   Visualization Toolkit
+  Module:    vtkPolyDataVS.glsl
+
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+
+attribute vec4 vertexMC;
+
+// frag position in VC
+//VTK::PositionVC::Dec
+
+// optional normal declaration
+//VTK::Normal::Dec
+
+// extra lighting parameters
+//VTK::Light::Dec
+
+// Texture coordinates
+//VTK::TCoord::Dec
+
+// material property values
+//VTK::Color::Dec
+
+// clipping plane vars
+//VTK::Clip::Dec
+
+// camera and actor matrix values
+uniform mat4 MCDCMatrix;
+
+// Apple Bug
+//VTK::PrimID::Dec
+
+// Value raster
+//VTK::ValuePass::Dec
+
+void main()
+{
+  //VTK::Color::Impl
+
+  //VTK::Normal::Impl
+
+  //VTK::TCoord::Impl
+
+  //VTK::Clip::Impl
+
+  //VTK::PrimID::Impl
+
+    gl_Position = MCDCMatrix * vertexMC;
+
+
+  //VTK::ValuePass::Impl
+
+  //VTK::Light::Impl
+}
+
+
+[fragment shader]
+#version 150
+#ifdef GL_ES
+#if __VERSION__ == 300
+#define varying in
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+precision highp sampler2D;
+precision highp sampler3D;
+#else
+precision mediump float;
+precision mediump sampler2D;
+precision mediump sampler3D;
+#endif
+#define texelFetchBuffer texelFetch
+#define texture1D texture
+#define texture2D texture
+#define texture3D texture
+#endif // 300
+#if __VERSION__ == 100
+#extension GL_OES_standard_derivatives : enable
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+#endif // 100
+#else // GL_ES
+#define highp
+#define mediump
+#define lowp
+#if __VERSION__ == 150
+#define varying in
+#define texelFetchBuffer texelFetch
+#define texture1D texture
+#define texture2D texture
+#define texture3D texture
+#endif
+#if __VERSION__ == 120
+#extension GL_EXT_gpu_shader4 : require
+#endif
+#endif // GL_ES
+
+
+/*=========================================================================
+
+  Program:   Visualization Toolkit
+  Module:    vtkPolyDataFS.glsl
+
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+// Template for the polydata mappers fragment shader
+
+uniform int PrimitiveIDOffset;
+
+// VC position of this fragment
+//VTK::PositionVC::Dec
+
+// optional color passed in from the vertex shader, vertexColor
+uniform float opacityUniform; // the fragment opacity
+uniform vec3 ambientColorUniform; // intensity weighted color
+uniform vec3 diffuseColorUniform; // intensity weighted color
+
+
+// optional surface normal declaration
+//VTK::Normal::Dec
+
+// extra lighting parameters
+//VTK::Light::Dec
+
+// Texture coordinates
+//VTK::TCoord::Dec
+
+// picking support
+//VTK::Picking::Dec
+
+// Depth Peeling Support
+//VTK::DepthPeeling::Dec
+
+// clipping plane vars
+//VTK::Clip::Dec
+
+// the output of this shader
+out vec4 fragOutput0;
+
+
+// Apple Bug
+//VTK::PrimID::Dec
+
+// handle coincident offsets
+//VTK::Coincident::Dec
+
+// Value raster
+//VTK::ValuePass::Dec
+
+void main()
+{
+  // VC position of this fragment. This should not branch/return/discard.
+  //VTK::PositionVC::Impl
+
+  // Place any calls that require uniform flow (e.g. dFdx) here.
+  //VTK::UniformFlow::Impl
+
+  // Set gl_FragDepth here (gl_FragCoord.z by default)
+  //VTK::Depth::Impl
+
+  // Early depth peeling abort:
+  //VTK::DepthPeeling::PreColor
+
+  // Apple Bug
+  //VTK::PrimID::Impl
+
+  //VTK::Clip::Impl
+
+  //VTK::ValuePass::Impl
+
+    vec3 ambientColor;
+  vec3 diffuseColor;
+  float opacity;
+  ambientColor = ambientColorUniform;
+  diffuseColor = diffuseColorUniform;
+  opacity = opacityUniform;
+
+
+  // Generate the normal if we are not passed in one
+  //VTK::Normal::Impl
+
+    fragOutput0 = vec4(ambientColor + diffuseColor, opacity);
+  //VTK::Light::Impl
+
+
+  //VTK::TCoord::Impl
+
+  if (fragOutput0.a <= 0.0)
+    {
+    discard;
+    }
+
+  //VTK::DepthPeeling::Impl
+
+  //VTK::Picking::Impl
+
+  // handle coincident offsets
+  //VTK::Coincident::Impl
+}
+
+

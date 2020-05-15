@@ -1,0 +1,297 @@
+[require]
+GLSL >= 1.50
+
+[vertex shader]
+#version 150
+#ifdef GL_ES
+#if __VERSION__ == 300
+#define attribute in
+#define varying out
+#endif // 300
+#else // GL_ES
+#define highp
+#define mediump
+#define lowp
+#if __VERSION__ == 150
+#define attribute in
+#define varying out
+#endif
+#endif // GL_ES
+
+
+/*=========================================================================
+
+  Program:   Visualization Toolkit
+  Module:    vtkPolyDataVS.glsl
+
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+
+attribute vec4 vertexMC;
+
+// frag position in VC
+varying vec4 vertexVCVSOutput;
+
+// optional normal declaration
+attribute vec3 normalMC;
+uniform mat3 normalMatrix;
+varying vec3 normalVCVSOutput;
+
+// extra lighting parameters
+//VTK::Light::Dec
+
+// Texture coordinates
+attribute vec2 tcoordMC;
+varying vec2 tcoordVCVSOutput;
+
+// material property values
+//VTK::Color::Dec
+
+// clipping plane vars
+//VTK::Clip::Dec
+
+// camera and actor matrix values
+uniform mat4 MCDCMatrix;
+uniform mat4 MCVCMatrix;
+
+// Apple Bug
+//VTK::PrimID::Dec
+
+// Value raster
+//VTK::ValuePass::Dec
+
+void main()
+{
+  //VTK::Color::Impl
+
+  normalVCVSOutput = normalMatrix * normalMC;
+
+  tcoordVCVSOutput = tcoordMC;
+
+  //VTK::Clip::Impl
+
+  //VTK::PrimID::Impl
+
+  vertexVCVSOutput = MCVCMatrix * vertexMC;
+  gl_Position = MCDCMatrix * vertexMC;
+
+
+  //VTK::ValuePass::Impl
+
+  //VTK::Light::Impl
+}
+
+
+[fragment shader]
+#version 150
+#ifdef GL_ES
+#if __VERSION__ == 300
+#define varying in
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+precision highp sampler2D;
+precision highp sampler3D;
+#else
+precision mediump float;
+precision mediump sampler2D;
+precision mediump sampler3D;
+#endif
+#define texelFetchBuffer texelFetch
+#define texture1D texture
+#define texture2D texture
+#define texture3D texture
+#endif // 300
+#if __VERSION__ == 100
+#extension GL_OES_standard_derivatives : enable
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+#endif // 100
+#else // GL_ES
+#define highp
+#define mediump
+#define lowp
+#if __VERSION__ == 150
+#define varying in
+#define texelFetchBuffer texelFetch
+#define texture1D texture
+#define texture2D texture
+#define texture3D texture
+#endif
+#if __VERSION__ == 120
+#extension GL_EXT_gpu_shader4 : require
+#endif
+#endif // GL_ES
+
+
+/*=========================================================================
+
+  Program:   Visualization Toolkit
+  Module:    vtkPolyDataFS.glsl
+
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+// Template for the polydata mappers fragment shader
+
+uniform int PrimitiveIDOffset;
+
+// VC position of this fragment
+varying vec4 vertexVCVSOutput;
+
+// optional color passed in from the vertex shader, vertexColor
+uniform bool OverridesColor;
+uniform float opacityUniform; // the fragment opacity
+uniform vec3 ambientColorUniform; // intensity weighted color
+uniform vec3 diffuseColorUniform; // intensity weighted color
+uniform vec3 specularColorUniform; // intensity weighted color
+uniform float specularPowerUniform;
+
+
+// optional surface normal declaration
+varying vec3 normalVCVSOutput;
+
+// extra lighting parameters
+uniform vec3 lightColor0;
+  uniform vec3 lightDirectionVC0; // normalized
+uniform vec3 lightColor1;
+  uniform vec3 lightDirectionVC1; // normalized
+uniform vec3 lightColor2;
+  uniform vec3 lightDirectionVC2; // normalized
+uniform vec3 lightColor3;
+  uniform vec3 lightDirectionVC3; // normalized
+uniform vec3 lightColor4;
+  uniform vec3 lightDirectionVC4; // normalized
+
+
+// Texture coordinates
+varying vec2 tcoordVCVSOutput;
+uniform sampler2D texture_0;
+
+
+// picking support
+//VTK::Picking::Dec
+
+// Depth Peeling Support
+//VTK::DepthPeeling::Dec
+
+// clipping plane vars
+//VTK::Clip::Dec
+
+// the output of this shader
+out vec4 fragOutput0;
+
+
+// Apple Bug
+//VTK::PrimID::Dec
+
+// handle coincident offsets
+uniform float coffset;
+
+// Value raster
+//VTK::ValuePass::Dec
+
+void main()
+{
+  // VC position of this fragment. This should not branch/return/discard.
+  vec4 vertexVC = vertexVCVSOutput;
+
+  // Place any calls that require uniform flow (e.g. dFdx) here.
+  //VTK::UniformFlow::Impl
+
+  // Set gl_FragDepth here (gl_FragCoord.z by default)
+  gl_FragDepth = gl_FragCoord.z + 0.000016*coffset;
+
+
+  // Early depth peeling abort:
+  //VTK::DepthPeeling::PreColor
+
+  // Apple Bug
+  //VTK::PrimID::Impl
+
+  //VTK::Clip::Impl
+
+  //VTK::ValuePass::Impl
+
+    vec3 ambientColor;
+  vec3 diffuseColor;
+  float opacity;
+  vec3 specularColor;
+  float specularPower;
+  ambientColor = ambientColorUniform;
+  diffuseColor = diffuseColorUniform;
+  opacity = opacityUniform;
+  specularColor = specularColorUniform;
+  specularPower = specularPowerUniform;
+  vec4 texColor = texture2D(texture_0, tcoordVCVSOutput.st);
+  diffuseColor = texColor.rgb;
+  opacity = opacity*texColor.a;
+  if (OverridesColor) {
+    ambientColor = ambientColorUniform;
+    diffuseColor = diffuseColorUniform; }
+
+
+  // Generate the normal if we are not passed in one
+  vec3 normalVCVSOutput = normalize(normalVCVSOutput);
+  if (gl_FrontFacing == false) { normalVCVSOutput = -normalVCVSOutput; }
+
+
+    vec3 diffuse = vec3(0,0,0);
+  vec3 specular = vec3(0,0,0);
+  float df;
+  float sf;
+    df = max(0.0, dot(normalVCVSOutput, -lightDirectionVC0));
+  diffuse += (df * lightColor0);
+  sf = sign(df)*pow(max(0.0, dot( reflect(lightDirectionVC0, normalVCVSOutput), normalize(-vertexVC.xyz))), specularPower);
+  specular += (sf * lightColor0);
+    df = max(0.0, dot(normalVCVSOutput, -lightDirectionVC1));
+  diffuse += (df * lightColor1);
+  sf = sign(df)*pow(max(0.0, dot( reflect(lightDirectionVC1, normalVCVSOutput), normalize(-vertexVC.xyz))), specularPower);
+  specular += (sf * lightColor1);
+    df = max(0.0, dot(normalVCVSOutput, -lightDirectionVC2));
+  diffuse += (df * lightColor2);
+  sf = sign(df)*pow(max(0.0, dot( reflect(lightDirectionVC2, normalVCVSOutput), normalize(-vertexVC.xyz))), specularPower);
+  specular += (sf * lightColor2);
+    df = max(0.0, dot(normalVCVSOutput, -lightDirectionVC3));
+  diffuse += (df * lightColor3);
+  sf = sign(df)*pow(max(0.0, dot( reflect(lightDirectionVC3, normalVCVSOutput), normalize(-vertexVC.xyz))), specularPower);
+  specular += (sf * lightColor3);
+    df = max(0.0, dot(normalVCVSOutput, -lightDirectionVC4));
+  diffuse += (df * lightColor4);
+  sf = sign(df)*pow(max(0.0, dot( reflect(lightDirectionVC4, normalVCVSOutput), normalize(-vertexVC.xyz))), specularPower);
+  specular += (sf * lightColor4);
+  diffuse = diffuse * diffuseColor;
+  specular = specular * specularColor;
+  fragOutput0 = vec4(ambientColor + diffuse + specular, opacity);  //VTK::Light::Impl
+
+  //VTK::TCoord::Impl
+
+  if (fragOutput0.a <= 0.0)
+    {
+    discard;
+    }
+
+  //VTK::DepthPeeling::Impl
+
+  //VTK::Picking::Impl
+
+  // handle coincident offsets
+  //VTK::Coincident::Impl
+}
+
+
