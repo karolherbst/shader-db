@@ -7,6 +7,8 @@ import statistics
 from scipy import stats
 import numpy as np
 
+def higher_is_better(m):
+    return m == "threads"
 
 def get_results(filename, args):
     file = open(filename, "r")
@@ -225,9 +227,7 @@ def main():
                 affected_before[m] += before_count
                 affected_after[m] += after_count
 
-                higher_is_better = m == "threads"
-
-                if (after_count > before_count) ^ higher_is_better:
+                if (after_count > before_count) ^ higher_is_better(m):
                     hurt.append(p)
                 else:
                     helped.append(p)
@@ -362,7 +362,7 @@ def main():
                     print("Inconclusive result (%-change mean confidence interval includes 0).")
                 elif (confidence_interval[m][0][1] < 0) != (confidence_interval[m][1][1] < 0):
                     print("Inconclusive result (value mean confidence interval and %-change mean confidence interval disagree).")
-                elif confidence_interval[m][0][1] < 0:
+                elif (confidence_interval[m][0][1] < 0) ^ higher_is_better(m):
                     print("{} are helped.".format(m.capitalize()))
                 else:
                     print("{} are HURT.".format(m.capitalize()))
