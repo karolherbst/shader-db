@@ -10,9 +10,11 @@ although the order of the fields after the dash does not matter, and all
 fields, except for the type, are optional.
 """
 
+from __future__ import print_function
 import re
 import sys
 
+attrs = ("inst", "gpr", "local", "shared", "bytes")
 
 def getgroupvalue(m, groupname):
     if not m[groupname]:
@@ -23,60 +25,38 @@ def getgroupvalue(m, groupname):
 class Stat(object):
 
     def __init__(self, m=None):
-        if m:
-            self.local = getgroupvalue(m, "local")
-            self.shared = getgroupvalue(m, "shared")
-            self.gpr = getgroupvalue(m, "gpr")
-            self.inst = getgroupvalue(m, "inst")
-            self.bytes = getgroupvalue(m, "bytes")
-        else:
-            self.local = 0
-            self.shared = 0
-            self.gpr = 0
-            self.inst = 0
-            self.bytes = 0
+        self.vals = dict.fromkeys(attrs, 0)
+        for v in attrs:
+            self.vals[v] = getgroupvalue(m, v) if m else 0
 
     def __eq__(self, other):
-        return (self.local == other.local and
-                self.shared == other.shared and
-                self.gpr == other.gpr and
-                self.inst == other.inst and
-                self.bytes == other.bytes)
+        return self.vals == other.vals
 
 class Stats(object):
 
     def __init__(self):
         self.stats = {}
-        self.local = 0
-        self.shared = 0
-        self.gpr = 0
-        self.inst = 0
-        self.bytes = 0
+        self.vals = dict.fromkeys(attrs, 0)
 
     def record(self, name, stat):
         assert name not in self.stats, name
         self.stats[name] = stat
-        for attr in ("local", "shared", "gpr", "inst", "bytes"):
-            setattr(self, attr, getattr(self, attr) + getattr(stat, attr))
+        for attr in attrs:
+            self.vals[attr] += stat.vals[attr]
 
-RE = {
-        "name":   re.compile(r"^(.*) - "),
-        "type":   re.compile(r"type: (\d+)"),
-        "local":  re.compile(r"local: (\d+)"),
-        "shared": re.compile(r"shared: (\d+)"),
-        "gpr":    re.compile(r"gpr: (\d+)"),
-        "inst":   re.compile(r"inst: (\d+)"),
-        "bytes":  re.compile(r"bytes: (\d+)")
-}
+RE = dict((k, re.compile(regex)) for k, regex in
+    [("name", r"^(.*) - ")] +
+    [(a, r"%s: (\d+)" % a) for a in ("type",) + attrs]
+)
 
 def analyze(fname):
     stats = Stats()
     with open(fname, "r") as f:
-        for line in f.xreadlines():
+        for line in f:
             if line.startswith("Thread "):
                 continue
             m = {}
-            for attr in ("name", "type", "local", "shared", "gpr", "inst", "bytes"):
+            for attr in ("name", "type") + attrs:
                 m[attr] = RE[attr].search(line)
             assert m["name"], line
             assert m["type"], line
@@ -103,37 +83,27 @@ def main(argv):
     hurt = Stat()
     for key in keys:
         if key not in after.stats or key not in before.stats:
-            print "Missing", key
+            print("Missing", key)
             continue
         a = after.stats[key]
         b = before.stats[key]
         if a != b:
-            for attr in ("local", "shared", "gpr", "inst", "bytes"):
-                aa = getattr(a, attr)
-                ba = getattr(b, attr)
+            for attr in attrs:
+                aa = a.vals[attr]
+                ba = b.vals[attr]
                 if aa == ba:
                     continue
                 if aa < ba:
-                    setattr(helped, attr,
-                            getattr(helped, attr) + 1)
+                    helped.vals[attr] += 1
                 else:
-                    setattr(hurt, attr,
-                            getattr(hurt, attr) + 1)
+                    hurt.vals[attr] += 1
 
-    print "total instructions in shared programs :", diff(before.inst, after.inst)
-    print "total gprs used in shared programs    :", diff(before.gpr, after.gpr)
-    print "total shared used in shared programs  :", diff(before.shared, after.shared)
-    print "total local used in shared programs   :", diff(before.local, after.local)
-    print
-    print "%10s %10s %10s %10s %10s %10s " % ("", "local", "shared", "gpr", "inst", "bytes")
-    print "%10s " % "helped",
-    for attr in ("local", "shared", "gpr", "inst", "bytes"):
-        print "%10d " % getattr(helped, attr),
-    print
-    print "%10s " % "hurt",
-    for attr in ("local", "shared", "gpr", "inst", "bytes"):
-        print "%10d " % getattr(hurt, attr),
-
+    for attr in attrs:
+        print("total %s in shared programs :" % attr, diff(before.vals[attr], after.vals[attr]))
+    print()
+    print("%10s " * (len(attrs) + 1) % (("",) + attrs))
+    print(("%10s " + "%10d " * len(attrs)) % (("helped",) + tuple(helped.vals[v] for v in attrs)))
+    print(("%10s " + "%10d " * len(attrs)) % (("hurt",) + tuple(hurt.vals[v] for v in attrs)))
 
 if __name__ == "__main__":
     main(sys.argv)
