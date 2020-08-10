@@ -14,7 +14,7 @@ from __future__ import print_function
 import re
 import sys
 
-attrs = ("inst", "gpr", "ugpr", "local", "shared", "bytes")
+attrs = ("inst", "gpr", "ugpr", "local", "shared", "bytes", "cached")
 
 def getgroupvalue(m, groupname):
     if not m[groupname]:
